@@ -1,85 +1,77 @@
 #include "lang.hpp"
 
+#include <eigen3/Eigen/Core>
 #include <ostream>
 #include <stdexcept>
 #include <z3++.h>
 
+using Eigen::Vector3i;
 using z3::expr;
 
-Quantity::Quantity(expr expression, int length_exponent, int time_exponent,
-                   int mass_exponent)
-    : m_expression(expression), m_length_exponent(length_exponent),
-      m_time_exponent(time_exponent), m_mass_exponent(mass_exponent) {
+Quantity::Quantity(expr expression, Vector3i dimensionality)
+    : m_expression(expression), dimensionality_(dimensionality) {
   if (!expression.is_arith()) {
     throw std::invalid_argument("quantity must be an arithmetic expression");
   }
 }
 
-expr Quantity::expression() const { return this->m_expression; }
+Quantity::Quantity(expr expression, int length_exponent, int time_exponent,
+                   int mass_exponent)
+    : Quantity(expression, {length_exponent, time_exponent, mass_exponent}) {}
 
-int Quantity::length_exponent() const { return this->m_length_exponent; }
+expr Quantity::expression() const { return m_expression; }
 
-int Quantity::time_exponent() const { return this->m_time_exponent; }
+Vector3i Quantity::dimensionality() const { return dimensionality_; }
 
-int Quantity::mass_exponent() const { return this->m_time_exponent; }
+int Quantity::length_exponent() const { return dimensionality_[0]; }
+
+int Quantity::time_exponent() const { return dimensionality_[1]; }
+
+int Quantity::mass_exponent() const { return dimensionality_[2]; }
 
 // Does this actually work?
 bool Quantity::operator==(Quantity that) const {
-  return this->has_same_dimensionality_as(that) &&
-         this->expression().to_string() == that.expression().to_string();
+  return has_same_dimensionality_as(that) &&
+         expression().to_string() == that.expression().to_string();
 }
 
 Quantity Quantity::operator+(Quantity that) const {
-  if (!this->has_same_dimensionality_as(that)) {
+  if (!has_same_dimensionality_as(that)) {
     throw std::invalid_argument(
-        "added quantites must have the same dimensionalities");
+        "added quantities must have the same dimensionalities");
   }
-  return Quantity(
-      /* expression: */ this->expression() + that.expression(),
-      /* length exponent: */ this->length_exponent(),
-      /* time exponent: */ this->time_exponent(),
-      /* mass exponent: */ this->mass_exponent());
+  return Quantity(expression() + that.expression(), dimensionality());
 }
 
 Quantity Quantity::operator-(Quantity that) const {
-  if (!this->has_same_dimensionality_as(that)) {
+  if (!has_same_dimensionality_as(that)) {
     throw std::invalid_argument(
-        "subtracted quantites must have the same dimensionalities");
+        "subtracted quantities must have the same dimensionalities");
   }
-  return Quantity(
-      /* expression: */ this->expression() - that.expression(),
-      /* length exponent: */ this->length_exponent(),
-      /* time exponent: */ this->time_exponent(),
-      /* mass exponent: */ this->mass_exponent());
+  return Quantity(expression() - that.expression(), dimensionality());
 }
 
 Quantity Quantity::operator*(Quantity that) const {
-  return Quantity(
-      /* expression: */ this->expression() * that.expression(),
-      /* length exponent: */ this->length_exponent() + that.length_exponent(),
-      /* time exponent: */ this->time_exponent() + that.time_exponent(),
-      /* mass exponent: */ this->mass_exponent() + that.mass_exponent());
+  return Quantity(expression() * that.expression(),
+                  dimensionality() + that.dimensionality());
 }
 
 Quantity Quantity::operator/(Quantity that) const {
-  return Quantity(
-      /* expression: */ this->expression() / that.expression(),
-      /* length exponent: */ this->length_exponent() - that.length_exponent(),
-      /* time exponent: */ this->time_exponent() - that.time_exponent(),
-      /* mass exponent: */ this->mass_exponent() - that.mass_exponent());
+  return Quantity(expression() / that.expression(),
+                  dimensionality() - that.dimensionality());
 }
 
 bool Quantity::has_same_dimensionality_as(Quantity &that) const {
-  return this->length_exponent() == that.length_exponent() &&
-         this->time_exponent() == that.time_exponent() &&
-         this->mass_exponent() == that.time_exponent();
+  return dimensionality() == that.dimensionality();
+}
+
+bool Quantity::dimensionality_is(Vector3i other_dimensionality) const {
+  return dimensionality() == other_dimensionality;
 }
 
 bool Quantity::dimensionality_is(int length_exponent, int time_exponent,
                                  int mass_exponent) const {
-  return this->length_exponent() == length_exponent &&
-         this->time_exponent() == time_exponent &&
-         this->mass_exponent() == mass_exponent;
+  return dimensionality_is({length_exponent, time_exponent, mass_exponent});
 }
 
 // TODO: make this nicer, like 5 m/s
@@ -87,23 +79,4 @@ std::ostream &operator<<(std::ostream &os, const Quantity &q) {
   os << q.expression().to_string() << " [" << q.length_exponent() << ", "
      << q.time_exponent() << ", " << q.mass_exponent() << "]";
   return os;
-}
-
-Vector2D::Vector2D(Quantity x, Quantity y) : m_x(x), m_y(y) {}
-
-Quantity Vector2D::x() const { return this->m_x; }
-
-Quantity Vector2D::y() const { return this->m_y; }
-
-// Does this actually work? It /seems/ to.
-bool Vector2D::operator==(Vector2D that) const {
-  return this->x() == that.x() && this->y() == that.y();
-}
-
-Vector2D Vector2D::operator+(Vector2D that) const {
-  return Vector2D(this->x() + that.x(), this->y() + that.y());
-}
-
-Quantity Vector2D::operator*(Vector2D that) const {
-  return this->x() * that.x() + this->y() * that.y();
 }

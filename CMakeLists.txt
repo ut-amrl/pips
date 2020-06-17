@@ -2,7 +2,7 @@ project(c++-pips)
 cmake_minimum_required(VERSION 3.16.3)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/modules/")
 
-#find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 find_package(Z3 REQUIRED)
 include_directories(${Z3_INCLUDE_DIRS})

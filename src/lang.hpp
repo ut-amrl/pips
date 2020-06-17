@@ -1,13 +1,18 @@
 #pragma once
 
+#include <eigen3/Eigen/Core>
 #include <ostream>
 #include <z3++.h>
 
+class Parameter {};
+
 class Quantity {
 public:
+  Quantity(z3::expr expression, Eigen::Vector3i dimensionality);
   Quantity(z3::expr expression, int length_exponent, int time_exponent,
            int mass_exponent);
   z3::expr expression() const;
+  Eigen::Vector3i dimensionality() const;
   int length_exponent() const;
   int time_exponent() const;
   int mass_exponent() const;
@@ -19,15 +24,13 @@ public:
   Quantity operator/(Quantity that) const;
 
   bool has_same_dimensionality_as(Quantity &that) const;
+  bool dimensionality_is(Eigen::Vector3i dimensionality) const;
   bool dimensionality_is(int length_exponent, int time_exponent,
                          int mass_exponent) const;
 
 private:
   const z3::expr m_expression;
-  // Store in vector type maybe?
-  const int m_length_exponent;
-  const int m_time_exponent;
-  const int m_mass_exponent;
+  const Eigen::Vector3i dimensionality_;
 };
 
 std::ostream &operator<<(std::ostream &os, const Quantity &q);
@@ -50,19 +53,3 @@ struct Eigen::NumTraits<Quantity> : Eigen::GenericNumTraits<Quantity> {
   };
 };
 */
-
-class Vector2D {
-public:
-  Vector2D(Quantity x, Quantity y);
-  Quantity x() const;
-  Quantity y() const;
-
-  bool operator==(Vector2D that) const;
-  Vector2D operator+(Vector2D that) const;
-  Vector2D operator-(Vector2D that) const;
-  Quantity operator*(Vector2D that) const;
-
-private:
-  const Quantity m_x;
-  const Quantity m_y;
-};
