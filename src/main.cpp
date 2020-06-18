@@ -1,51 +1,38 @@
 #include <iostream>
-#include <z3++.h>
+#include <memory>
 
-#include "lang.hpp"
+#include "ast.hpp"
 
+using AST::ast_ptr;
+using AST::BinOp;
+using AST::Num;
 using std::cout;
 using std::endl;
-using z3::context;
-using z3::expr;
-using z3::sat;
-using z3::solver;
-using z3::unknown;
-using z3::unsat;
+using std::make_shared;
+
+void PrintAST(ast_ptr root) {
+  AST::Print printer;
+  root->Accept(&printer);
+  printer.Display();
+}
 
 int main() {
-
-  context c;
-  const expr a = c.real_const("a");
-  const expr b = c.real_const("b");
-  const expr solveme = (((a * a) + (b * b)) == 1);
-
-  const Quantity aq = Quantity(a, 1, -1, 0);
-  const Quantity bq = Quantity(b, 1, -1, 0);
-  const Quantity result = aq + bq;
-
-  cout << "Here's what printing a quantity looks like: " << result << endl;
-  cout << "and here's the underlying expression: " << result.expression()
-       << endl;
-  cout << "Is this quantity equal to a similar one?: "
-       << (result == Quantity(a, 1, -1, 0) + Quantity(b, 1, -1, 0)) << endl;
-
-  solver s(c);
-  s.add(solveme);
-
-  // cout << s << endl;
-  // cout << s.to_smt2() << endl;
-
-  switch (s.check()) {
-  case unsat:
-    cout << "invalid" << endl;
-    break;
-  case sat:
-    cout << "valid" << endl;
-    break;
-  case unknown:
-    cout << "unknown" << endl;
-    break;
-  }
-
-  return EXIT_SUCCESS;
+  Num five(5, {1, 0, 0});
+  Num seven(7, {1, 0, 0});
+  BinOp adder(make_shared<Num>(five), make_shared<Num>(seven), "Plus");
+  BinOp upper(make_shared<Num>(seven), make_shared<BinOp>(adder), "Plus");
+  AST::Print printer;
+  five.Accept(&printer);
+  printer.Display();
+  seven.Accept(&printer);
+  printer.Display();
+  adder.Accept(&printer);
+  printer.Display();
+  upper.Accept(&printer);
+  printer.Display();
+  AST::Interp interpreter;
+  ast_ptr five_result = five.Accept(&interpreter);
+  PrintAST(five_result);
+  PrintAST(adder.Accept(&interpreter));
+  PrintAST(upper.Accept(&interpreter));
 }

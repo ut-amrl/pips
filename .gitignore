@@ -1,2 +1,9 @@
-build/
-.vscode/
+bin
+build
+lib
+compile_commands.json
+.clangd/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
