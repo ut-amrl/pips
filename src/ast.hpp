@@ -12,14 +12,21 @@ namespace AST {
 enum Type { NODE, NUM, VECTOR, OP };
 
 // useful typedef for tracking purpose
-typedef Eigen::Vector3i dim;
+typedef Eigen::Vector3i Dimension;
+
+struct Example {
+  std::map<std::string, float> table_;
+  float num_result_;
+  bool bool_result_;
+  std::string state_result_;
+};
 
 class AST {
  public:
-  AST(Eigen::Vector3i dims, Type type);
+  AST(Dimension dims, Type type);
   virtual std::shared_ptr<AST> Accept(class Visitor* v) = 0;
   virtual ~AST() = 0;
-  dim dims_;
+  Dimension dims_;
   Type type_;
 
  private:
@@ -30,7 +37,7 @@ typedef std::shared_ptr<AST> ast_ptr;
 
 class Num : public AST, public std::enable_shared_from_this<Num> {
  public:
-  Num(const float& value, Eigen::Vector3i dims);
+  Num(const float& value, Dimension dims);
   ast_ptr Accept(class Visitor* v);
   float value_;
 
@@ -41,6 +48,8 @@ typedef std::shared_ptr<Num> num_ptr;
 class UnOp : public AST {
  public:
   UnOp(ast_ptr input, const std::string& op);
+  UnOp(ast_ptr input, const std::string& op, const Type& type,
+       const Dimension& dim);
   ast_ptr Accept(class Visitor* v);
   ast_ptr input_;
   const std::string op_;
@@ -53,6 +62,8 @@ typedef std::shared_ptr<UnOp> un_ptr;
 class BinOp : public AST {
  public:
   BinOp(ast_ptr left, ast_ptr right, const std::string& op);
+  BinOp(ast_ptr left, ast_ptr right, const std::string& op, const Type& type,
+        const Dimension& dim);
   ast_ptr Accept(class Visitor* v);
   ast_ptr left_;
   ast_ptr right_;
@@ -73,12 +84,15 @@ class Visitor {
 
 class Interp : public Visitor {
  public:
+  Interp();
+  Interp(const Example& world);
   ast_ptr Visit(AST* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
 
  private:
+  Example world_;
 };
 
 class Print : public Visitor {
@@ -96,31 +110,18 @@ class Print : public Visitor {
 
 struct FunctionSig {
   std::vector<Type> input_types_;
-  std::vector<dim> input_dims_;
+  std::vector<Dimension> input_dims_;
   Type output_type_;
-  dim output_dim_;
+  Dimension output_dim_;
 };
 
 struct FunctionEntry {
   std::string op_;
   std::vector<Type> input_types_;
-  std::vector<Eigen::Vector3i> input_dims_;
+  std::vector<Dimension> input_dims_;
   Type output_type_;
-  dim output_dim_;
+  Dimension output_dim_;
 };
-
-// class Enumerate : public Visitor {
-// public:
-// ast_ptr Visit(AST* node);
-// ast_ptr Visit(BinOp* node);
-// ast_ptr Visit(Num* node);
-
-// private:
-// std::string program_ = "";
-// std::vector<ast_ptr> features_;
-// std::vector<float> num_sigs_;
-// std::vector<FunctionEntry> library_;
-// };
 
 template <typename T>
 bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
@@ -137,6 +138,16 @@ bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
 std::vector<ast_ptr> GetLegalOps(ast_ptr node, std::vector<ast_ptr> input,
                                  const std::vector<FunctionEntry>& library);
 
-}  // namespace AST
+std::vector<ast_ptr> Enumerate(const std::vector<ast_ptr>& roots,
+                               const std::vector<ast_ptr>& inputs,
+                               const std::vector<FunctionEntry>& library);
 
+std::vector<ast_ptr> RecEnumerate(const std::vector<ast_ptr>& roots,
+                                  const std::vector<ast_ptr>& inputs,
+                                  const std::vector<Example>& examples,
+                                  const std::vector<FunctionEntry>& library,
+                                  const int depth,
+                                  std::vector<std::vector<float>>* signatures);
+
+}  // namespace AST
 #endif  // SRC_AST_HPP
