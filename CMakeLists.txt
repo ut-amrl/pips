@@ -39,6 +39,7 @@ set(CXX_PIPS_SRCS
     src/main.cpp)
 add_executable(test ${CXX_PIPS_SRCS})
 target_link_libraries(test ${libs})
+target_link_libraries(test ${Z3_LIBRARIES})
 
 include_directories(src)
 set(CXX_PIPS_TEST_SRCS
