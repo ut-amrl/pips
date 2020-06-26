@@ -1,13 +1,14 @@
 #pragma once
 
+#include <z3++.h>
+
 #include <eigen3/Eigen/Core>
 #include <ostream>
-#include <z3++.h>
 
 class Parameter {};
 
 class Quantity {
-public:
+ public:
   Quantity(z3::expr expression, Eigen::Vector3i dimensionality);
   Quantity(z3::expr expression, int length_exponent, int time_exponent,
            int mass_exponent);
@@ -28,7 +29,7 @@ public:
   bool dimensionality_is(int length_exponent, int time_exponent,
                          int mass_exponent) const;
 
-private:
+ private:
   const z3::expr m_expression;
   const Eigen::Vector3i dimensionality_;
 };

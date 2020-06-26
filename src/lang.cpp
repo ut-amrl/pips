@@ -1,9 +1,10 @@
 #include "lang.hpp"
 
+#include <z3++.h>
+
 #include <eigen3/Eigen/Core>
 #include <ostream>
 #include <stdexcept>
-#include <z3++.h>
 
 using Eigen::Vector3i;
 using z3::expr;
