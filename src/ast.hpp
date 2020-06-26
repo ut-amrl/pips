@@ -9,7 +9,7 @@
 
 namespace AST {
 
-enum Type { NODE, NUM, VECTOR, OP };
+enum Type { NODE, VAR, NUM, VECTOR, OP };
 
 // useful typedef for tracking purpose
 typedef Eigen::Vector3i Dimension;
@@ -23,21 +23,29 @@ struct Example {
 
 class AST {
  public:
-  AST(Dimension dims, Type type);
+  AST(const Dimension& dims, const Type& type);
   virtual std::shared_ptr<AST> Accept(class Visitor* v) = 0;
   virtual ~AST() = 0;
-  Dimension dims_;
-  Type type_;
+  const Dimension dims_;
+  const Type type_;
 
  private:
 };
-
-// TypeDef makes life easier
 typedef std::shared_ptr<AST> ast_ptr;
 
-class Num : public AST, public std::enable_shared_from_this<Num> {
+class Var : public AST {
  public:
-  Num(const float& value, Dimension dims);
+  Var(const std::string& name, const Dimension& dims, const Type& type);
+  ast_ptr Accept(class Visitor* v);
+  const std::string name_;
+
+ private:
+};
+typedef std::shared_ptr<Var> var_ptr;
+
+class Num : public AST {
+ public:
+  Num(const float& value, const Dimension& dims);
   ast_ptr Accept(class Visitor* v);
   float value_;
 
@@ -77,6 +85,7 @@ typedef std::shared_ptr<BinOp> bin_ptr;
 class Visitor {
  public:
   virtual ast_ptr Visit(AST* node) = 0;
+  virtual ast_ptr Visit(Var* node) = 0;
   virtual ast_ptr Visit(Num* node) = 0;
   virtual ast_ptr Visit(UnOp* node) = 0;
   virtual ast_ptr Visit(BinOp* node) = 0;
@@ -87,6 +96,7 @@ class Interp : public Visitor {
   Interp();
   Interp(const Example& world);
   ast_ptr Visit(AST* node);
+  ast_ptr Visit(Var* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
@@ -98,6 +108,7 @@ class Interp : public Visitor {
 class Print : public Visitor {
  public:
   ast_ptr Visit(AST* node);
+  ast_ptr Visit(Var* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
   ast_ptr Visit(Num* node);

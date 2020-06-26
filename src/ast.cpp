@@ -16,11 +16,14 @@ using std::vector;
 namespace AST {
 
 // Constructors
-AST::AST(Vector3i dims, Type type) : dims_(dims), type_(type) {}
+AST::AST(const Dimension& dims, const Type& type) : dims_(dims), type_(type) {}
 
 AST::~AST(){};
 
-Num::Num(const float& value, const Vector3i dims)
+Var::Var(const string& name, const Dimension& dims, const Type& type)
+    : AST(dims, type), name_(name) {}
+
+Num::Num(const float& value, const Dimension& dims)
     : AST(dims, NUM), value_(value) {}
 
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op)
@@ -38,17 +41,26 @@ UnOp::UnOp(ast_ptr input, const string& op, const Type& type,
     : AST(dim, type), input_(input), op_(op) {}
 
 // Necessary to get the visitor pattern working
+ast_ptr Var::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Num::Accept(class Visitor* v) { return v->Visit(this); }
-
 ast_ptr AST::Accept(class Visitor* v) { return v->Visit(this); }
-
 ast_ptr BinOp::Accept(class Visitor* v) { return v->Visit(this); }
-
 ast_ptr UnOp::Accept(class Visitor* v) { return v->Visit(this); }
 // End Casting Calls
 
 // Print Visitor
 ast_ptr Print::Visit(AST* node) { return ast_ptr(node); }
+
+ast_ptr Print::Visit(Var* node) {
+  program_ += node->name_;
+  if (depth_ == 0) {
+    program_ += " [" + to_string(node->dims_[0]) + ", " +
+                to_string(node->dims_[1]) + ", " + to_string(node->dims_[2]) +
+                " ]";
+  }
+  depth_++;
+  return make_shared<Var>(*node);
+}
 
 ast_ptr Print::Visit(Num* node) {
   program_ += to_string(node->value_);
@@ -131,6 +143,16 @@ Interp::Interp(const Example& world) : world_(world) {}
 ast_ptr Interp::Visit(AST* node) { return ast_ptr(node); }
 
 ast_ptr Interp::Visit(Num* node) { return std::make_shared<Num>(*node); }
+
+ast_ptr Interp::Visit(Var* node) {
+  if (world_.table_.find(node->name_) != world_.table_.end()) {
+    const float value = world_.table_[node->name_];
+    Num var_value(value, node->dims_);
+    return std::make_shared<Num>(var_value);
+  }
+  cout << "Error: Variable not in symbol table" << endl;
+  return make_shared<Var>(*node);
+}
 
 // TODO(jaholtz) Throw errors instead of printing
 ast_ptr Interp::Visit(UnOp* node) {

@@ -8,9 +8,13 @@ using AST::BinOp;
 using AST::Example;
 using AST::FunctionEntry;
 using AST::Num;
+using AST::NUM;
+using AST::Var;
 using std::cout;
 using std::endl;
 using std::make_shared;
+using std::map;
+using std::string;
 using std::vector;
 
 void PrintAST(ast_ptr root) {
@@ -27,9 +31,41 @@ int main(int argc, char* argv[]) {
   Num z(9.3, {1, 0, -1});
   BinOp adder(make_shared<Num>(five), make_shared<Num>(seven), "Plus");
   BinOp upper(make_shared<Num>(seven), make_shared<BinOp>(adder), "Plus");
+
   // Simple Example
+  vector<Example> examples;
+  Example example;
+  map<string, float> table;
+  table["A"] = 100.0;
+  table["B"] = 75.0;
+  example.table_ = table;
+  example.num_result_ = 175.0;
+
+  examples.push_back(example);
+
+  Var a("A", {1, 0, 0}, NUM);
+  Var b("B", {1, 0, 0}, NUM);
+
   cout << "---- Basic AST Evaluation Example ----" << endl << endl;
-  AST::Interp interpreter;
+  AST::Interp interpreter(example);
+
+  cout << "---- Variables ----" << endl;
+  PrintAST(make_shared<Var>(a));
+  PrintAST(make_shared<Var>(b));
+
+  cout << endl;
+  cout << "---- Vars Interpreted ----" << endl;
+  PrintAST(a.Accept(&interpreter));
+  PrintAST(b.Accept(&interpreter));
+
+  cout << endl;
+
+  cout << "---- Vars Added ----" << endl;
+  BinOp var_add(make_shared<Var>(a), make_shared<Var>(b), "Plus");
+  PrintAST(make_shared<BinOp>(var_add));
+  PrintAST(var_add.Accept(&interpreter));
+
+  cout << endl;
 
   cout << "---- Numeric Type (with Dimension) ----" << endl;
   PrintAST(make_shared<Num>(five));
@@ -79,6 +115,7 @@ int main(int argc, char* argv[]) {
   roots.push_back(make_shared<Num>(BadZero));
   roots.push_back(make_shared<Num>(five));
   roots.push_back(make_shared<Num>(seven));
+  roots.push_back(make_shared<Var>(a));
   inputs.push_back(make_shared<Num>(five));
   inputs.push_back(make_shared<Num>(seven));
   inputs.push_back(make_shared<Num>(BadZero));
@@ -88,9 +125,6 @@ int main(int argc, char* argv[]) {
   inputs.push_back(make_shared<Num>(z));
   // library.push_back(abs_entry2);
   vector<vector<float>> signatures;
-  vector<Example> examples;
-  Example example;
-  examples.push_back(example);
   vector<ast_ptr> ops = AST::RecEnumerate(roots, inputs, examples, library,
                                           std::stoi(argv[1]), &signatures);
   cout << "----Roots----" << endl;
