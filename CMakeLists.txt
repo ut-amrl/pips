@@ -22,12 +22,26 @@ SET(libs amrl_shared_lib
 
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
-# find_package(Z3 REQUIRED)
-# include_directories(${Z3_INCLUDE_DIRS})
+find_package(GTest REQUIRED)
+find_package(Threads REQUIRED)
 
+find_package(Z3 REQUIRED)
+include_directories(${Z3_INCLUDE_DIRS})
 set(CXX_PIPS_SRCS
     src/ast.cpp
     src/ast.hpp
+    src/library_functions.cpp
     src/main.cpp)
 add_executable(test ${CXX_PIPS_SRCS})
 target_link_libraries(test ${libs})
+
+include_directories(src)
+set(CXX_PIPS_TEST_SRCS
+    src/ast.cpp
+    src/library_functions.cpp
+    src/library_functions_tests.cpp)
+add_executable(c++-pips-tests ${CXX_PIPS_TEST_SRCS})
+target_link_libraries(c++-pips-tests ${GTEST_BOTH_LIBRARIES})
+target_link_libraries(c++-pips-tests Threads::Threads)
+target_link_libraries(c++-pips-tests ${libs})
+gtest_add_tests(TARGET c++-pips-tests)

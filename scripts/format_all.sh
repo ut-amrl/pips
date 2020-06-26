@@ -1,6 +1,7 @@
 #!/bin/bash
-header_files=$(find src/ -name \*.hpp)
-source_files=$(find src/ -name \*.cpp)
+
+header_files="$(find $(dirname $(realpath $0))/../src/ -name \*.hpp)"
+source_files="$(find $(dirname $(realpath $0))/../src/ -name \*.cpp)"
 
 echo "Formatting Headers!"
 

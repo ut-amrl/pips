@@ -82,6 +82,17 @@ class BinOp : public AST {
 };
 typedef std::shared_ptr<BinOp> bin_ptr;
 
+class Vec : public AST {
+ public:
+  Vec(Eigen::Vector2f value, Eigen::Vector3i dims);
+  ast_ptr Accept(class Visitor* v);
+  Eigen::Vector2f value_;
+  Type type_ = VECTOR;
+
+ private:
+};
+typedef std::shared_ptr<Vec> vec_ptr;
+
 class Visitor {
  public:
   virtual ast_ptr Visit(AST* node) = 0;
@@ -89,6 +100,7 @@ class Visitor {
   virtual ast_ptr Visit(Num* node) = 0;
   virtual ast_ptr Visit(UnOp* node) = 0;
   virtual ast_ptr Visit(BinOp* node) = 0;
+  virtual ast_ptr Visit(Vec* node) = 0;
 };
 
 class Interp : public Visitor {
@@ -100,6 +112,7 @@ class Interp : public Visitor {
   ast_ptr Visit(Num* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
+  ast_ptr Visit(Vec* node);
 
  private:
   Example world_;
@@ -108,10 +121,11 @@ class Interp : public Visitor {
 class Print : public Visitor {
  public:
   ast_ptr Visit(AST* node);
+  ast_ptr Visit(Num* node);
   ast_ptr Visit(Var* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
-  ast_ptr Visit(Num* node);
+  ast_ptr Visit(Vec* node);
   void Display();
 
  private:

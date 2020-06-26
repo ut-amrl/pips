@@ -1,8 +1,11 @@
 #include "ast.hpp"
 #include <eigen3/Eigen/src/Core/Matrix.h>
 #include <iostream>
+
+#include "library_functions.hpp"
 #include "util/timer.h"
 
+using Eigen::Vector2f;
 using Eigen::Vector3i;
 using std::cout;
 using std::dynamic_pointer_cast;
@@ -26,11 +29,11 @@ Var::Var(const string& name, const Dimension& dims, const Type& type)
 Num::Num(const float& value, const Dimension& dims)
     : AST(dims, NUM), value_(value) {}
 
-BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op)
-    : AST({0, 0, 0}, OP), left_(left), right_(right), op_(op) {}
-
 UnOp::UnOp(ast_ptr input, const string& op)
     : AST({0, 0, 0}, OP), input_(input), op_(op) {}
+
+BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op)
+    : AST({0, 0, 0}, OP), left_(left), right_(right), op_(op) {}
 
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op, const Type& type,
              const Dimension& dim)
@@ -40,12 +43,15 @@ UnOp::UnOp(ast_ptr input, const string& op, const Type& type,
            const Dimension& dim)
     : AST(dim, type), input_(input), op_(op) {}
 
-// Necessary to get the visitor pattern working
-ast_ptr Var::Accept(class Visitor* v) { return v->Visit(this); }
-ast_ptr Num::Accept(class Visitor* v) { return v->Visit(this); }
+Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VECTOR), value_(value) {}
+
+// Necessary to get the automatic casting correct
 ast_ptr AST::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr BinOp::Accept(class Visitor* v) { return v->Visit(this); }
+ast_ptr Num::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr UnOp::Accept(class Visitor* v) { return v->Visit(this); }
+ast_ptr Var::Accept(class Visitor* v) { return v->Visit(this); }
+ast_ptr Vec::Accept(class Visitor* v) { return v->Visit(this); }
 // End Casting Calls
 
 // Print Visitor
@@ -91,6 +97,15 @@ ast_ptr Print::Visit(BinOp* node) {
   return std::make_shared<BinOp>(*node);
 }
 
+ast_ptr Print::Visit(Vec* node) {
+  program_ += "<";
+  program_ += to_string(node->value_.x());
+  program_ += ", ";
+  program_ += to_string(node->value_.y());
+  program_ += ">";
+  return std::make_shared<Vec>(*node);
+}
+
 void Print::Display() {
   cout << program_ << endl;
   program_ = "";
@@ -117,7 +132,7 @@ ast_ptr Plus(ast_ptr left, ast_ptr right) {
     Num result(left_cast->value_ + right_cast->value_, dim_left);
     return make_shared<Num>(result);
   } else {
-    cout << "Error: Illegal Types passed to Plus" << endl;
+    cout << "ERROR: Unhandled Operation" << endl;
   }
   return ast_ptr(left);
 }
@@ -183,6 +198,9 @@ ast_ptr Interp::Visit(BinOp* node) {
   return result;
 }
 
+ast_ptr Interp::Visit(Vec* node) { return std::make_shared<Vec>(*node); }
+
+// ast_ptr Enumerate::Visit(AST* node) { return ast_ptr(node); }
 // Calculate function signature given examples
 // TODO(jaholtz) handle non-float signatures
 vector<float> CalcSig(ast_ptr function, const vector<Example>& examples) {
