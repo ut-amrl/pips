@@ -67,7 +67,7 @@ ast_ptr Plus(ast_ptr left, ast_ptr right) {
     num_ptr right_cast = dynamic_pointer_cast<Num>(right);
     Num result(left_cast->value_ + right_cast->value_, left->dims_);
     return make_shared<Num>(result);
-  } else if (left->type_ == Type::VECTOR) {
+  } else if (left->type_ == Type::VEC) {
     vec_ptr left_cast = dynamic_pointer_cast<Vec>(left);
     vec_ptr right_cast = dynamic_pointer_cast<Vec>(right);
     Vec result(left_cast->value_ + right_cast->value_, left->dims_);
@@ -87,7 +87,7 @@ ast_ptr Minus(ast_ptr left, ast_ptr right) {
     num_ptr right_cast = dynamic_pointer_cast<Num>(right);
     Num result(left_cast->value_ - right_cast->value_, left->dims_);
     return make_shared<Num>(result);
-  } else if (left->type_ == Type::VECTOR) {
+  } else if (left->type_ == Type::VEC) {
     vec_ptr left_cast = dynamic_pointer_cast<Vec>(left);
     vec_ptr right_cast = dynamic_pointer_cast<Vec>(right);
     Vec result(left_cast->value_ - right_cast->value_, left->dims_);
@@ -108,7 +108,7 @@ ast_ptr Times(ast_ptr left, ast_ptr right) {
     Num result(left_cast->value_ * right_cast->value_,
                left->dims_ + right->dims_);
     return make_shared<Num>(result);
-  } else if (right->type_ == Type::VECTOR) {
+  } else if (right->type_ == Type::VEC) {
     vec_ptr right_cast = dynamic_pointer_cast<Vec>(right);
     Vec result(left_cast->value_ * right_cast->value_,
                left->dims_ + right->dims_);
@@ -116,7 +116,7 @@ ast_ptr Times(ast_ptr left, ast_ptr right) {
   } else {
     throw invalid_argument(
         "expected type of `left' to be `Type::NUM' and/or expected type of "
-        "`right' to be `Type::NUM' or `Type::VECTOR'");
+        "`right' to be `Type::NUM' or `Type::VEC'");
   }
 }
 
@@ -129,7 +129,7 @@ ast_ptr DividedBy(ast_ptr left, ast_ptr right) {
     Num result(left_cast->value_ / right_cast->value_,
                left->dims_ - right->dims_);
     return make_shared<Num>(result);
-  } else if (left->type_ == Type::VECTOR) {
+  } else if (left->type_ == Type::VEC) {
     vec_ptr left_cast = dynamic_pointer_cast<Vec>(right);
     Vec result(left_cast->value_ / right_cast->value_,
                left->dims_ - right->dims_);
@@ -137,7 +137,7 @@ ast_ptr DividedBy(ast_ptr left, ast_ptr right) {
   } else {
     throw invalid_argument(
         "expected type of `left' to be `Type::NUM' and/or expected type of "
-        "`right' to be `Type::NUM' or `Type::VECTOR'");
+        "`right' to be `Type::NUM' or `Type::VEC'");
   }
 }
 
@@ -182,8 +182,8 @@ ast_ptr Sin(ast_ptr theta) {
 
 ast_ptr Cross(ast_ptr u, ast_ptr v) {
   ASSERT_DIMS_EQUAL(u, v);
-  ASSERT_TYPE(u, Type::VECTOR);
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(u, Type::VEC);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
@@ -196,8 +196,8 @@ ast_ptr Cross(ast_ptr u, ast_ptr v) {
 
 ast_ptr Dot(ast_ptr u, ast_ptr v) {
   ASSERT_DIMS_EQUAL(u, v);
-  ASSERT_TYPE(u, Type::VECTOR);
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(u, Type::VEC);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
@@ -207,8 +207,8 @@ ast_ptr Dot(ast_ptr u, ast_ptr v) {
 
 ast_ptr EuclideanDistance(ast_ptr u, ast_ptr v) {
   ASSERT_DIMS_EQUAL(u, v);
-  ASSERT_TYPE(u, Type::VECTOR);
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(u, Type::VEC);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
@@ -226,7 +226,7 @@ ast_ptr Heading(ast_ptr theta) {
 }
 
 ast_ptr Norm(ast_ptr v) {
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   Num result(v_cast->value_.norm(), v->dims_);
@@ -234,7 +234,7 @@ ast_ptr Norm(ast_ptr v) {
 }
 
 ast_ptr Perp(ast_ptr v) {
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   Vec result({-v_cast->value_.y(), v_cast->value_.x()}, v->dims_);
@@ -242,7 +242,7 @@ ast_ptr Perp(ast_ptr v) {
 }
 
 ast_ptr VecX(ast_ptr v) {
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   Num result(v_cast->value_.x(), v->dims_);
@@ -250,7 +250,7 @@ ast_ptr VecX(ast_ptr v) {
 }
 
 ast_ptr VecY(ast_ptr v) {
-  ASSERT_TYPE(v, Type::VECTOR);
+  ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   Num result(v_cast->value_.y(), v->dims_);

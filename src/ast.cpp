@@ -1,15 +1,18 @@
 #include "ast.hpp"
 #include <eigen3/Eigen/src/Core/Matrix.h>
 #include <iostream>
+#include <stdexcept>
 
 #include "library_functions.hpp"
 #include "util/timer.h"
 
 using Eigen::Vector2f;
 using Eigen::Vector3i;
+using nlohmann::json;
 using std::cout;
 using std::dynamic_pointer_cast;
 using std::endl;
+using std::invalid_argument;
 using std::make_shared;
 using std::map;
 using std::string;
@@ -17,6 +20,40 @@ using std::to_string;
 using std::vector;
 
 namespace AST {
+
+ValueProxy::ValueProxy(SymEntry const* owner) : owner_(owner) {}
+
+ValueProxy::operator float() const { return owner_->GetFloat(); }
+
+ValueProxy::operator Vector2f() const { return owner_->GetVector(); }
+
+SymEntry::SymEntry() : float_value_(0), vec_value_({0, 0}), is_num_(false) {}
+
+SymEntry::SymEntry(const float value)
+    : float_value_(value), vec_value_({0, 0}), is_num_(true) {}
+
+SymEntry::SymEntry(const Eigen::Vector2f& value)
+    : float_value_(0.0), vec_value_(value), is_num_(false) {}
+
+ValueProxy SymEntry::GetValue() { return ValueProxy(this); }
+
+const float SymEntry::GetFloat() const {
+  if (!is_num_) {
+    throw invalid_argument(
+        "Attempted to get float "
+        "value from non-float symbol.");
+  }
+  return float_value_;
+}
+
+const Vector2f SymEntry::GetVector() const {
+  if (is_num_) {
+    throw invalid_argument(
+        "Attempted to get vector "
+        "value from non-vector symbol.");
+  }
+  return vec_value_;
+}
 
 // Constructors
 AST::AST(const Dimension& dims, const Type& type) : dims_(dims), type_(type) {}
@@ -43,7 +80,7 @@ UnOp::UnOp(ast_ptr input, const string& op, const Type& type,
            const Dimension& dim)
     : AST(dim, type), input_(input), op_(op) {}
 
-Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VECTOR), value_(value) {}
+Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VEC), value_(value) {}
 
 // Necessary to get the automatic casting correct
 ast_ptr AST::Accept(class Visitor* v) { return v->Visit(this); }
@@ -112,44 +149,6 @@ void Print::Display() {
   depth_ = 0;
 }
 
-// TODO(jaholtz) Throw mistyped and misdimensioned exceptions
-ast_ptr Plus(ast_ptr left, ast_ptr right) {
-  const Vector3i dim_left = left->dims_;
-  const Vector3i dim_right = right->dims_;
-  const Type type_left = left->type_;
-  const Type type_right = right->type_;
-  // Type and Dimension Checking
-  if (dim_left != dim_right) {
-    cout << "ERROR Dimension Mismatch" << endl;
-  }
-  if (type_left != type_right) {
-    cout << "ERROR Type Mismatch" << endl;
-  }
-  // Casting to the correct type any type you can add should have a case.
-  if (type_left == NUM) {
-    num_ptr left_cast = dynamic_pointer_cast<Num>(left);
-    num_ptr right_cast = dynamic_pointer_cast<Num>(right);
-    Num result(left_cast->value_ + right_cast->value_, dim_left);
-    return make_shared<Num>(result);
-  } else {
-    cout << "ERROR: Unhandled Operation" << endl;
-  }
-  return ast_ptr(left);
-}
-
-ast_ptr Absolute(ast_ptr input) {
-  const Type type_input = input->type_;
-  // Casting to the correct type any type you can add should have a case.
-  if (type_input == NUM) {
-    num_ptr input_cast = dynamic_pointer_cast<Num>(input);
-    Num result(fabs(input_cast->value_), input->dims_);
-    return make_shared<Num>(result);
-  } else {
-    cout << "Error: Illegal Types passed to Absolute" << endl;
-  }
-  return ast_ptr(input);
-}
-
 // Interp Visitor
 Interp::Interp() {}
 
@@ -160,10 +159,19 @@ ast_ptr Interp::Visit(AST* node) { return ast_ptr(node); }
 ast_ptr Interp::Visit(Num* node) { return std::make_shared<Num>(*node); }
 
 ast_ptr Interp::Visit(Var* node) {
-  if (world_.table_.find(node->name_) != world_.table_.end()) {
-    const float value = world_.table_[node->name_];
-    Num var_value(value, node->dims_);
-    return std::make_shared<Num>(var_value);
+  if (world_.symbol_table_.find(node->name_) != world_.symbol_table_.end()) {
+    if (node->type_ == NUM) {
+      const float value = world_.symbol_table_[node->name_].GetValue();
+      Num var_value(value, node->dims_);
+      return std::make_shared<Num>(var_value);
+    } else if (node->type_ == VEC) {
+      const Vector2f float_vec = world_.symbol_table_[node->name_].GetValue();
+      const Vector2f value = Vector2f(float_vec.data());
+      Vec vec(value, node->dims_);
+      return std::make_shared<Vec>(vec);
+    } else {
+      cout << "Error: Variable has unhandled type." << endl;
+    }
   }
   cout << "Error: Variable not in symbol table" << endl;
   return make_shared<Var>(*node);
@@ -175,8 +183,8 @@ ast_ptr Interp::Visit(UnOp* node) {
   const string op = node->op_;
   ast_ptr result = make_shared<UnOp>(*node);
   // One if clause per unary operation
-  if (op == "Absolute") {
-    result = Absolute(input);
+  if (op == "Abs") {
+    result = Abs(input);
   } else {
     cout << "ERROR: Unhandled Operation" << endl;
   }
@@ -200,7 +208,6 @@ ast_ptr Interp::Visit(BinOp* node) {
 
 ast_ptr Interp::Visit(Vec* node) { return std::make_shared<Vec>(*node); }
 
-// ast_ptr Enumerate::Visit(AST* node) { return ast_ptr(node); }
 // Calculate function signature given examples
 // TODO(jaholtz) handle non-float signatures
 vector<float> CalcSig(ast_ptr function, const vector<Example>& examples) {
@@ -215,7 +222,6 @@ vector<float> CalcSig(ast_ptr function, const vector<Example>& examples) {
 }
 
 CumulativeFunctionTimer sig_timer("CalcSigs");
-// TODO(jaholtz) Check function signature equality
 vector<vector<float>> CalcSigs(const vector<ast_ptr>& functions,
                                const vector<Example>& examples) {
   CumulativeFunctionTimer::Invocation invoke(&sig_timer);
@@ -253,7 +259,7 @@ void PruneFunctions(const vector<vector<float>>& new_sigs,
                     vector<ast_ptr>* functions, vector<vector<float>>* sigs) {
   vector<ast_ptr> unique_functions;
   vector<vector<float>> unique_sigs = *sigs;
-  for (auto i = 0; i < new_sigs.size(); ++i) {
+  for (size_t i = 0; i < new_sigs.size(); ++i) {
     if (std::find(sigs->begin(), sigs->end(), new_sigs[i]) == sigs->end()) {
       sigs->push_back(new_sigs[i]);
       unique_functions.push_back(functions->at(i));

@@ -4,3 +4,6 @@
 [submodule "submodules/amrl_shared_lib"]
 	path = submodules/amrl_shared_lib
 	url = git@github.com:ut-amrl/amrl_shared_lib.git
+[submodule "submodules/json"]
+	path = submodules/json
+	url = https://github.com/nlohmann/json.git
