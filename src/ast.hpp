@@ -3,23 +3,50 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "nlohmann/json.hpp"
 
 #ifndef SRC_AST_HPP_
 #define SRC_AST_HPP_
 
 namespace AST {
 
-enum Type { NODE, VAR, NUM, VECTOR, OP };
+class SymEntry;
+
+class ValueProxy {
+ public:
+  ValueProxy(SymEntry const* owner);
+  operator float() const;
+  operator Eigen::Vector2f() const;
+
+ private:
+  SymEntry const* owner_;
+};
+
+class SymEntry {
+ public:
+  SymEntry();
+  SymEntry(const float value);
+  SymEntry(const Eigen::Vector2f& value);
+  ValueProxy GetValue();
+  const float GetFloat() const;
+  const Eigen::Vector2f GetVector() const;
+  std::string name_;
+
+ private:
+  float float_value_;
+  Eigen::Vector2f vec_value_;
+  bool is_num_;
+};
+
+struct Example {
+  std::map<std::string, SymEntry> symbol_table_;
+  SymEntry result_;
+};
+
+enum Type { NODE, VAR, NUM, VEC, OP };
 
 // useful typedef for tracking purpose
 typedef Eigen::Vector3i Dimension;
-
-struct Example {
-  std::map<std::string, float> table_;
-  float num_result_;
-  bool bool_result_;
-  std::string state_result_;
-};
 
 class AST {
  public:
@@ -87,7 +114,7 @@ class Vec : public AST {
   Vec(Eigen::Vector2f value, Eigen::Vector3i dims);
   ast_ptr Accept(class Visitor* v);
   Eigen::Vector2f value_;
-  Type type_ = VECTOR;
+  Type type_ = VEC;
 
  private:
 };
@@ -148,18 +175,6 @@ struct FunctionEntry {
   Dimension output_dim_;
 };
 
-template <typename T>
-bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
-  // Find given element in vector
-  auto it = std::find(vec.begin(), vec.end(), element);
-  if (it != vec.end()) {
-    *index = distance(vec.begin(), it);
-    return true;
-  }
-  *index = -1;
-  return false;
-}
-
 std::vector<ast_ptr> GetLegalOps(ast_ptr node, std::vector<ast_ptr> input,
                                  const std::vector<FunctionEntry>& library);
 
@@ -173,6 +188,18 @@ std::vector<ast_ptr> RecEnumerate(const std::vector<ast_ptr>& roots,
                                   const std::vector<FunctionEntry>& library,
                                   const int depth,
                                   std::vector<std::vector<float>>* signatures);
+
+template <typename T>
+bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
+  // Find given element in vector
+  auto it = std::find(vec.begin(), vec.end(), element);
+  if (it != vec.end()) {
+    *index = distance(vec.begin(), it);
+    return true;
+  }
+  *index = -1;
+  return false;
+}
 
 }  // namespace AST
 #endif  // SRC_AST_HPP

@@ -15,7 +15,12 @@ INCLUDE_DIRECTORIES(${PROJECT_BINARY_DIR})
 INCLUDE_DIRECTORIES(${PROJECT_SOURCE_DIR})
 ADD_SUBDIRECTORY(./submodules/amrl_shared_lib/)
 INCLUDE_DIRECTORIES(./submodules/amrl_shared_lib/)
+INCLUDE_DIRECTORIES(./submodules/json/single_include/)
 INCLUDE_DIRECTORIES(./lib/)
+
+SET(JSON_BuildTests OFF CACHE INTERNAL "")
+
+add_subdirectory(./submodules/json)
 
 SET(libs amrl_shared_lib
     ${BUILD_SPECIFIC_LIBRARIES})
@@ -44,4 +49,5 @@ add_executable(c++-pips-tests ${CXX_PIPS_TEST_SRCS})
 target_link_libraries(c++-pips-tests ${GTEST_BOTH_LIBRARIES})
 target_link_libraries(c++-pips-tests Threads::Threads)
 target_link_libraries(c++-pips-tests ${libs})
+target_link_libraries(c++-pips-tests nlohmann_json::nlohmann_json)
 gtest_add_tests(TARGET c++-pips-tests)
