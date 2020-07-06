@@ -2,7 +2,9 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <unordered_set>
 #include <vector>
+
 #include "nlohmann/json.hpp"
 
 #ifndef SRC_AST_HPP_
@@ -70,6 +72,15 @@ class Var : public AST {
 };
 typedef std::shared_ptr<Var> var_ptr;
 
+class Param : public AST {
+ public:
+  Param(const std::string& name, const Dimension& dims, const Type& type);
+  ast_ptr Accept(class Visitor* v);
+  const std::string name_;
+
+ private:
+};
+
 class Num : public AST {
  public:
   Num(const float& value, const Dimension& dims);
@@ -124,6 +135,7 @@ class Visitor {
  public:
   virtual ast_ptr Visit(AST* node) = 0;
   virtual ast_ptr Visit(Var* node) = 0;
+  virtual ast_ptr Visit(Param* node) = 0;
   virtual ast_ptr Visit(Num* node) = 0;
   virtual ast_ptr Visit(UnOp* node) = 0;
   virtual ast_ptr Visit(BinOp* node) = 0;
@@ -136,6 +148,7 @@ class Interp : public Visitor {
   Interp(const Example& world);
   ast_ptr Visit(AST* node);
   ast_ptr Visit(Var* node);
+  ast_ptr Visit(Param* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
@@ -150,6 +163,7 @@ class Print : public Visitor {
   ast_ptr Visit(AST* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(Var* node);
+  ast_ptr Visit(Param* node);
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(BinOp* node);
   ast_ptr Visit(Vec* node);
@@ -158,6 +172,24 @@ class Print : public Visitor {
  private:
   std::string program_ = "";
   int depth_ = 0;
+};
+
+class ProblemGen : public Visitor {
+ public:
+  ProblemGen(std::vector<Example>& example);
+  ast_ptr Visit(AST* node);
+  ast_ptr Visit(BinOp* node);
+  ast_ptr Visit(Num* node);
+  ast_ptr Visit(Param* node);
+  ast_ptr Visit(UnOp* node);
+  ast_ptr Visit(Var* node);
+  ast_ptr Visit(Vec* node);
+  std::string Get();
+
+ private:
+  std::vector<std::string> assertions_;
+  std::vector<Example> examples_;
+  std::unordered_set<std::string> parameters_;
 };
 
 struct FunctionSig {

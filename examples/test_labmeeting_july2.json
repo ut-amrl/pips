@@ -2,7 +2,7 @@
   {
     "A": {
       "name": "A",
-      "value": 100.0,
+      "value": 4.0,
       "type": "NUM",
       "dim": [
         1,
@@ -12,34 +12,8 @@
     },
     "B": {
       "name": "B",
-      "value": 75.0,
+      "value": 3.0,
       "type": "NUM",
-      "dim": [
-        1,
-        0,
-        0
-      ]
-    },
-    "V": {
-      "name": "V",
-      "value": [
-        1.1,
-        2.2
-      ],
-      "type": "VEC",
-      "dim": [
-        1,
-        0,
-        0
-      ]
-    },
-    "V2": {
-      "name": "V2",
-      "value": [
-        5.0,
-        5.0
-      ],
-      "type": "VEC",
       "dim": [
         1,
         0,
@@ -48,7 +22,7 @@
     },
     "output": {
       "name": "output",
-      "value": 175.0,
+      "value": 12.0,
       "type": "NUM",
       "dim": [
         1,
@@ -60,7 +34,7 @@
   {
     "A": {
       "name": "A",
-      "value": 69.0,
+      "value": -6.0,
       "type": "NUM",
       "dim": [
         1,
@@ -70,34 +44,8 @@
     },
     "B": {
       "name": "B",
-      "value": 42.0,
+      "value": 7.0,
       "type": "NUM",
-      "dim": [
-        1,
-        0,
-        0
-      ]
-    },
-    "V": {
-      "name": "V",
-      "value": [
-        1.1,
-        2.2
-      ],
-      "type": "VEC",
-      "dim": [
-        1,
-        0,
-        0
-      ]
-    },
-    "V2": {
-      "name": "V2",
-      "value": [
-        5.0,
-        5.0
-      ],
-      "type": "VEC",
       "dim": [
         1,
         0,
@@ -106,7 +54,71 @@
     },
     "output": {
       "name": "output",
-      "value": 175.0,
+      "value": 18.0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "A": {
+      "name": "A",
+      "value": 2.0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "B": {
+      "name": "B",
+      "value": 4.0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 11.0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "A": {
+      "name": "A",
+      "value": 9.0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "B": {
+      "name": "B",
+      "value": -1.0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 13.0,
       "type": "NUM",
       "dim": [
         1,

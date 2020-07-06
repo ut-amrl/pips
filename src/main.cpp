@@ -1,3 +1,5 @@
+#include <z3++.h>
+
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -12,6 +14,7 @@ using AST::Example;
 using AST::FunctionEntry;
 using AST::Num;
 using AST::NUM;
+using AST::Param;
 using AST::SymEntry;
 using AST::Type;
 using AST::Var;
@@ -19,16 +22,25 @@ using AST::VEC;
 using Eigen::Vector2f;
 using std::cout;
 using std::endl;
+using std::invalid_argument;
 using std::make_shared;
 using std::map;
 using std::string;
 using std::vector;
 using json = nlohmann::json;
+using z3::context;
+using z3::solver;
 
 void PrintAST(ast_ptr root) {
   AST::Print printer;
   root->Accept(&printer);
   printer.Display();
+}
+
+string MakeSMTLIBProblem(ast_ptr& root, vector<Example>& examples) {
+  AST::ProblemGen gen(examples);
+  root->Accept(&gen);
+  return gen.Get();
 }
 
 Type StringToType(const string& type_string) {
@@ -119,9 +131,12 @@ int main(int argc, char* argv[]) {
 
   // Simple Example
   vector<Var> variables;
-  vector<Example> examples = ReadExamples("examples/test_ex.json", &variables);
+  vector<Example> examples =
+      ReadExamples("examples/test_labmeeting_july2.json", &variables);
   Var a("A", {1, 0, 0}, NUM);
   Var b("B", {1, 0, 0}, NUM);
+
+  Param hole("hole", {1, 0, 0}, NUM);
 
   cout << "---- Basic AST Evaluation Example ----" << endl << endl;
   AST::Interp interpreter(examples[0]);
@@ -177,19 +192,10 @@ int main(int argc, char* argv[]) {
 
   // Create inputs
   vector<ast_ptr> inputs, roots;
-  roots.push_back(make_shared<Num>(NegTen));
-  roots.push_back(make_shared<Num>(BadZero));
-  roots.push_back(make_shared<Num>(five));
-  roots.push_back(make_shared<Num>(seven));
   roots.push_back(make_shared<Var>(a));
-  inputs.push_back(make_shared<Num>(five));
-  inputs.push_back(make_shared<Num>(seven));
-  inputs.push_back(make_shared<Num>(BadZero));
-  // inputs.push_back(make_shared<Num>(NegTen));
-  inputs.push_back(make_shared<Num>(x));
-  inputs.push_back(make_shared<Num>(y));
-  inputs.push_back(make_shared<Num>(z));
-  // library.push_back(abs_entry2);
+  roots.push_back(make_shared<Var>(b));
+  roots.push_back(make_shared<Param>(hole));
+
   vector<vector<float>> signatures;
   vector<ast_ptr> ops = AST::RecEnumerate(roots, inputs, examples, library,
                                           std::stoi(argv[1]), &signatures);
@@ -215,9 +221,54 @@ int main(int argc, char* argv[]) {
   cout << endl;
   cout << "---- Interp Result ----" << endl;
   for (auto& op : ops) {
-    PrintAST(op->Accept(&interpreter));
+    try {
+      PrintAST(op->Accept(&interpreter));
+    } catch (const invalid_argument& _) {
+      // cout << "Cannot interpret programs with holes." << endl;
+    }
   }
   cout << endl;
   cout << "---- Number Enumerated ----" << endl;
-  cout << ops.size() << endl;
+  cout << ops.size() << endl << endl;
+
+  cout << "---- Solution ----" << endl;
+  for (auto& op : ops) {
+    string problem = MakeSMTLIBProblem(op, examples);
+
+    context c;
+    solver s(c);
+    s.from_string(problem.c_str());
+    auto result = s.check();
+
+    if (result == z3::sat) {
+      PrintAST(op);
+      cout << " where" << endl;
+      z3::model m = s.get_model();
+      for (int i = 0; i < m.size(); ++i) {
+        z3::func_decl v = m[i];
+        cout << "  " << v.name() << " = " << m.get_const_interp(v) << endl;
+      }
+
+      cout << endl
+           << "In SMT-LIB terms, the problem" << endl
+           << problem << "is ";
+
+      switch (result) {
+        case z3::sat:
+          cout << "\033[31m";
+          break;
+        case z3::unknown:
+        case z3::unsat:
+          cout << "\033[33m";
+          break;
+      }
+
+      cout << result << "\033[0m"
+           << " with model " << endl
+           << s.get_model() << endl
+           << endl;
+
+      exit(0);
+    }
+  }
 }
