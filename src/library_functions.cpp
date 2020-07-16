@@ -8,6 +8,8 @@
 #include "ast.hpp"
 
 using AST::ast_ptr;
+using AST::Bool;
+using AST::bool_ptr;
 using AST::Num;
 using AST::num_ptr;
 using AST::Type;
@@ -255,6 +257,84 @@ ast_ptr VecY(ast_ptr v) {
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   Num result(v_cast->value_.y(), v->dims_);
   return make_shared<Num>(result);
+}
+
+ast_ptr And(ast_ptr P, ast_ptr Q) {
+  ASSERT_TYPE(P, Type::BOOL);
+  ASSERT_TYPE(Q, Type::BOOL);
+
+  bool_ptr P_cast = dynamic_pointer_cast<Bool>(P);
+  bool_ptr Q_cast = dynamic_pointer_cast<Bool>(Q);
+  Bool result(P_cast->value_ && Q_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Or(ast_ptr P, ast_ptr Q) {
+  ASSERT_TYPE(P, Type::BOOL);
+  ASSERT_TYPE(Q, Type::BOOL);
+
+  bool_ptr P_cast = dynamic_pointer_cast<Bool>(P);
+  bool_ptr Q_cast = dynamic_pointer_cast<Bool>(Q);
+  Bool result(P_cast->value_ || Q_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Not(ast_ptr P) {
+  ASSERT_TYPE(P, Type::BOOL);
+
+  bool_ptr P_cast = dynamic_pointer_cast<Bool>(P);
+  Bool result(!P_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Eq(ast_ptr x, ast_ptr y) {
+  ASSERT_TYPE(x, Type::NUM);
+  ASSERT_TYPE(y, Type::NUM);
+
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  num_ptr y_cast = dynamic_pointer_cast<Num>(y);
+  Bool result(x_cast->value_ == y_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Lt(ast_ptr x, ast_ptr y) {
+  ASSERT_TYPE(x, Type::NUM);
+  ASSERT_TYPE(y, Type::NUM);
+
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  num_ptr y_cast = dynamic_pointer_cast<Num>(y);
+  Bool result(x_cast->value_ < y_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Gt(ast_ptr x, ast_ptr y) {
+  ASSERT_TYPE(x, Type::NUM);
+  ASSERT_TYPE(y, Type::NUM);
+
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  num_ptr y_cast = dynamic_pointer_cast<Num>(y);
+  Bool result(x_cast->value_ > y_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Lte(ast_ptr x, ast_ptr y) {
+  ASSERT_TYPE(x, Type::NUM);
+  ASSERT_TYPE(y, Type::NUM);
+
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  num_ptr y_cast = dynamic_pointer_cast<Num>(y);
+  Bool result(x_cast->value_ <= y_cast->value_);
+  return make_shared<Bool>(result);
+}
+
+ast_ptr Gte(ast_ptr x, ast_ptr y) {
+  ASSERT_TYPE(x, Type::NUM);
+  ASSERT_TYPE(y, Type::NUM);
+
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  num_ptr y_cast = dynamic_pointer_cast<Num>(y);
+  Bool result(x_cast->value_ >= y_cast->value_);
+  return make_shared<Bool>(result);
 }
 
 // TODO(simon) implement everything after this point with AST stuff
