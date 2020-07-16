@@ -33,18 +33,27 @@ find_package(Threads REQUIRED)
 find_package(Z3 REQUIRED)
 include_directories(${Z3_INCLUDE_DIRS})
 set(CXX_PIPS_SRCS
+    src/visitors/interp_visitor.cpp
+    src/visitors/interp_visitor.hpp
+    src/visitors/print_visitor.cpp
+    src/visitors/print_visitor.hpp
+    src/visitors/problemgen_visitor.cpp
+    src/visitors/problemgen_visitor.hpp
     src/ast.cpp
     src/ast.hpp
+    src/enumeration.cpp
+    src/enumeration.hpp
     src/library_functions.cpp
-    src/main.cpp)
-add_executable(test ${CXX_PIPS_SRCS})
+    src/library_functions.hpp
+    src/parsing.cpp
+    src/parsing.hpp)
+add_executable(test ${CXX_PIPS_SRCS} src/main.cpp)
 target_link_libraries(test ${libs})
 target_link_libraries(test ${Z3_LIBRARIES})
 
 include_directories(src)
 set(CXX_PIPS_TEST_SRCS
-    src/ast.cpp
-    src/library_functions.cpp
+    ${CXX_PIPS_SRCS}
     src/library_functions_tests.cpp)
 add_executable(c++-pips-tests ${CXX_PIPS_TEST_SRCS})
 target_link_libraries(c++-pips-tests ${GTEST_BOTH_LIBRARIES})
