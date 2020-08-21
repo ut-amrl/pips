@@ -1,10 +1,19 @@
-bin
-build
-lib
-compile_commands.json
-.clangd/
+# Binaries and CMake
+bin/
+build/
+cmake_install.cmake
 CMakeCache.txt
 CMakeFiles/
-Makefile
-cmake_install.cmake
+lib/
+
+# Clang
+.clangd/
+compile_commands.json
+
+# VSCode
 .vscode/
+
+# Data
+examples/
+ops/
+features.txt

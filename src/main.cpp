@@ -1,20 +1,42 @@
+#include <gflags/gflags.h>
 #include <z3++.h>
 
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <memory>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "ast.hpp"
-#include "nlohmann/json.hpp"
+#include "enumeration.hpp"
+#include "library_functions.hpp"
+#include "parsing.hpp"
+#include "visitors/interp_visitor.hpp"
+#include "visitors/print_visitor.hpp"
+
+DEFINE_string(exs_file, "", "Examples file");
+DEFINE_string(ops_file, "", "Operation library file");
+DEFINE_uint32(max_depth, 3, "Maximum enumeration depth");
+DEFINE_double(min_accuracy, 1.0,
+              "What proportion of examples should be SAT to declare victory?");
+DEFINE_bool(write_features, false, "Write all enumerated features to a file");
+DEFINE_string(feature_file, "features.txt", "File to write features to");
 
 using AST::ast_ptr;
 using AST::BinOp;
+using AST::BOOL;
 using AST::Dimension;
 using AST::Example;
+using AST::Feature;
 using AST::FunctionEntry;
+using AST::Model;
 using AST::Num;
 using AST::NUM;
 using AST::Param;
+using AST::Signature;
+using AST::Sketch;
+using AST::SolveConditional;
 using AST::SymEntry;
 using AST::Type;
 using AST::Var;
@@ -25,250 +47,112 @@ using std::endl;
 using std::invalid_argument;
 using std::make_shared;
 using std::map;
+using std::ofstream;
 using std::string;
+using std::unordered_map;
+using std::unordered_set;
 using std::vector;
 using json = nlohmann::json;
 using z3::context;
 using z3::solver;
 
-void PrintAST(ast_ptr root) {
-  AST::Print printer;
-  root->Accept(&printer);
-  printer.Display();
-}
-
-string MakeSMTLIBProblem(ast_ptr& root, vector<Example>& examples) {
-  AST::ProblemGen gen(examples);
-  root->Accept(&gen);
-  return gen.Get();
-}
-
-Type StringToType(const string& type_string) {
-  if (type_string == "NODE") {
-    return Type::NODE;
-  } else if (type_string == "VAR") {
-    return Type::VAR;
-  } else if (type_string == "NUM") {
-    return Type::NUM;
-  } else if (type_string == "VEC") {
-    return Type::VEC;
-  } else if (type_string == "OP") {
-    return Type::OP;
-  }
-  return Type::NODE;
-}
-
-vector<FunctionEntry> ReadLibrary(const string& file) {
-  vector<FunctionEntry> result;
-  std::ifstream input(file);
-  json library;
-  input >> library;
-  for (auto& func : library) {
-    FunctionEntry entry;
-    entry.op_ = func["op"];
-    const vector<int> out_dim = func["outputDim"];
-    const string out_type = func["outputType"];
-    entry.output_dim_ = Dimension(out_dim.data());
-    entry.output_type_ = StringToType(out_type);
-    for (const string in : func["inputType"]) {
-      entry.input_types_.push_back(StringToType(in));
-    }
-    for (const vector<int> in : func["inputDim"]) {
-      entry.input_dims_.push_back(Dimension(in.data()));
-    }
-    result.push_back(entry);
-  }
-  return result;
-}
-
-// Parse json examples file into examples and create
-// variables for world inputs.
-vector<Example> ReadExamples(const string& file, vector<AST::Var>* vars) {
-  std::ifstream input(file);
-  vector<Example> output;
-  json examples;
-  input >> examples;
-  bool first = true;
-  for (json example : examples) {
-    Example new_ex;
-    map<string, SymEntry> table;
-    for (json input : example) {
-      if (input["name"] != "output") {
-        vector<int> dim = input["dim"];
-        if (first) {
-          Var var(input["name"], Dimension(dim.data()),
-                  StringToType(input["type"]));
-          vars->push_back(var);
-        }
-
-        // Add Symbol Table Entries for each variables
-        if (StringToType(input["type"]) == NUM) {
-          SymEntry entry(input["value"]);
-          table[input["name"]] = entry;
-        } else if (StringToType(input["type"]) == VEC) {
-          vector<float> value_vec = input["value"];
-          SymEntry entry(Vector2f(value_vec.data()));
-          table[input["name"]] = entry;
-        }
-      } else {
-        new_ex.symbol_table_ = table;
-        new_ex.result_ = SymEntry(input["value"]);
-      }
-    }
-    output.push_back(new_ex);
-  }
-  return output;
-}
-
 int main(int argc, char* argv[]) {
-  Num five(5, {1, 0, 0});
-  Num seven(7, {1, 0, 0});
-  Num x(6.1, {1, -1, 0});
-  Num y(8.2, {-1, 0, 1});
-  Num z(9.3, {1, 0, -1});
-  BinOp adder(make_shared<Num>(five), make_shared<Num>(seven), "Plus");
-  BinOp upper(make_shared<Num>(seven), make_shared<BinOp>(adder), "Plus");
+  gflags::ParseCommandLineFlags(&argc, &argv, false);
 
-  // Simple Example
-  vector<Var> variables;
-  vector<Example> examples =
-      ReadExamples("examples/test_labmeeting_july2.json", &variables);
-  Var a("A", {1, 0, 0}, NUM);
-  Var b("B", {1, 0, 0}, NUM);
+  if (FLAGS_min_accuracy < 0.0)
+    FLAGS_min_accuracy = 0.0;
+  else if (FLAGS_min_accuracy > 1.0)
+    FLAGS_min_accuracy = 1.0;
 
-  Param hole("hole", {1, 0, 0}, NUM);
+  if (FLAGS_exs_file == "") {
+    cout << "No examples file provided!" << endl;
+    exit(1);
+  }
 
-  cout << "---- Basic AST Evaluation Example ----" << endl << endl;
-  AST::Interp interpreter(examples[0]);
+  if (FLAGS_ops_file == "") {
+    cout << "No ops file provided!" << endl;
+    exit(1);
+  }
 
-  cout << "---- Variables ----" << endl;
-  PrintAST(make_shared<Var>(variables[0]));
-  PrintAST(make_shared<Var>(variables[1]));
-  PrintAST(make_shared<Var>(variables[2]));
-
-  cout << endl;
-  cout << "---- Vars Interpreted ----" << endl;
-  PrintAST(variables[0].Accept(&interpreter));
-  PrintAST(variables[1].Accept(&interpreter));
-  PrintAST(variables[2].Accept(&interpreter));
-
-  cout << endl;
-
-  cout << "---- Vars Added ----" << endl;
-  BinOp var_add(make_shared<Var>(a), make_shared<Var>(b), "Plus");
-  BinOp vec_add(make_shared<Var>(variables[2]), make_shared<Var>(variables[3]),
-                "Plus");
-  PrintAST(make_shared<BinOp>(var_add));
-  PrintAST(var_add.Accept(&interpreter));
-  PrintAST(make_shared<BinOp>(vec_add));
-  PrintAST(vec_add.Accept(&interpreter));
-
-  cout << endl;
-
-  cout << "---- Numeric Type (with Dimension) ----" << endl;
-  PrintAST(make_shared<Num>(five));
-  PrintAST(make_shared<Num>(x));
-  PrintAST(make_shared<Num>(seven));
-
-  cout << endl;
-  cout << "---- Function Nesting No Interp ----" << endl;
-  PrintAST(make_shared<BinOp>(adder));
-  PrintAST(make_shared<BinOp>(upper));
-
-  cout << endl;
-  cout << "---- Functions Interpreted ----" << endl;
-
-  PrintAST(adder.Accept(&interpreter));
-  PrintAST(upper.Accept(&interpreter));
-
-  cout << endl;
-  cout << "---- Basic Enumeration Example ----" << endl << endl;
-
-  Num NegTen(-10, {1, 0, 0});
-  Num BadZero(1.4, {1, 1, 1});
+  unordered_set<Var> variables;
+  vector<Example> examples = ReadExamples(FLAGS_exs_file, variables);
 
   // Adding Library Function Definitions
-  vector<FunctionEntry> library = ReadLibrary("ops/test_ops.json");
+  vector<FunctionEntry> library = ReadLibrary(FLAGS_ops_file);
 
-  // Create inputs
   vector<ast_ptr> inputs, roots;
-  roots.push_back(make_shared<Var>(a));
-  roots.push_back(make_shared<Var>(b));
-  roots.push_back(make_shared<Param>(hole));
+  for (const Var& variable : variables) {
+    roots.push_back(make_shared<Var>(variable));
+  }
 
-  vector<vector<float>> signatures;
+  vector<Signature> signatures;
   vector<ast_ptr> ops = AST::RecEnumerate(roots, inputs, examples, library,
-                                          std::stoi(argv[1]), &signatures);
+                                          FLAGS_max_depth, &signatures);
   cout << "----Roots----" << endl;
   for (auto& node : roots) {
-    PrintAST(node);
+    cout << node << endl;
   }
   cout << endl;
+
   cout << "----Library----" << endl;
   for (auto& func : library) {
-    cout << func.op_ << endl;
+    cout << func << endl;
   }
   cout << endl;
-  cout << "----Inputs----" << endl;
-  for (auto& input : inputs) {
-    PrintAST(input);
-  }
-  cout << endl;
-  cout << "----Result----" << endl;
-  for (auto& op : ops) {
-    PrintAST(op);
-  }
-  cout << endl;
-  cout << "---- Interp Result ----" << endl;
-  for (auto& op : ops) {
-    try {
-      PrintAST(op->Accept(&interpreter));
-    } catch (const invalid_argument& _) {
-      // cout << "Cannot interpret programs with holes." << endl;
+
+  if (FLAGS_write_features) {
+    ofstream feature_file;
+    feature_file.open(FLAGS_feature_file);
+    for (auto& op : ops) {
+      feature_file << op << '\n';
     }
+    feature_file.close();
   }
-  cout << endl;
+
   cout << "---- Number Enumerated ----" << endl;
   cout << ops.size() << endl << endl;
 
-  cout << "---- Solution ----" << endl;
-  for (auto& op : ops) {
-    string problem = MakeSMTLIBProblem(op, examples);
+  Param p1("p1", {1, 0, 0}, NUM);
+  Param p2("p2", {1, 0, 0}, NUM);
+  Feature f1("f1", {1, 0, 0}, NUM);
+  Feature f2("f2", {1, 0, 0}, NUM);
+  Feature f3("f3", {0, 0, 0}, BOOL);
 
-    context c;
-    solver s(c);
-    s.from_string(problem.c_str());
-    auto result = s.check();
-
-    if (result == z3::sat) {
-      PrintAST(op);
-      cout << " where" << endl;
-      z3::model m = s.get_model();
-      for (int i = 0; i < m.size(); ++i) {
-        z3::func_decl v = m[i];
-        cout << "  " << v.name() << " = " << m.get_const_interp(v) << endl;
-      }
-
-      cout << endl
-           << "In SMT-LIB terms, the problem" << endl
-           << problem << "is ";
-
-      switch (result) {
-        case z3::sat:
-          cout << "\033[31m";
-          break;
-        case z3::unknown:
-        case z3::unsat:
-          cout << "\033[33m";
-          break;
-      }
-
-      cout << result << "\033[0m"
-           << " with model " << endl
-           << s.get_model() << endl
-           << endl;
-
-      exit(0);
-    }
+  /*
+  if (feature1 >= param1) {
+    go forward
+  } else if (feature1 < param1 && feature2 > param2) {
+    go left
+  } else {
+    go right
   }
+  */
+  BinOp cond1(make_shared<Feature>(f1), make_shared<Param>(p1), "Gte");
+  BinOp cond2(make_shared<BinOp>(BinOp(make_shared<Feature>(f1),
+                                       make_shared<Param>(p1), "Lt")),
+              make_shared<BinOp>(BinOp(make_shared<Feature>(f2),
+                                       make_shared<Param>(p2), "Gt")),
+              "And");
+
+  const Sketch sketch = {
+      std::make_pair(make_shared<BinOp>(cond1), SymEntry(0.0f)),
+      std::make_pair(make_shared<BinOp>(cond2), SymEntry(1.0f)),
+      std::make_pair(make_shared<Feature>(f3), SymEntry(2.0f))};
+
+  cout << "---- Sketch ----" << endl;
+  for (const auto& p : sketch) {
+    cout << p.first << " --> " << p.second << endl;
+  }
+  cout << endl;
+
+  cout << "---- Solving ----" << endl;
+  vector<ast_ptr> program =
+      SolveConditional(examples, ops, sketch, FLAGS_min_accuracy);
+  cout << endl;
+
+  cout << "---- Program conditions ----" << endl;
+  for (const ast_ptr& cond : program) {
+    cout << cond << endl;
+  }
+  cout << endl;
 }

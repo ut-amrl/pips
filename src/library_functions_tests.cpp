@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <eigen3/Eigen/Core>
-#include <iostream>
 
 #include "library_functions.hpp"
 
