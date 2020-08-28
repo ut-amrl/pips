@@ -37,6 +37,12 @@ ast_ptr ToSMTLIB::Visit(BinOp* node) {
     binop_smtlib += "(safe-div ";
   } else if (op == "Pow") {
     binop_smtlib += "(^ ";
+  } else if (op == "Cross") {
+    binop_smtlib += "(cross ";
+  } else if (op == "Dot") {
+    binop_smtlib += "(dot ";
+  } else if (op == "EuclideanDistanceSq") {
+    binop_smtlib += "(euc-dist-sq ";
   } else if (op == "And") {
     binop_smtlib += "(and ";
   } else if (op == "Or") {
@@ -101,10 +107,18 @@ ast_ptr ToSMTLIB::Visit(UnOp* node) {
   string unop_smtlib;
   if (op == "Abs") {
     unop_smtlib += "(abs ";
+  } else if (op == "Sq") {
+    unop_smtlib += "(sq ";
   } else if (op == "Cos") {
     unop_smtlib += "(cos ";
   } else if (op == "Sin") {
     unop_smtlib += "(sin ";
+  } else if (op == "NormSq") {
+    unop_smtlib += "(norm-sq ";
+  } else if (op == "VecX") {
+    unop_smtlib += "(vec-x ";
+  } else if (op == "VecY") {
+    unop_smtlib += "(vec-y ";
   } else if (op == "Not") {
     unop_smtlib += "(not ";
   } else {
@@ -120,8 +134,23 @@ ast_ptr ToSMTLIB::Visit(UnOp* node) {
 
 ast_ptr ToSMTLIB::Visit(Var* node) {
   const string var_name = node->name_;
-  if (example_.symbol_table_.find(var_name) != example_.symbol_table_.end()) {
-    output_ += to_string(example_.symbol_table_.at(var_name).GetFloat());
+  auto it = example_.symbol_table_.find(var_name);
+  if (it != example_.symbol_table_.end()) {
+    const SymEntry se = (*it).second;
+    switch (se.GetType()) {
+      case BOOL:
+        output_ += (se.GetBool() ? "true" : "false");
+        break;
+      case NUM:
+        output_ += to_string(se.GetFloat());
+        break;
+      case VEC:
+        output_ +=
+            to_string(se.GetVector().x()) + " " + to_string(se.GetVector().y());
+        break;
+      default:
+        throw invalid_argument("unknown/unsupported SymEntry type");
+    }
     return make_shared<Var>(*node);
   } else {
     throw invalid_argument("Variable not found in symbol table");
@@ -129,7 +158,11 @@ ast_ptr ToSMTLIB::Visit(Var* node) {
 }
 
 ast_ptr ToSMTLIB::Visit(Vec* node) {
-  throw invalid_argument("vectors are not yet supported");
+  const string x_string = to_string(node->value_.x());
+  const string y_string = to_string(node->value_.y());
+  const string vec_string = x_string + " " + y_string;
+  output_ += vec_string;
+  return make_shared<Vec>(*node);
 }
 
 string ToSMTLIB::Get() const { return output_; }

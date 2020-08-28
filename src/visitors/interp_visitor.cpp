@@ -49,6 +49,12 @@ ast_ptr Interp::Visit(BinOp* node) {
     result = Times(left, right);
   } else if (op == "DividedBy") {
     result = DividedBy(left, right);
+  } else if (op == "Cross") {
+    result = Cross(left, right);
+  } else if (op == "Dot") {
+    result = Dot(left, right);
+  } else if (op == "EuclideanDistanceSq") {
+    result = EuclideanDistanceSq(left, right);
   } else if (op == "And") {
     result = And(left, right);
   } else if (op == "Or") {
@@ -99,10 +105,22 @@ ast_ptr Interp::Visit(UnOp* node) {
   // One if clause per unary operation
   if (op == "Abs") {
     result = Abs(input);
+  } else if (op == "Sq") {
+    result = Sq(input);
   } else if (op == "Cos") {
     result = Cos(input);
   } else if (op == "Sin") {
     result = Sin(input);
+  } else if (op == "Heading") {
+    result = Heading(input);
+  } else if (op == "NormSq") {
+    result = NormSq(input);
+  } else if (op == "Perp") {
+    result = Perp(input);
+  } else if (op == "VecX") {
+    result = VecX(input);
+  } else if (op == "VecY") {
+    result = VecY(input);
   } else if (op == "Not") {
     result = Not(input);
   } else {

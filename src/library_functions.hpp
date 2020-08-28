@@ -26,15 +26,16 @@ AST::ast_ptr DividedBy(AST::ast_ptr left, AST::ast_ptr right);
 
 AST::ast_ptr Abs(AST::ast_ptr operand);
 AST::ast_ptr Pow(AST::ast_ptr base, AST::ast_ptr power);
+AST::ast_ptr Sq(AST::ast_ptr x);
 
 AST::ast_ptr Cos(AST::ast_ptr theta);
 AST::ast_ptr Sin(AST::ast_ptr theta);
 
 AST::ast_ptr Cross(AST::ast_ptr u, AST::ast_ptr v);
 AST::ast_ptr Dot(AST::ast_ptr u, AST::ast_ptr v);
-AST::ast_ptr EuclideanDistance(AST::ast_ptr u, AST::ast_ptr v);
+AST::ast_ptr EuclideanDistanceSq(AST::ast_ptr u, AST::ast_ptr v);
 AST::ast_ptr Heading(AST::ast_ptr theta);
-AST::ast_ptr Norm(AST::ast_ptr v);
+AST::ast_ptr NormSq(AST::ast_ptr v);
 AST::ast_ptr Perp(AST::ast_ptr v);
 AST::ast_ptr VecX(AST::ast_ptr v);
 AST::ast_ptr VecY(AST::ast_ptr v);

@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set some useful compile flags
-set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fopenmp")
+set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fopenmp -fPIC")
 if(${CXX} MATCHES "g++")
   set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
 endif()
@@ -68,6 +68,11 @@ target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
 add_executable(test src/main.cpp)
 target_link_libraries(test c++-pips-core)
 target_link_libraries(test gflags::gflags)
+target_link_libraries(test ${CMAKE_DL_LIBS})
+
+add_library(leading_human_sketch SHARED src/sketches/leading_human_sketch.cpp)
+target_link_libraries(leading_human_sketch c++-pips-core)
+target_link_libraries(leading_human_sketch nlohmann_json::nlohmann_json)
 
 # Add executable for unit tests
 add_executable(c++-pips-tests
