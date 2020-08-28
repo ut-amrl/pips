@@ -164,6 +164,14 @@ ast_ptr Pow(ast_ptr base, ast_ptr power) {
   return make_shared<Num>(result);
 }
 
+ast_ptr Sq(ast_ptr x) {
+  ASSERT_TYPE(x, Type::NUM);
+
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  Num result(x_cast->value_ * x_cast->value_, 2 * x_cast->dims_);
+  return make_shared<Num>(result);
+}
+
 ast_ptr Cos(ast_ptr theta) {
   ASSERT_DIM(theta, Vector3i(0, 0, 0));
   ASSERT_TYPE(theta, Type::NUM);
@@ -207,14 +215,15 @@ ast_ptr Dot(ast_ptr u, ast_ptr v) {
   return make_shared<Num>(result);
 }
 
-ast_ptr EuclideanDistance(ast_ptr u, ast_ptr v) {
+ast_ptr EuclideanDistanceSq(ast_ptr u, ast_ptr v) {
   ASSERT_DIMS_EQUAL(u, v);
   ASSERT_TYPE(u, Type::VEC);
   ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
-  Num result((u_cast->value_ - v_cast->value_).norm(), u->dims_);
+  const float euc_dist = (u_cast->value_ - v_cast->value_).norm();
+  Num result(pow(euc_dist, 2), 2 * u->dims_);
   return make_shared<Num>(result);
 }
 
@@ -227,11 +236,12 @@ ast_ptr Heading(ast_ptr theta) {
   return make_shared<Vec>(result);
 }
 
-ast_ptr Norm(ast_ptr v) {
+ast_ptr NormSq(ast_ptr v) {
   ASSERT_TYPE(v, Type::VEC);
 
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
-  Num result(v_cast->value_.norm(), v->dims_);
+  const float norm = v_cast->value_.norm();
+  Num result(pow(norm, 2), 2 * v->dims_);
   return make_shared<Num>(result);
 }
 

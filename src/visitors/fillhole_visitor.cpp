@@ -6,11 +6,15 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "../ast.hpp"
 #include "deepcopy_visitor.hpp"
 
+using AST::Dimension;
 using std::cout;
 using std::endl;
+using std::make_pair;
 using std::make_shared;
+using std::pair;
 using std::string;
 using std::to_string;
 using std::unordered_map;
@@ -18,7 +22,8 @@ using std::unordered_set;
 
 namespace AST {
 
-unordered_map<string, Type> MapFeatureHoles(const ast_ptr& ast) {
+unordered_map<string, pair<Type, Dimension>> MapFeatureHoles(
+    const ast_ptr& ast) {
   MapHoles mapper;
   ast->Accept(&mapper);
   return mapper.GetFeatureHoles();
@@ -68,7 +73,8 @@ ast_ptr MapHoles::Visit(Bool* node) { return make_shared<Bool>(*node); }
 ast_ptr MapHoles::Visit(Feature* node) {
   const string& hole_name = node->name_;
   const Type hole_type = node->type_;
-  features_[hole_name] = hole_type;
+  const Dimension hole_dims = node->dims_;
+  features_[hole_name] = make_pair(hole_type, hole_dims);
   return make_shared<Feature>(*node);
 }
 
@@ -89,7 +95,7 @@ ast_ptr MapHoles::Visit(Var* node) { return make_shared<Var>(*node); }
 
 ast_ptr MapHoles::Visit(Vec* node) { return make_shared<Vec>(*node); }
 
-unordered_map<string, Type> MapHoles::GetFeatureHoles() const {
+unordered_map<string, pair<Type, Dimension>> MapHoles::GetFeatureHoles() const {
   return features_;
 }
 

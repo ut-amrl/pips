@@ -9,7 +9,8 @@
 
 namespace AST {
 
-std::unordered_map<std::string, Type> MapFeatureHoles(const ast_ptr& ast);
+std::unordered_map<std::string, std::pair<Type, Dimension>> MapFeatureHoles(
+    const ast_ptr& ast);
 void FillHoles(ast_ptr& ast, const Model& model);
 ast_ptr FillHoles(const ast_ptr& ast, const Model& model);
 
@@ -25,12 +26,13 @@ class MapHoles : public Visitor {
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(Var* node);
   ast_ptr Visit(Vec* node);
-  std::unordered_map<std::string, Type> GetFeatureHoles() const;
+  std::unordered_map<std::string, std::pair<Type, Dimension>> GetFeatureHoles()
+      const;
   std::unordered_set<std::string> GetParameterHoles() const;
   void Reset();
 
  private:
-  std::unordered_map<std::string, Type> features_;
+  std::unordered_map<std::string, std::pair<Type, Dimension>> features_;
   std::unordered_set<std::string> parameters_;
 };
 

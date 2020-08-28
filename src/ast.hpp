@@ -1,12 +1,11 @@
 #include <eigen3/Eigen/Core>
 #include <map>
 #include <memory>
+#include <nlohmann/json.hpp>
 #include <ostream>
 #include <string>
 #include <unordered_set>
 #include <vector>
-
-#include "nlohmann/json.hpp"
 
 #ifndef SRC_AST_HPP_
 #define SRC_AST_HPP_

@@ -1,5 +1,6 @@
 #include "enumeration.hpp"
 
+#include <gflags/gflags.h>
 #include <z3++.h>
 
 #include <eigen3/Eigen/Core>
@@ -25,12 +26,14 @@
 #include "visitors/tosmtlib_visitor.hpp"
 
 using Eigen::Vector3i;
+using std::cerr;
 using std::cout;
 using std::dynamic_pointer_cast;
 using std::endl;
 using std::invalid_argument;
 using std::make_shared;
 using std::ostream;
+using std::pair;
 using std::queue;
 using std::string;
 using std::to_string;
@@ -39,6 +42,9 @@ using std::unordered_set;
 using std::vector;
 using terminal_colors::ColorTerminal;
 using terminal_colors::ResetTerminal;
+
+DECLARE_bool(dim_checking);
+DECLARE_bool(sig_pruning);
 
 namespace AST {
 
@@ -143,31 +149,41 @@ void PruneFunctions(const vector<Signature>& new_sigs,
   // Update the function list the user passed in to only have unique functions.
   *functions = unique_functions;
 }
+
 // Enumerate up to some depth for a set of nodes.
-const static bool kSigPruning = true;
-vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
-                             const vector<ast_ptr>& inputs,
-                             const vector<Example>& examples,
-                             const vector<FunctionEntry>& library, int depth,
-                             vector<Signature>* signatures) {
+vector<ast_ptr> RecEnumerateHelper(const vector<ast_ptr>& roots,
+                                   const vector<ast_ptr>& inputs,
+                                   const vector<Example>& examples,
+                                   const vector<FunctionEntry>& library,
+                                   int depth, vector<Signature>* signatures) {
   vector<ast_ptr> result = Enumerate(roots, inputs, library);
-  if (kSigPruning) {
+  if (FLAGS_sig_pruning) {
     const vector<Signature> new_sigs = CalcSigs(result, examples);
     PruneFunctions(new_sigs, &result, signatures);
   }
   if (depth > 1) {
     vector<ast_ptr> updated_inputs = inputs;
     updated_inputs.insert(updated_inputs.end(), result.begin(), result.end());
-    const vector<ast_ptr> rec_result = RecEnumerate(
+    const vector<ast_ptr> rec_result = RecEnumerateHelper(
         result, updated_inputs, examples, library, --depth, signatures);
     result.insert(result.end(), rec_result.begin(), rec_result.end());
   }
   return result;
 }
 
+CumulativeFunctionTimer rec_enumerate("RecEnumerate");
+vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
+                             const vector<ast_ptr>& inputs,
+                             const vector<Example>& examples,
+                             const vector<FunctionEntry>& library, int depth,
+                             vector<Signature>* signatures) {
+  CumulativeFunctionTimer::Invocation invoke(&rec_enumerate);
+  return RecEnumerateHelper(roots, inputs, examples, library, depth,
+                            signatures);
+}
+
 CumulativeFunctionTimer get_legal("GetLegalOperations");
 // TODO(jaholtz) clean up this function, optimize
-const static bool kNoDim = false;
 vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
                             const vector<FunctionEntry>& library) {
   CumulativeFunctionTimer::Invocation invoke(&get_legal);
@@ -188,7 +204,7 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
     const bool match_dim = IndexInVector(dimensions, dimension, &d_index);
     const bool match_index = t_index == d_index;
     // We can create operations with this then.
-    if (match_type && ((match_dim && match_index) || kNoDim)) {
+    if (match_type && ((match_dim && match_index) || !FLAGS_dim_checking)) {
       if (types.size() == 1) {
         // Generate signature and check before adding
         // Unary Op, create it and push back.
@@ -206,7 +222,7 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
           Vector3i in_dim = input->dims_;
           // If matches the function signature
           if (in_type == types[in_index] &&
-              (in_dim == dimensions[in_index] || kNoDim)) {
+              (in_dim == dimensions[in_index] || !FLAGS_dim_checking)) {
             // Use the correct order of inputs
             if (in_index == 0) {
               BinOp result = BinOp(input, node, func.op_, func.output_type_,
@@ -274,7 +290,7 @@ double CheckModelAccuracy(const ast_ptr& cond, const SymEntry& output,
   }
 
   // Compute the final percentage of satisfied examples to all examples.
-  double sat_ratio = (double)satisfied / (yes.size() + no.size());
+  const double sat_ratio = (double)satisfied / (yes.size() + no.size());
   return sat_ratio;
 }
 
@@ -335,11 +351,33 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   //
   // TODO(simon) Find a smarter solution, since this could still possibly
   // result in SATs when it shouldn't.
-  string problem =
-      "(define-fun safe-div ((x!1 Real) (x!2 Real)) Real\n"
-      "  (ite (= x!2 0.0)\n"
-      "    0.0\n"
-      "    (/ x!1 x!2)))\n";
+  string problem = R"(
+    (define-fun safe-div ((x!1 Real) (x!2 Real)) Real
+      (ite (= x!2 0.0)
+        0.0
+        (/ x!1 x!2)))
+
+    (define-fun cross ((x!1 Real) (y!1 Real) (x!2 Real) (y!2 Real)) Real
+      (+ (* x!1 y!2) (* y!1 x!2)))
+
+    (define-fun dot ((x!1 Real) (y!1 Real) (x!2 Real) (y!2 Real)) Real
+      (+ (* x!1 x!2) (* y!1 y!2)))
+
+    (define-fun sq ((x!1 Real)) Real
+      (* x!1 x!1))
+
+    (define-fun euc-dist-sq ((x!1 Real) (y!1 Real) (x!2 Real) (y!2 Real)) Real
+      (+ (sq (- x!2 x!1)) (sq (- y!2 y!1))))
+
+    (define-fun norm-sq ((x!1 Real) (y!1 Real)) Real
+      (+ (sq x!1) (sq y!1)))
+
+    (define-fun vec-x ((x!1 Real) (y!1 Real)) Real
+      x!1)
+
+    (define-fun vec-y ((x!1 Real) (y!1 Real)) Real
+      y!1)
+  )";
 
   // For every parameter hole discovered, add a real constant to the problem.
   for (const string& param : params) {
@@ -411,6 +449,8 @@ class index_iterator {
 
   bool has_next() const { return !indicies_.empty(); }
 
+  vector<size_t> zeros() const { return vector<size_t>(holes_to_fill_, 0); }
+
  private:
   const size_t op_count_;
   const size_t holes_to_fill_;
@@ -438,9 +478,10 @@ vector<ast_ptr> SolveConditional(
     // Get a list of the names of all the feature holes in the conditional,
     // then store them in a vector because being able to access them in a
     // consistent order and by index is important for something we do later.
-    const unordered_map<string, Type> feature_hole_map = MapFeatureHoles(cond);
+    const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+        MapFeatureHoles(cond);
     vector<string> feature_holes;
-    for (const std::pair<string, Type>& p : feature_hole_map) {
+    for (const auto& p : feature_hole_map) {
       feature_holes.push_back(p.first);
     }
     const size_t feature_hole_count = feature_holes.size();
@@ -469,20 +510,31 @@ vector<ast_ptr> SolveConditional(
       // our feature holes and create a model.
       vector<size_t> op_indicies;
 #pragma omp critical
-      op_indicies = c.next();
+      {
+        if (c.has_next()) {
+          op_indicies = c.next();
+        } else {
+          keep_searching = false;
+          op_indicies = c.zeros();
+        }
+      }
+
       Model m;
 
       // For every feature hole...
       for (size_t i = 0; i < feature_hole_count; ++i) {
         // Get the name of a feature hole to fill and a possible value for it.
         const string& feature_hole = feature_holes[i];
-        const Type feature_hole_type = feature_hole_map.at(feature_hole);
-        const size_t& index = op_indicies[i];
+        const pair<Type, Dimension> feature_hole_info =
+            feature_hole_map.at(feature_hole);
+        const Type feature_hole_type = feature_hole_info.first;
+        const Dimension feature_hole_dims = feature_hole_info.second;
+        const size_t index = op_indicies[i];
         const ast_ptr& op = ops[index];
 
         // If the type of the selected op doesn't match, we can stop creating
         // this model.
-        if (op->type_ != feature_hole_type) {
+        if (op->type_ != feature_hole_type || op->dims_ != feature_hole_dims) {
           break;
         }
 
@@ -513,20 +565,24 @@ vector<ast_ptr> SolveConditional(
       Model solution;
       try {
         solution = SolveSMTLIBProblem(problem);
+        FillHoles(cond_copy, solution);
+        const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
+#pragma omp critical
+        {
+          if (keep_searching && sat_ratio >= min_accuracy) {
+            keep_searching = false;
+            solution_cond = cond_copy;
+          }
+        }
       } catch (const invalid_argument&) {
         // not SAT, do nothing
       }
-      FillHoles(cond_copy, solution);
-      const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
-#pragma omp critical
-      {
-        if (keep_searching && sat_ratio >= min_accuracy) {
-          keep_searching = false;
-          solution_cond = cond_copy;
-        }
-      }
     }
-    ret.push_back(solution_cond);
+    if (solution_cond != nullptr) {
+      ret.push_back(solution_cond);
+    } else {
+      throw invalid_argument("cannot solve sketch with given parameters");
+    }
   }
 
   return ret;
