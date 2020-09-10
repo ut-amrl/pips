@@ -35,6 +35,8 @@ std::ostream& operator<<(std::ostream& os, const FunctionEntry& fe);
 std::vector<ast_ptr> GetLegalOps(ast_ptr node, std::vector<ast_ptr> input,
                                  const std::vector<FunctionEntry>& library);
 
+std::vector<ast_ptr> EnumerateSketches(int depth);
+
 std::vector<ast_ptr> Enumerate(const std::vector<ast_ptr>& roots,
                                const std::vector<ast_ptr>& inputs,
                                const std::vector<FunctionEntry>& library);
@@ -50,6 +52,12 @@ std::vector<ast_ptr> SolveConditional(const std::vector<Example>& examples,
                                       const std::vector<ast_ptr>& ops,
                                       const Sketch& sketch,
                                       double min_accuracy);
+
+ast_ptr SolvePredicate(const std::vector<Example>& examples,
+    const std::vector<ast_ptr>& ops,
+    const ast_ptr& sketch,
+    const std::pair<std::string, std::string>& transition,
+    double min_accuracy);
 
 template <typename T>
 bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {

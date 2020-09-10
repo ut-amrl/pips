@@ -12,7 +12,7 @@
 
 namespace AST {
 
-enum Type { NODE, VAR, NUM, VEC, OP, BOOL };
+enum Type { NODE, VAR, NUM, VEC, OP, BOOL, STATE };
 
 class SymEntry;
 
@@ -22,6 +22,7 @@ class ValueProxy {
   operator bool() const;
   operator float() const;
   operator Eigen::Vector2f() const;
+  operator std::string() const;
 
  private:
   SymEntry const* owner_;
@@ -31,11 +32,13 @@ class SymEntry {
  public:
   SymEntry();
   SymEntry(const bool value);
+  SymEntry(const std::string value);
   SymEntry(const float value);
   SymEntry(const Eigen::Vector2f& value);
   ValueProxy GetValue();
   const bool GetBool() const;
   const float GetFloat() const;
+  const std::string GetString() const;
   const Eigen::Vector2f GetVector() const;
   const Type GetType() const;
   bool operator==(const SymEntry& other) const;
@@ -46,6 +49,7 @@ class SymEntry {
  private:
   bool bool_value_;
   float float_value_;
+  std::string string_value_;
   Eigen::Vector2f vec_value_;
   Type type_;
 };
@@ -54,7 +58,8 @@ std::ostream& operator<<(std::ostream& stream, const SymEntry& symentry);
 
 struct Example {
   std::map<std::string, SymEntry> symbol_table_;
-  SymEntry result_;
+  SymEntry result_; // Output may not necessarily be a state
+  SymEntry start_; // Start should be a state, but leaving as SymEntry
   bool operator==(const Example& other) const;
 };
 

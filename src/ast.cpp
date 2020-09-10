@@ -32,11 +32,15 @@ ValueProxy::operator float() const { return owner_->GetFloat(); }
 
 ValueProxy::operator Vector2f() const { return owner_->GetVector(); }
 
+ValueProxy::operator string() const { return owner_->GetString(); }
+
 SymEntry::SymEntry() : float_value_(0), type_(NUM) {}
 
 SymEntry::SymEntry(const bool value) : bool_value_(value), type_(BOOL) {}
 
 SymEntry::SymEntry(const float value) : float_value_(value), type_(NUM) {}
+
+SymEntry::SymEntry(const string value) : string_value_(value), type_(STATE) {}
 
 SymEntry::SymEntry(const Eigen::Vector2f& value)
     : vec_value_(value), type_(VEC) {}
@@ -59,6 +63,15 @@ const float SymEntry::GetFloat() const {
         "value from non-float symbol.");
   }
   return float_value_;
+}
+
+const string SymEntry::GetString() const {
+  if (type_ != STATE) {
+    throw invalid_argument(
+        "Attempted to get string "
+        "value from non-state symbol.");
+  }
+  return string_value_;
 }
 
 const Vector2f SymEntry::GetVector() const {
