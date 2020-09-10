@@ -1,5 +1,15 @@
 [
   {
+    "input": {
+      "name": "input",
+      "value": "start",
+      "type": "STATE",
+      "dim": [
+        0,
+        0,
+        0
+      ]
+    },
     "A": {
       "name": "A",
       "value": 100.0,
@@ -48,16 +58,26 @@
     },
     "output": {
       "name": "output",
-      "value": 175.0,
-      "type": "NUM",
+      "value": "end",
+      "type": "STATE",
       "dim": [
-        1,
+        0,
         0,
         0
       ]
     }
   },
   {
+    "input": {
+      "name": "input",
+      "value": "alpha",
+      "type": "STATE",
+      "dim": [
+        0,
+        0,
+        0
+      ]
+    },
     "A": {
       "name": "A",
       "value": 69.0,
@@ -106,8 +126,8 @@
     },
     "output": {
       "name": "output",
-      "value": 175.0,
-      "type": "NUM",
+      "value": "omega",
+      "type": "STATE",
       "dim": [
         1,
         0,

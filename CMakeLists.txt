@@ -64,6 +64,11 @@ target_link_libraries(c++-pips-core Eigen3::Eigen)
 target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
 
+# Add an executable for ldips-l3
+add_executable(ldips-l3 src/ldips-l3.cpp)
+target_link_libraries(ldips-l3 c++-pips-core)
+target_link_libraries(ldips-l3 gflags::gflags)
+
 # Add "main" runnable executable
 add_executable(test src/main.cpp)
 target_link_libraries(test c++-pips-core)
