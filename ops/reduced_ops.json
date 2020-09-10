@@ -1,0 +1,71 @@
+[
+    {
+      "op": "Minus",
+      "inputType": [
+        "NUM",
+        "NUM"
+      ],
+      "inputDim": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "outputType": "NUM",
+      "outputDim": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "op": "Abs",
+      "inputType": [
+        "NUM"
+      ],
+      "inputDim": [
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "outputType": "NUM",
+      "outputDim": [
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "op": "Lt",
+      "inputType": [
+        "NUM",
+        "NUM"
+      ],
+      "inputDim": [
+        [
+          1,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          0
+        ]
+      ],
+      "outputType": "BOOL",
+      "outputDim": [
+        0,
+        0,
+        0
+      ]
+    }
+  ]

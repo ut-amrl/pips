@@ -1,0 +1,22 @@
+[
+    {
+        "A": {
+            "name": "A",
+            "type": "VEC",
+            "dim": [1, 0, 0],
+            "value": [4, 5]
+        },
+        "B": {
+            "name": "B",
+            "type": "VEC",
+            "dim": [1, 0, 0],
+            "value": [6, 7]
+        },
+        "output": {
+            "name": "output",
+            "type": "NUM",
+            "dim": [1, 0, 0],
+            "value": 0
+        }
+    }
+]

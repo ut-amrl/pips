@@ -1,0 +1,44 @@
+[
+    {
+        "op": "Cross",
+        "inputType": ["VEC", "VEC"],
+        "inputDim": [[1, 0, 0], [1, 0, 0]],
+        "outputType": "NUM",
+        "outputDim": [1, 0, 0]
+    },
+    {
+        "op": "Dot",
+        "inputType": ["VEC", "VEC"],
+        "inputDim": [[1, 0, 0], [1, 0, 0]],
+        "outputType": "NUM",
+        "outputDim": [1, 0, 0]
+    },
+    {
+        "op": "EuclideanDistanceSq",
+        "inputType": ["VEC", "VEC"],
+        "inputDim": [[1, 0, 0], [1, 0, 0]],
+        "outputType": "NUM",
+        "outputDim": [2, 0, 0]
+    },
+    {
+        "op": "Sq",
+        "inputType": ["NUM"],
+        "inputDim": [[1, 0, 0]],
+        "outputType": "NUM",
+        "outputDim": [2, 0, 0]
+    },
+    {
+        "op": "Sin",
+        "inputType": ["NUM"],
+        "inputDim": [[0, 0, 0]],
+        "outputType": "NUM",
+        "outputDim": [0, 0, 0]
+    },
+    {
+        "op": "Cos",
+        "inputType": ["NUM"],
+        "inputDim": [[0, 0, 0]],
+        "outputType": "NUM",
+        "outputDim": [0, 0, 0]
+    }
+]

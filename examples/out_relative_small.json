@@ -1,0 +1,4140 @@
+[
+  {
+    "delta_x": {"name": "delta_x", "value": -11.0557, "type": "NUM","dim": [1, 0, 0]},
+    "delta_y": {"name": "delta_y", "value": 0.623905, "type": "NUM", "dim": [1, 0, 0]},
+    "delta": {"name": "delta", "value": 11.0733, "type": "NUM", "dim": [1, 0, 0]},
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [1, 0, 0]
+    }
+  },
+  {
+    "delta_x": {"name": "delta_x", "value": -11.0557, "type": "NUM", "dim": [1, 0, 0]},
+    "delta_y": {"name": "delta_y", "value": 0.623905, "type": "NUM", "dim": [1, 0, 0]},
+    "delta": {"name": "delta", "value": 11.0733, "type": "NUM", "dim": [1, 0, 0]},
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [1, 0, 0]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -9.83613,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.0113487,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 9.83613,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -8.23277,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.469707,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.24616,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -13.2541,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 1.17315,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 13.3059,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -13.1227,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 1.0091,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 13.1615,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -5.15564,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.453184,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 5.17552,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -5.37686,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.45175,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 5.3958,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.49587,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.291855,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.50242,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -7.01947,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.45116,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.03396,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.72398,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.364538,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.73802,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -5.78693,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.449877,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 5.80439,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -10.2445,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.00115395,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 10.2445,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.71815,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.480324,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.74905,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -5.59636,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.450583,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 5.61447,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -11.8006,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.69595,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 11.8211,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.2994,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.297659,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.30643,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.86587,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.261665,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.87085,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.25032,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.44882,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.26641,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -12.3809,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.766315,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 12.4045,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.01154,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.449175,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.02829,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -13.175,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 1.12676,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 13.2231,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -12.024,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.720751,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 12.0456,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -7.66083,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.457972,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.6745,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -8.29596,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.121782,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.29685,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -5.0053,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.413334,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 5.02234,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.79322,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.45612,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.81487,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -7.18315,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.276192,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.18846,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.59191,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.437246,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.61268,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.26185,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.312611,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.26965,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.33731,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.452997,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.3609,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.42637,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.376219,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.44233,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -6.9387,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.279554,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.94432,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -7.24314,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.453081,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.25729,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 0,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.987101,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.714645,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.21864,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -2.85152,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.577452,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.9094,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.867376,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.750559,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.14703,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -2.43214,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.581587,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.50071,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.61158,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.711847,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.76179,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -2.2101,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.604794,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.29136,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.215882,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.801817,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 0.830371,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.73875,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.623011,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.847,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.44615,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.430513,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.47293,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.54882,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.676458,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.6901,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.882658,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.726593,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.14325,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.39015,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.734797,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.5724,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.325501,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.790672,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 0.855052,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.83695,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.490788,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.86821,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.10306,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.46563,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.1378,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.02528,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.480064,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.0538,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -2.86535,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.539314,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.91566,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -2.4945,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.617548,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.5698,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.55215,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.643198,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.68014,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.38911,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.669786,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.54216,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.19174,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.510818,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.23236,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.09754,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.7013,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.30247,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.55637,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.779896,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 0.958011,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.25291,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.54188,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.29773,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -2.06439,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.582508,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.145,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.96742,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.671297,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.07879,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.90668,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.635063,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 2.00966,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.21075,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.713335,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.40526,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -4.39184,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.459728,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.41583,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -3.26946,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.443628,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.29942,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -0.0970764,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.814655,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 0.820419,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.50175,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.723303,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.66686,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": -1.86329,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.681974,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.98417,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 1,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.20829,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0509377,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.20845,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.51959,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0430565,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.5197,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 3.25575,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.552343,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 3.30227,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 0.862808,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.806501,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.18105,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 7.22039,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.454401,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.23467,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.12423,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0242348,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.12427,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 4.17052,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.317186,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.18256,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.38964,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0621319,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.38987,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 7.68917,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0176086,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.68919,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.32241,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0638981,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.32265,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 14.4962,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0296211,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 14.4962,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 9.82707,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.209646,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 9.82931,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 4.27247,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.302763,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 4.28318,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.96142,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.292269,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.96619,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.90677,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.00357628,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.90677,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.43707,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0572243,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.43726,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 7.41009,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.441612,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 7.42323,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 9.26081,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0503063,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 9.26094,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.85228,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0428848,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.85238,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 14.3427,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0224075,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 14.3427,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 12.1038,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0479603,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 12.1039,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 6.44989,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.0999508,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.45067,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 6.12738,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.105587,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 6.12829,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 9.19589,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.00482559,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 9.19589,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 13.7267,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.015173,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 13.7267,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.68112,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0280266,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.68116,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 14.9648,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0350323,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 14.9649,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 0.753633,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.815611,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 1.11049,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.77865,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0103683,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.77866,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.17225,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0217953,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.17228,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 16.2585,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0388737,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 16.2585,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 9.00464,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": 0.00191116,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 9.00464,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  {
+    "delta_x": {
+      "name": "delta_x",
+      "value": 8.44816,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta_y": {
+      "name": "delta_y",
+      "value": -0.0561485,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "delta": {
+      "name": "delta",
+      "value": 8.44834,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    },
+    "output": {
+      "name": "output",
+      "value": 2,
+      "type": "NUM",
+      "dim": [
+        1,
+        0,
+        0
+      ]
+    }
+  }
+]

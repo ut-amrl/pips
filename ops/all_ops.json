@@ -1,0 +1,353 @@
+[
+  {
+    "op": "Plus",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Minus",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Times",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      2,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "DividedBy",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Abs",
+    "inputType": [
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Cos",
+    "inputType": [
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Sin",
+    "inputType": [
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "And",
+    "inputType": [
+      "BOOL",
+      "BOOL"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Or",
+    "inputType": [
+      "BOOL",
+      "BOOL"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Not",
+    "inputType": [
+      "BOOL"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Eq",
+    "inputType": [
+      "BOOL",
+      "BOOL"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Lt",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Gt",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Lte",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Gte",
+    "inputType": [
+      "NUM",
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "BOOL",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  }
+]
