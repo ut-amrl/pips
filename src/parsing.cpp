@@ -159,7 +159,7 @@ vector<Example> ReadExamples(const string& file,
     Example new_ex;
     map<string, SymEntry> table;
     for (json input : example) {
-      if (input["name"] != "output") {
+      if (input["name"] != "output" && input["name"] != "start") {
         vector<int> dim = input["dim"];
         Var var(input["name"], Dimension(dim.data()),
             StringToType(input["type"]));
@@ -168,11 +168,9 @@ vector<Example> ReadExamples(const string& file,
       }
     }
     new_ex.symbol_table_ = table;
-    cout << example["output"] << endl;
-    cout << example["input"] << endl;
     new_ex.result_ = json_to_symentry(example["output"]);
-    new_ex.start_ = json_to_symentry(example["input"]);
-    auto trans = std::make_pair(example["input"]["value"],
+    new_ex.start_ = json_to_symentry(example["start"]);
+    auto trans = std::make_pair(example["start"]["value"],
                                 example["output"]["value"]);
     transitions->insert(trans);
     output.push_back(new_ex);

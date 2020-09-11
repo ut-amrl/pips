@@ -17,16 +17,17 @@
 #include "visitors/print_visitor.hpp"
 #include "sketches/sketches.hpp"
 
-DEFINE_string(ex_file, "", "Examples file");
-DEFINE_string(lib_file, "", "Operation library file");
+DEFINE_string(ex_file, "examples/simple_atk.json", "Examples file");
+DEFINE_string(lib_file, "ops/simple_atk.json", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
-DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
+DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
 DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
+DEFINE_bool(debug, true, "Enable Debug Printing");
 
 using AST::ast_ptr;
 using AST::BinOp;
@@ -69,16 +70,6 @@ int main(int argc, char* argv[]) {
   else if (FLAGS_min_accuracy > 1.0)
     FLAGS_min_accuracy = 1.0;
 
-  if (FLAGS_ex_file == "") {
-    cout << "No examples file provided!" << endl;
-    return EXIT_FAILURE;
-  }
-
-  if (FLAGS_lib_file == "") {
-    cout << "No library file provided!" << endl;
-    return EXIT_FAILURE;
-  }
-
   // Read in the Examples
   // Also obtains variables that can be used (roots for synthesis)
   // and the possible input->output state pairs.
@@ -88,21 +79,11 @@ int main(int argc, char* argv[]) {
       variables,
       &transitions);
 
-  // Adding Library Function Definitions
-  vector<FunctionEntry> library = ReadLibrary(FLAGS_lib_file);
-
   // Turning variables into roots
   vector<ast_ptr> inputs, roots;
   for (const Var& variable : variables) {
     roots.push_back(make_shared<Var>(variable));
   }
-
-  // Enumerate features up to a fixed depth
-  vector<Signature> signatures;
-  vector<ast_ptr> ops = AST::RecEnumerate(roots, inputs, examples, library,
-                                          FLAGS_feat_depth, &signatures);
-
-  // Print out Roots, library, etc.
 
   cout << "----Roots----" << endl;
   for (auto& node : roots) {
@@ -116,23 +97,48 @@ int main(int argc, char* argv[]) {
   }
   cout << endl;
 
+  // Loading Library Function Definitions
+  vector<FunctionEntry> library = ReadLibrary(FLAGS_lib_file);
+
   cout << "----Library----" << endl;
   for (auto& func : library) {
     cout << func << endl;
   }
   cout << endl;
 
-  cout << "---- Number Enumerated ----" << endl;
+  // Enumerate features up to a fixed depth
+  vector<Signature> signatures;
+  vector<ast_ptr> ops = AST::RecEnumerate(roots, inputs, examples, library,
+                                          FLAGS_feat_depth, &signatures);
+
+  cout << "---- Number of Features Enumerated ----" << endl;
   cout << ops.size() << endl << endl;
+  cout << endl;
+
+  if (FLAGS_debug) {
+      cout << "---- Features Synthesized ----" << endl;
+      for (auto& feat : ops) {
+          cout << feat << endl;
+      }
+      cout << endl;
+  }
 
   // Enumerate possible sketches
   const auto sketches = AST::EnumerateSketches(FLAGS_sketch_depth);
   // For each input/output pair
   for (const auto& transition : transitions) {
+    cout << transition.first << "<-" << transition.second << endl;
     for (const auto& sketch : sketches) {
       cout << sketch << endl;
-      ast_ptr program =
-        SolvePredicate(examples, ops, sketch, transition, FLAGS_min_accuracy);
+      bool solved = false;
+      ast_ptr solution =
+          SolvePredicate(examples,
+                  ops, sketch, transition, FLAGS_min_accuracy, &solved);
+      if (solved) {
+          cout << solution << endl;
+          break;
+      }
     }
+    cout << endl;
   }
 }
