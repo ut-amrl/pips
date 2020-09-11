@@ -141,9 +141,11 @@ ast_ptr Interp::Visit(Var* node) {
       Vec vec(value, node->dims_);
       return make_shared<Vec>(vec);
     } else {
+      cout << node->name_ << endl;
       cout << "Error: Variable has unhandled type." << endl;
     }
   }
+  cout << node->name_ << endl;
   cout << "Error: Variable not in symbol table" << endl;
   return make_shared<Var>(*node);
 }

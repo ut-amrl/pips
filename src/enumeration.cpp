@@ -115,7 +115,6 @@ vector<Signature> CalcSigs(const vector<ast_ptr>& functions,
 vector<ast_ptr> EnumerateSketches(int depth) {
   vector<ast_ptr> sketches;
 
-  cout << "Depth: " << depth << endl;
   if (depth == 0) {
     // Return [true, false]
     bool_ptr t = make_shared<Bool>(true);
@@ -140,22 +139,28 @@ vector<ast_ptr> EnumerateSketches(int depth) {
   vector<ast_ptr> rec_sketches = EnumerateSketches(depth - 1);
 
   if (depth == 1) {
-    cout << "In this block" << endl;
     rec_sketches.push_back(great);
     rec_sketches.push_back(less);
     return rec_sketches;
   }
 
+  //  Add the recursive sketches first (we want them to be earliest).
   for (auto skt : rec_sketches) {
-    if (skt->type_ != BOOL) {
-      std::shared_ptr<BinOp> andl = make_shared<BinOp>(great, skt, "And");
-      std::shared_ptr<BinOp> orl = make_shared<BinOp>(great, skt, "Or");
-      sketches.push_back(andl);
-      sketches.push_back(orl);
-    }
     sketches.push_back(skt);
   }
 
+  for (auto skt : rec_sketches) {
+    if (skt->type_ != BOOL) {
+      std::shared_ptr<BinOp> andg = make_shared<BinOp>(great, skt, "And");
+      std::shared_ptr<BinOp> org = make_shared<BinOp>(great, skt, "Or");
+      std::shared_ptr<BinOp> andl = make_shared<BinOp>(less, skt, "And");
+      std::shared_ptr<BinOp> orl = make_shared<BinOp>(less, skt, "Or");
+      sketches.push_back(andg);
+      sketches.push_back(org);
+      sketches.push_back(andl);
+      sketches.push_back(orl);
+    }
+  }
   return sketches;
 }
 
@@ -641,8 +646,9 @@ vector<ast_ptr> SolveConditional(
 CumulativeFunctionTimer solve_predicate("SolvePredicate");
 ast_ptr SolvePredicate(
     const vector<Example>& examples, const vector<ast_ptr>& ops,
-    const ast_ptr& sketch, const pair<string,string>& transition, double min_accuracy) {
-  CumulativeFunctionTimer::Invocation invoke(&solve_conditional);
+    const ast_ptr& sketch, const pair<string,string>& transition,
+    double min_accuracy, bool* solved) {
+  CumulativeFunctionTimer::Invocation invoke(&solve_predicate);
 
   const SymEntry out(transition.second);
   const SymEntry in(transition.first);
@@ -673,63 +679,89 @@ ast_ptr SolvePredicate(
 
   // Start iterating through possible models. index_iterator is explained
   // seperately.
-  index_iterator c(ops.size(), feature_hole_count);
-  ast_ptr solution_cond = nullptr;
-  bool keep_searching = true;
-  while (keep_searching) {
-    // Use the indices given to us by the iterator to select ops for filling
-    // our feature holes and create a model.
-    vector<size_t> op_indicies;
-    {
-      if (c.has_next()) {
-        op_indicies = c.next();
-      } else {
-        keep_searching = false;
-        op_indicies = c.zeros();
-      }
-    }
-
-    Model m;
-
-    // For every feature hole...
-    for (size_t i = 0; i < feature_hole_count; ++i) {
-      // Get the name of a feature hole to fill and a possible value for it.
-      const string& feature_hole = feature_holes[i];
-      const pair<Type, Dimension> feature_hole_info =
-        feature_hole_map.at(feature_hole);
-      const Type feature_hole_type = feature_hole_info.first;
-      const Dimension feature_hole_dims = feature_hole_info.second;
-      const size_t index = op_indicies[i];
-      const ast_ptr& op = ops[index];
-
-      // If the type of the selected op doesn't match, we can stop creating
-      // this model.
-      // TODO(jaholtz) We want the option to have generic dimension holes
-      // to fill.
-      if (op->type_ != feature_hole_type) {
-        break;
+  ast_ptr solution_cond = sketch;
+  if (feature_hole_count > 0) {
+    index_iterator c(ops.size(), feature_hole_count);
+    solution_cond = nullptr;
+    bool keep_searching = true;
+    while (keep_searching) {
+      // Use the indices given to us by the iterator to select ops for filling
+      // our feature holes and create a model.
+      vector<size_t> op_indicies;
+      {
+        if (c.has_next()) {
+          op_indicies = c.next();
+        } else {
+          keep_searching = false;
+          op_indicies = c.zeros();
+        }
       }
 
-      // Since the type does match, make a copy of the op and put that copy
-      // in the model.
-      else {
-        const ast_ptr op_copy = DeepCopyAST(op);
-        m[feature_hole] = op_copy;
+      Model m;
+
+      // For every feature hole...
+      for (size_t i = 0; i < feature_hole_count; ++i) {
+        // Get the name of a feature hole to fill and a possible value for it.
+        const string& feature_hole = feature_holes[i];
+        const pair<Type, Dimension> feature_hole_info =
+          feature_hole_map.at(feature_hole);
+        const Type feature_hole_type = feature_hole_info.first;
+        const Dimension feature_hole_dims = feature_hole_info.second;
+        const size_t index = op_indicies[i];
+        const ast_ptr& op = ops[index];
+
+        // If the type of the selected op doesn't match, we can stop creating
+        // this model.
+        // TODO(jaholtz) We want the option to have generic dimension holes
+        // to fill.
+        if (op->type_ != feature_hole_type) {
+          break;
+        }
+
+        // Since the type does match, make a copy of the op and put that copy
+        // in the model.
+        else {
+          const ast_ptr op_copy = DeepCopyAST(op);
+          m[feature_hole] = op_copy;
+        }
+      }
+
+      // If after creating the model the number of filled holes is not the same
+      // as the number of holes that ought to be filled (indicating a type
+      // error), we can give up and try the next model.
+      if (m.size() != feature_hole_count) {
+        continue;
+      }
+
+      // Since no errors occured while creating the model, we can take the hole
+      // values from it and use them to fill the holes in a copy of the
+      // condition.
+      ast_ptr cond_copy = DeepCopyAST(sketch);
+      FillHoles(cond_copy, m);
+
+      // Now that we've built our candidate condition, build an SMT-LIB problem
+      // and pass it to Z3 to attempt to solve.
+      const string problem = MakeSMTLIBProblem(yes, no, cond_copy);
+      Model solution;
+      try {
+        solution = SolveSMTLIBProblem(problem);
+        FillHoles(cond_copy, solution);
+        const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
+        {
+          if (keep_searching && sat_ratio >= min_accuracy) {
+            keep_searching = false;
+            solution_cond = cond_copy;
+          }
+        }
+      } catch (const invalid_argument&) {
+        // not SAT, do nothing
       }
     }
-
-    // If after creating the model the number of filled holes is not the same
-    // as the number of holes that ought to be filled (indicating a type
-    // error), we can give up and try the next model.
-    if (m.size() != feature_hole_count) {
-      continue;
-    }
-
+  } else {
     // Since no errors occured while creating the model, we can take the hole
     // values from it and use them to fill the holes in a copy of the
     // condition.
     ast_ptr cond_copy = DeepCopyAST(sketch);
-    FillHoles(cond_copy, m);
 
     // Now that we've built our candidate condition, build an SMT-LIB problem
     // and pass it to Z3 to attempt to solve.
@@ -739,18 +771,16 @@ ast_ptr SolvePredicate(
       solution = SolveSMTLIBProblem(problem);
       FillHoles(cond_copy, solution);
       const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
-      {
-        if (keep_searching && sat_ratio >= min_accuracy) {
-          keep_searching = false;
-          solution_cond = cond_copy;
-        }
+      if (sat_ratio < min_accuracy) {
+        solution_cond = nullptr;
       }
     } catch (const invalid_argument&) {
-      // not SAT, do nothing
+      solution_cond = nullptr;
     }
   }
-  if (solution_cond == nullptr) {
-    throw invalid_argument("cannot solve sketch with given parameters");
+  *solved = false;
+  if (solution_cond != nullptr) {
+    *solved = true;
   }
   return solution_cond;
 }

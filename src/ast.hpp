@@ -206,6 +206,9 @@ struct hash<AST::SymEntry> {
       case AST::VEC:
         hash += std::hash<float>()(se.GetVector().norm());
         return hash;
+      case AST::STATE:
+        hash += std::hash<string>()(se.GetString());
+        return hash;
       default:
         (void)0;
     }

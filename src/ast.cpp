@@ -97,6 +97,8 @@ bool SymEntry::operator==(const SymEntry& other) const {
       return float_value_ == other.float_value_;
     case VEC:
       return vec_value_ == other.vec_value_;
+    case STATE:
+      return string_value_ == other.string_value_;
     default:
       throw invalid_argument("Invalid SymEntry");
   }

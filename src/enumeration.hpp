@@ -57,7 +57,8 @@ ast_ptr SolvePredicate(const std::vector<Example>& examples,
     const std::vector<ast_ptr>& ops,
     const ast_ptr& sketch,
     const std::pair<std::string, std::string>& transition,
-    double min_accuracy);
+    double min_accuracy,
+    bool* solved);
 
 template <typename T>
 bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
