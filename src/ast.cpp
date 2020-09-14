@@ -137,7 +137,13 @@ std::ostream& operator<<(std::ostream& stream, const Example& example) {
 }
 
 // Constructors
-AST::AST(const Dimension& dims, const Type& type) : dims_(dims), type_(type) {}
+AST::AST(const Dimension& dims, const Type& type) :
+  dims_(dims), type_(type), symbolic_(false) {
+}
+
+AST::AST(const Dimension& dims, const Type& type, const bool& symbolic) :
+  dims_(dims), type_(type), symbolic_(symbolic) {
+}
 
 AST::~AST(){};
 
@@ -157,7 +163,7 @@ Num::Num(const float& value, const Dimension& dims)
     : AST(dims, NUM), value_(value) {}
 
 Param::Param(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type), name_(name) {}
+    : AST(dims, type, true), name_(name) {}
 
 UnOp::UnOp(ast_ptr input, const string& op)
     : AST({0, 0, 0}, OP), input_(input), op_(op) {}
