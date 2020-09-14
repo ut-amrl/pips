@@ -107,7 +107,6 @@ vector<Signature> CalcSigs(const vector<ast_ptr>& functions,
   // vector<vector<float>> signatures;
   vector<Signature> signatures(updates, updates + functions.size());
   delete[] updates;
-  cout << "Length: Signatures: " << signatures.size() << endl;
   return signatures;
 }
 
@@ -323,7 +322,6 @@ double CheckModelAccuracy(const ast_ptr& cond, const SymEntry& output,
   // Create a variable for keeping track of the number of examples where we get
   // the expected result.
   size_t satisfied = 0;
-
   // Count for how many "yes" examples the interpretation of the condition is
   // true.
   for (const Example& example : yes) {
@@ -377,13 +375,13 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   // Make a new set that includes all examples.
   unordered_set<Example> all_examples(yes);
   all_examples.insert(no.cbegin(), no.cend());
-
   // For every example, ...
   for (const Example& example : all_examples) {
+    // Partially evaluate the program with the examples as much as possible.
+    ast_ptr partial = Interpret(program, example);
     // Create an SMT-LIB expression from the program and that example.
-    ToSMTLIB converter = AstToSMTLIB(program, example);
+    ToSMTLIB converter = AstToSMTLIB(partial, example);
     const string smtlib = converter.Get();
-
     // Add full assertions using that expression to our assertion list. It's
     // important to check whether the example is in both sets because we could
     // have contradictory examples.

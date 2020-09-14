@@ -71,10 +71,12 @@ typedef Eigen::Vector3i Dimension;
 class AST {
  public:
   AST(const Dimension& dims, const Type& type);
+  AST(const Dimension& dims, const Type& type, const bool& symbolic);
   virtual std::shared_ptr<AST> Accept(class Visitor* v) = 0;
   virtual ~AST() = 0;
   const Dimension dims_;
   const Type type_;
+  bool symbolic_;
 
  private:
 };

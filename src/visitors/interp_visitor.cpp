@@ -39,38 +39,44 @@ ast_ptr Interp::Visit(BinOp* node) {
   ast_ptr left = node->left_->Accept(this);
   ast_ptr right = node->right_->Accept(this);
   const string op = node->op_;
-  ast_ptr result = make_shared<BinOp>(*node);
-  // One if clause per binary operation
-  if (op == "Plus") {
-    result = Plus(left, right);
-  } else if (op == "Minus") {
-    result = Minus(left, right);
-  } else if (op == "Times") {
-    result = Times(left, right);
-  } else if (op == "DividedBy") {
-    result = DividedBy(left, right);
-  } else if (op == "Cross") {
-    result = Cross(left, right);
-  } else if (op == "Dot") {
-    result = Dot(left, right);
-  } else if (op == "EuclideanDistanceSq") {
-    result = EuclideanDistanceSq(left, right);
-  } else if (op == "And") {
-    result = And(left, right);
-  } else if (op == "Or") {
-    result = Or(left, right);
-  } else if (op == "Eq") {
-    result = Eq(left, right);
-  } else if (op == "Gt") {
-    result = Gt(left, right);
-  } else if (op == "Lt") {
-    result = Lt(left, right);
-  } else if (op == "Gte") {
-    result = Gte(left, right);
-  } else if (op == "Lte") {
-    result = Lte(left, right);
+  BinOp partial(left, right, node->op_, node->type_, node->dims_);
+  ast_ptr result = make_shared<BinOp>(partial);
+  // Don't try to evaluate if one of the arguments is symbolic
+  if (left->symbolic_ || right->symbolic_) {
+    result->symbolic_ = true;
   } else {
-    throw invalid_argument("unknown binary operation `" + op + "'");
+    // One if clause per binary operation
+    if (op == "Plus") {
+      result = Plus(left, right);
+    } else if (op == "Minus") {
+      result = Minus(left, right);
+    } else if (op == "Times") {
+      result = Times(left, right);
+    } else if (op == "DividedBy") {
+      result = DividedBy(left, right);
+    } else if (op == "Cross") {
+      result = Cross(left, right);
+    } else if (op == "Dot") {
+      result = Dot(left, right);
+    } else if (op == "EuclideanDistanceSq") {
+      result = EuclideanDistanceSq(left, right);
+    } else if (op == "And") {
+      result = And(left, right);
+    } else if (op == "Or") {
+      result = Or(left, right);
+    } else if (op == "Eq") {
+      result = Eq(left, right);
+    } else if (op == "Gt") {
+      result = Gt(left, right);
+    } else if (op == "Lt") {
+      result = Lt(left, right);
+    } else if (op == "Gte") {
+      result = Gte(left, right);
+    } else if (op == "Lte") {
+      result = Lte(left, right);
+    } else {
+      throw invalid_argument("unknown binary operation `" + op + "'");
+    }
   }
   return result;
 }
@@ -90,7 +96,8 @@ ast_ptr Interp::Visit(Num* node) { return make_shared<Num>(*node); }
 
 ast_ptr Interp::Visit(Param* node) {
   if (node->current_value_ == nullptr) {
-    throw invalid_argument("AST has unfilled parameter holes");
+    // throw invalid_argument("AST has unfilled parameter holes");
+    return make_shared<Param>(*node);
   } else {
     ast_ptr result = node->current_value_->Accept(this);
     return result;
@@ -101,30 +108,36 @@ ast_ptr Interp::Visit(Param* node) {
 ast_ptr Interp::Visit(UnOp* node) {
   ast_ptr input = node->input_->Accept(this);
   const string op = node->op_;
-  ast_ptr result = make_shared<UnOp>(*node);
-  // One if clause per unary operation
-  if (op == "Abs") {
-    result = Abs(input);
-  } else if (op == "Sq") {
-    result = Sq(input);
-  } else if (op == "Cos") {
-    result = Cos(input);
-  } else if (op == "Sin") {
-    result = Sin(input);
-  } else if (op == "Heading") {
-    result = Heading(input);
-  } else if (op == "NormSq") {
-    result = NormSq(input);
-  } else if (op == "Perp") {
-    result = Perp(input);
-  } else if (op == "VecX") {
-    result = VecX(input);
-  } else if (op == "VecY") {
-    result = VecY(input);
-  } else if (op == "Not") {
-    result = Not(input);
+  UnOp partial(input, node->op_, node->type_, node->dims_);
+  ast_ptr result = make_shared<UnOp>(partial);
+  // Don't try to evaluate if the input is symbolic
+  if (input->symbolic_) {
+    result->symbolic_ = true;
   } else {
-    throw invalid_argument("unknown unary operation `" + op + "'");
+    // One if clause per unary operation
+    if (op == "Abs") {
+      result = Abs(input);
+    } else if (op == "Sq") {
+      result = Sq(input);
+    } else if (op == "Cos") {
+      result = Cos(input);
+    } else if (op == "Sin") {
+      result = Sin(input);
+    } else if (op == "Heading") {
+      result = Heading(input);
+    } else if (op == "NormSq") {
+      result = NormSq(input);
+    } else if (op == "Perp") {
+      result = Perp(input);
+    } else if (op == "VecX") {
+      result = VecX(input);
+    } else if (op == "VecY") {
+      result = VecY(input);
+    } else if (op == "Not") {
+      result = Not(input);
+    } else {
+      throw invalid_argument("unknown unary operation `" + op + "'");
+    }
   }
   return result;
 }
