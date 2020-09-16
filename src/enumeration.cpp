@@ -641,6 +641,7 @@ vector<ast_ptr> SolveConditional(
   return ret;
 }
 
+
 CumulativeFunctionTimer solve_predicate("SolvePredicate");
 ast_ptr SolvePredicate(
     const vector<Example>& examples, const vector<ast_ptr>& ops,
@@ -674,6 +675,7 @@ ast_ptr SolvePredicate(
       no.insert(example);
     }
   }
+  cout << "Demonstration Length: " << yes.size() + no.size() << endl;
 
   // Start iterating through possible models. index_iterator is explained
   // seperately.
@@ -682,10 +684,12 @@ ast_ptr SolvePredicate(
     index_iterator c(ops.size(), feature_hole_count);
     solution_cond = nullptr;
     bool keep_searching = true;
+    #pragma omp parallel
     while (keep_searching) {
       // Use the indices given to us by the iterator to select ops for filling
       // our feature holes and create a model.
       vector<size_t> op_indicies;
+      #pragma omp critical
       {
         if (c.has_next()) {
           op_indicies = c.next();
@@ -710,8 +714,6 @@ ast_ptr SolvePredicate(
 
         // If the type of the selected op doesn't match, we can stop creating
         // this model.
-        // TODO(jaholtz) We want the option to have generic dimension holes
-        // to fill.
         if (op->type_ != feature_hole_type) {
           break;
         }
@@ -719,8 +721,8 @@ ast_ptr SolvePredicate(
         // Since the type does match, make a copy of the op and put that copy
         // in the model.
         else {
-          const ast_ptr op_copy = DeepCopyAST(op);
-          m[feature_hole] = op_copy;
+          // const ast_ptr op_copy = DeepCopyAST(op);
+          m[feature_hole] = op;
         }
       }
 
@@ -739,7 +741,36 @@ ast_ptr SolvePredicate(
 
       // Now that we've built our candidate condition, build an SMT-LIB problem
       // and pass it to Z3 to attempt to solve.
-      const string problem = MakeSMTLIBProblem(yes, no, cond_copy);
+      // TODO(jaholtz), find a less hacky way to handle this.
+      // As it currently stands this just gets arbitrary elements for
+      // the smt portion. Done because smt solving uses huge amounts of
+      // ram otherwise.
+      unordered_set<Example> yes_sample = yes;
+      unordered_set<Example> no_sample = no;
+      if (yes.size() > 50.0 && yes.size() + no.size() > 150.0) {
+        yes_sample.clear();
+        int count = 0;
+        for (Example ex : yes) {
+          if (count >= 50.0) {
+            break;
+          }
+          yes_sample.emplace(ex);
+          count++;
+        }
+      }
+      if (no.size() > 50.0 && yes.size() + no.size() > 150.0) {
+        no_sample.clear();
+        int count = 0;
+        for (Example ex : no) {
+          if (count >= 50.0) {
+            break;
+          }
+          no_sample.emplace(ex);
+          count++;
+        }
+      }
+      // cout << "Modified Demo Length: " << no_sample.size() + yes_sample.size() << endl;
+      const string problem = MakeSMTLIBProblem(yes_sample, no_sample, cond_copy);
       Model solution;
       try {
         solution = SolveSMTLIBProblem(problem);

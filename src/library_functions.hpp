@@ -33,8 +33,9 @@ AST::ast_ptr Sin(AST::ast_ptr theta);
 
 AST::ast_ptr Cross(AST::ast_ptr u, AST::ast_ptr v);
 AST::ast_ptr Dot(AST::ast_ptr u, AST::ast_ptr v);
-AST::ast_ptr EuclideanDistanceSq(AST::ast_ptr u, AST::ast_ptr v);
+AST::ast_ptr SqDist(AST::ast_ptr u, AST::ast_ptr v);
 AST::ast_ptr Heading(AST::ast_ptr theta);
+AST::ast_ptr Angle(AST::ast_ptr v);
 AST::ast_ptr NormSq(AST::ast_ptr v);
 AST::ast_ptr Perp(AST::ast_ptr v);
 AST::ast_ptr VecX(AST::ast_ptr v);

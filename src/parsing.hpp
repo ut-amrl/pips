@@ -24,6 +24,11 @@ struct pair_hash {
 		return h1 ^ h2;
 	}
 };
+
+std::vector<AST::Example> WindowExamples(
+		const std::vector<AST::Example>& examples,
+		const int window_size);
+
 std::vector<AST::Example> ReadExamples(const std::string& file,
     std::unordered_set<AST::Var>& vars,
     std::unordered_set<std::pair<std::string, std::string>, pair_hash>* transitions);

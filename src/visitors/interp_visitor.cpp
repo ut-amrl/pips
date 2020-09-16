@@ -58,8 +58,8 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = Cross(left, right);
     } else if (op == "Dot") {
       result = Dot(left, right);
-    } else if (op == "EuclideanDistanceSq") {
-      result = EuclideanDistanceSq(left, right);
+    } else if (op == "SqDist") {
+      result = SqDist(left, right);
     } else if (op == "And") {
       result = And(left, right);
     } else if (op == "Or") {
@@ -125,6 +125,8 @@ ast_ptr Interp::Visit(UnOp* node) {
       result = Sin(input);
     } else if (op == "Heading") {
       result = Heading(input);
+    } else if (op == "Angle") {
+      result = Angle(input);
     } else if (op == "NormSq") {
       result = NormSq(input);
     } else if (op == "Perp") {
