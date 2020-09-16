@@ -3,6 +3,7 @@
 #include <cmath>
 #include <eigen3/Eigen/Core>
 #include <iostream>
+#include <math.h>
 #include <vector>
 
 #include "ast.hpp"
@@ -205,7 +206,6 @@ ast_ptr Cross(ast_ptr u, ast_ptr v) {
 }
 
 ast_ptr Dot(ast_ptr u, ast_ptr v) {
-  ASSERT_DIMS_EQUAL(u, v);
   ASSERT_TYPE(u, Type::VEC);
   ASSERT_TYPE(v, Type::VEC);
 
@@ -215,8 +215,8 @@ ast_ptr Dot(ast_ptr u, ast_ptr v) {
   return make_shared<Num>(result);
 }
 
-ast_ptr EuclideanDistanceSq(ast_ptr u, ast_ptr v) {
-  ASSERT_DIMS_EQUAL(u, v);
+ast_ptr SqDist(ast_ptr u, ast_ptr v) {
+  ASSERT_DIMS_EQUAL(u, v)
   ASSERT_TYPE(u, Type::VEC);
   ASSERT_TYPE(v, Type::VEC);
 
@@ -224,6 +224,14 @@ ast_ptr EuclideanDistanceSq(ast_ptr u, ast_ptr v) {
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   const float euc_dist = (u_cast->value_ - v_cast->value_).norm();
   Num result(pow(euc_dist, 2), 2 * u->dims_);
+  return make_shared<Num>(result);
+}
+
+ast_ptr Angle(ast_ptr v) {
+  ASSERT_TYPE(v, Type::VEC);
+
+  vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
+  Num result(atan2(v_cast->value_.y(), v_cast->value_.x()), {0, 0, 0});
   return make_shared<Num>(result);
 }
 

@@ -143,6 +143,34 @@ vector<Example> ReadExamples(const string& file,
   return output;
 }
 
+// Slides a window over the examples looking for transitions points,
+// takes all examples on either side of a transition point
+vector<Example> WindowExamples(const vector<Example>& examples,
+    const int window_size) {
+  if (window_size < 0) {
+    return examples;
+  }
+  vector<Example> results;
+  int start = 0;
+  int center = window_size / 2;
+  int end = window_size;
+
+  while (end < examples.size()) {
+    const Example ex = examples[center];
+    // We've found a transition point
+    if (ex.result_.GetString() != ex.start_.GetString()) {
+      results.insert(results.end(),
+          examples.begin() + start, examples.begin() + end);
+      // start += window_size;
+      // center += window_size;
+      // end += window_size;
+    }
+      start++;
+      center++;
+      end++;
+  }
+  return results;
+}
 
 // This version assumes that the file will contain state transitions
 // and is used for ASP synthesis. The transitions in the examples
