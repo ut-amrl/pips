@@ -154,17 +154,6 @@ BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op, const Type& type,
              const Dimension& dim)
     : AST(dim, type), left_(left), right_(right), op_(op) {}
 
-Bool::Bool(const bool& value) : AST({0, 0, 0}, BOOL), value_(value) {}
-
-Feature::Feature(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type), name_(name) {}
-
-Num::Num(const float& value, const Dimension& dims)
-    : AST(dims, NUM), value_(value) {}
-
-Param::Param(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type, true), name_(name) {}
-
 UnOp::UnOp(ast_ptr input, const string& op)
     : AST({0, 0, 0}, OP), input_(input), op_(op) {}
 
@@ -172,10 +161,21 @@ UnOp::UnOp(ast_ptr input, const string& op, const Type& type,
            const Dimension& dim)
     : AST(dim, type), input_(input), op_(op) {}
 
+Feature::Feature(const string& name, const Dimension& dims, const Type& type)
+    : AST(dims, type), name_(name) {}
+
 Var::Var(const string& name, const Dimension& dims, const Type& type)
     : AST(dims, type), name_(name) {}
 
+Param::Param(const string& name, const Dimension& dims, const Type& type)
+    : AST(dims, type, true), name_(name) {}
+
 Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VEC), value_(value) {}
+
+Bool::Bool(const bool& value) : AST({0, 0, 0}, BOOL), value_(value) {}
+
+Num::Num(const float& value, const Dimension& dims)
+    : AST(dims, NUM), value_(value) {}
 
 // Necessary to get the automatic casting correct
 ast_ptr AST::Accept(class Visitor* v) { return v->Visit(this); }
@@ -188,6 +188,214 @@ ast_ptr UnOp::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Var::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Vec::Accept(class Visitor* v) { return v->Visit(this); }
 // End Casting Calls
+
+// To and From Json Calls
+//
+ast_ptr AstFromJson(const json& input) {
+  const string node_type = input["node"];
+  Vec temp({0.0, 0.0}, {0, 0, 0});
+  ast_ptr temp_ptr = make_shared<Vec>(temp);
+  if (node_type == "BinOp") {
+    BinOp node(temp_ptr, temp_ptr, "Plus");
+    return node.FromJson(input);
+  } else if (node_type == "UnOp") {
+    UnOp node(temp_ptr, "Norm");
+    return node.FromJson(input);
+  } else if (node_type == "Feature") {
+    Feature node("null", {0, 0, 0}, NODE);
+    return node.FromJson(input);
+  } else if (node_type == "Var") {
+    Var node("null", {0, 0, 0}, NODE);
+    return node.FromJson(input);
+  } else if (node_type == "Param") {
+    Param node("null", {0, 0, 0}, NODE);
+    return node.FromJson(input);
+  } else if (node_type == "Vec") {
+    return temp.FromJson(input);
+  } else if (node_type == "Bool") {
+    Bool node(false);
+    return node.FromJson(input);
+  } else if (node_type == "Num") {
+    Num node(0.0, {0, 0, 0});
+    return node.FromJson(input);
+  }
+  cout << "ERROR Loading from Json: Unrecognized Node Type" << endl;
+  return temp_ptr;
+}
+
+json BinOp::ToJson() {
+  json output;
+  output["node"] = "BinOp";
+  output["type"] = type_;
+  output["op"] = op_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  output["left"] = left_->ToJson();
+  output["right"] = right_->ToJson();
+
+  return output;
+}
+
+ast_ptr BinOp::FromJson(const json& input) {
+  ast_ptr left = AstFromJson(input["left"]);
+  ast_ptr right = AstFromJson(input["right"]);
+  const string op = input["op"];
+  const Type type = input["type"];
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  BinOp output(left, right, op, type, dim);
+  return make_shared<BinOp>(output);
+}
+
+json UnOp::ToJson() {
+  json output;
+  output["node"] = "UnOp";
+  output["type"] = type_;
+  output["op"] = op_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  output["input"] = input_->ToJson();
+
+  return output;
+}
+
+ast_ptr UnOp::FromJson(const json& input) {
+  ast_ptr left = AstFromJson(input["input"]);
+  const string op = input["op"];
+  const Type type = input["type"];
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  UnOp output(left, op, type, dim);
+  return make_shared<UnOp>(output);
+}
+
+json Feature::ToJson() {
+  json output;
+  output["node"] = "Feature";
+  output["type"] = type_;
+  output["name"] = name_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  if (current_value_ == nullptr) {
+    output["value"] = "null";
+  } else {
+    output["value"] = current_value_->ToJson();
+  }
+  return output;
+}
+
+ast_ptr Feature::FromJson(const json& input) {
+  const string name = input["name"];
+  const Type type = input["type"];
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  Feature output(name, dim, type);
+  if (input["value"] != "null") {
+    output.current_value_ = AstFromJson(input["value"]);
+  }
+  return make_shared<Feature>(output);
+}
+
+json Var::ToJson() {
+  json output;
+  output["node"] = "Var";
+  output["type"] = type_;
+  output["name"] = name_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  return output;
+}
+
+ast_ptr Var::FromJson(const json& input) {
+  const string name = input["name"];
+  const Type type = input["type"];
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  Var output(name, dim, type);
+  return make_shared<Var>(output);
+}
+
+json Param::ToJson() {
+  json output;
+  output["node"] = "Param";
+  output["type"] = type_;
+  output["name"] = name_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  if (current_value_ == nullptr) {
+    output["value"] = "null";
+  } else {
+    output["value"] = current_value_->ToJson();
+  }
+  return output;
+}
+
+ast_ptr Param::FromJson(const json& input) {
+  const string name = input["name"];
+  const Type type = input["type"];
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  Param output(name, dim, type);
+  if (input["value"] != "null") {
+    output.current_value_ = AstFromJson(input["value"]);
+  }
+  return make_shared<Param>(output);
+}
+
+json Vec::ToJson() {
+  json output;
+  output["node"] = "Vec";
+  output["type"] = type_;
+  output["value"] = {value_.x(), value_.y()};
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  return output;
+}
+
+ast_ptr Vec::FromJson(const json& input) {
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  const vector<float> vect = input["value"];
+  const Vector2f value(vect[0], vect[1]);
+  Vec output(value, dim);
+  return make_shared<Vec>(output);
+}
+
+json Bool::ToJson() {
+  json output;
+  output["node"] = "Bool";
+  output["type"] = type_;
+  output["value"] = value_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  return output;
+}
+
+ast_ptr Bool::FromJson(const json& input) {
+  const bool value(input["value"]);
+  Bool output(value);
+  return make_shared<Bool>(output);
+}
+
+json Num::ToJson() {
+  json output;
+  output["node"] = "Num";
+  output["type"] = type_;
+  output["value"] = value_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  return output;
+}
+
+ast_ptr Num::FromJson(const json& input) {
+  const vector<int> dims = input["dim"];
+  const Dimension dim({dims[0], dims[1], dims[2]});
+  const float value(input["value"]);
+  Num output(value, dim);
+  return make_shared<Num>(output);
+}
+// ToJson Calls
+
 
 bool Var::operator==(const Var& other) const {
   return type_ == other.type_ && dims_ == other.dims_ && name_ == other.name_;
