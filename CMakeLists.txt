@@ -69,6 +69,10 @@ add_executable(ldips-l3 src/ldips-l3.cpp)
 target_link_libraries(ldips-l3 c++-pips-core)
 target_link_libraries(ldips-l3 gflags::gflags)
 
+add_executable(test_save src/test_save.cpp)
+target_link_libraries(test_save c++-pips-core)
+target_link_libraries(test_save gflags::gflags)
+
 # Add "main" runnable executable
 add_executable(test src/main.cpp)
 target_link_libraries(test c++-pips-core)

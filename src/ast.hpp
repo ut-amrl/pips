@@ -14,8 +14,10 @@ namespace AST {
 
 enum Type { NODE, VAR, NUM, VEC, OP, BOOL, STATE };
 
+// Forward Declaration
 class SymEntry;
 
+// Used for comparing values without explicitly checking them.
 class ValueProxy {
  public:
   ValueProxy(SymEntry const* owner);
@@ -56,6 +58,7 @@ class SymEntry {
 
 std::ostream& operator<<(std::ostream& stream, const SymEntry& symentry);
 
+// Format of input to all ASTs
 struct Example {
   std::map<std::string, SymEntry> symbol_table_;
   SymEntry result_; // Output may not necessarily be a state
@@ -73,6 +76,8 @@ class AST {
   AST(const Dimension& dims, const Type& type);
   AST(const Dimension& dims, const Type& type, const bool& symbolic);
   virtual std::shared_ptr<AST> Accept(class Visitor* v) = 0;
+  virtual nlohmann::json ToJson() = 0;
+  virtual std::shared_ptr<AST> FromJson(const nlohmann::json&) = 0;
   virtual ~AST() = 0;
   const Dimension dims_;
   const Type type_;
@@ -88,6 +93,8 @@ class BinOp : public AST {
   BinOp(ast_ptr left, ast_ptr right, const std::string& op, const Type& type,
         const Dimension& dim);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   ast_ptr left_;
   ast_ptr right_;
   const std::string op_;
@@ -101,6 +108,8 @@ class Bool : public AST {
  public:
   Bool(const bool& value);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   bool value_;
 
  private:
@@ -111,6 +120,8 @@ class Feature : public AST {
  public:
   Feature(const std::string& name, const Dimension& dims, const Type& type);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   const std::string name_;
   ast_ptr current_value_ = nullptr;
 
@@ -122,6 +133,8 @@ class Num : public AST {
  public:
   Num(const float& value, const Dimension& dims);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   float value_;
 
  private:
@@ -133,6 +146,8 @@ class Param : public AST {
   Param(const std::string& name, const Dimension& dims, const Type& type);
   ast_ptr Accept(class Visitor* v);
   const std::string name_;
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   ast_ptr current_value_ = nullptr;
 
  private:
@@ -145,6 +160,8 @@ class UnOp : public AST {
   UnOp(ast_ptr input, const std::string& op, const Type& type,
        const Dimension& dim);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   ast_ptr input_;
   const std::string op_;
   Type type_ = OP;
@@ -157,6 +174,8 @@ class Var : public AST {
  public:
   Var(const std::string& name, const Dimension& dims, const Type& type);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   bool operator==(const Var& other) const;
   const std::string name_;
 
@@ -168,6 +187,8 @@ class Vec : public AST {
  public:
   Vec(Eigen::Vector2f value, Eigen::Vector3i dims);
   ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
   Eigen::Vector2f value_;
   Type type_ = VEC;
 
@@ -187,6 +208,8 @@ class Visitor {
   virtual ast_ptr Visit(Var* node) = 0;
   virtual ast_ptr Visit(Vec* node) = 0;
 };
+
+ast_ptr AstFromJson(const nlohmann::json&);
 
 }  // namespace AST
 
