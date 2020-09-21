@@ -145,7 +145,7 @@ vector<ast_ptr> EnumerateSketches(int depth) {
 
   //  Add the recursive sketches first (we want them to be earliest).
   for (auto skt : rec_sketches) {
-    sketches.push_back(skt);
+    // sketches.push_back(skt);
   }
 
   for (auto skt : rec_sketches) {
@@ -347,7 +347,7 @@ double CheckModelAccuracy(const ast_ptr& cond, const SymEntry& output,
 
 CumulativeFunctionTimer solve_smtlib("SolveSMTLIBProblem");
 Model SolveSMTLIBProblem(const string& problem) {
-  CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
+  // CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
   z3::context context;
   z3::optimize solver(context);
   solver.from_string(problem.c_str());
@@ -429,6 +429,8 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
     (define-fun vec-y ((x!1 Real) (y!1 Real)) Real
       y!1)
   )";
+
+  problem = "";
 
   // For every parameter hole discovered, add a real constant to the problem.
   for (const string& param : params) {
@@ -675,7 +677,6 @@ ast_ptr SolvePredicate(
       no.insert(example);
     }
   }
-  cout << "Demonstration Length: " << yes.size() + no.size() << endl;
 
   // Start iterating through possible models. index_iterator is explained
   // seperately.
@@ -769,13 +770,18 @@ ast_ptr SolvePredicate(
           count++;
         }
       }
-      // cout << "Modified Demo Length: " << no_sample.size() + yes_sample.size() << endl;
       const string problem = MakeSMTLIBProblem(yes_sample, no_sample, cond_copy);
+      // cout << "Current Problem" << endl;
+      // cout << problem << endl;
+      // cout << endl;
       Model solution;
       try {
         solution = SolveSMTLIBProblem(problem);
         FillHoles(cond_copy, solution);
         const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
+        #pragma omp barrier
+        #pragma omp single
+        Z3_finalize_memory();
         {
           if (keep_searching && sat_ratio >= min_accuracy) {
             keep_searching = false;
@@ -807,6 +813,7 @@ ast_ptr SolvePredicate(
       solution_cond = nullptr;
     }
   }
+  Z3_finalize_memory();
   *solved = false;
   if (solution_cond != nullptr) {
     *solved = true;
