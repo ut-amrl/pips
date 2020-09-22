@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Set some useful compile flags
-set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fPIC")
+set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fPIC -fopenmp")
 if(${CXX} MATCHES "g++")
   set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
 endif()
@@ -37,15 +37,16 @@ SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system lua5.1 gflags
     pthread)
 
 # Load amrl_shared_lib from submodule
-add_subdirectory(./submodules/amrl_shared_lib/)
-include_directories(./submodules/amrl_shared_lib/)
+add_subdirectory(submodules/amrl_shared_lib/)
+include_directories(submodules/amrl_shared_lib/)
+include_directories(submodules/)
 
 # Load Gflags from submodule
-add_subdirectory(./submodules/gflags)
+add_subdirectory(submodules/gflags)
 
 # Load Niels Lohmann's JSON library from submodule
 set(JSON_BuildTests OFF CACHE INTERNAL "")
-add_subdirectory(./submodules/json)
+add_subdirectory(submodules/json)
 
 # Build the core of C++ PIPS as a static library, which the executables can
 # link to. This enables shorter compile times since these files only need to be
@@ -71,7 +72,7 @@ set(CXX_PIPS_SRCS
     src/parsing.cpp
     src/parsing.hpp)
 add_library(c++-pips-core ${CXX_PIPS_SRCS})
-target_link_libraries(c++-pips-core amrl_shared_lib)
+# target_link_libraries(c++-pips-core amrl_shared_lib)
 target_link_libraries(c++-pips-core Eigen3::Eigen)
 target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
@@ -85,3 +86,4 @@ target_link_libraries(ldips-l3 c++-pips-core)
 
 rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
 target_link_libraries(mpdm_ref c++-pips-core)
+target_link_libraries(mpdm_ref amrl_shared_lib)

@@ -17,11 +17,11 @@
 #include "visitors/print_visitor.hpp"
 // #include "sketches/sketches.hpp"
 
-DEFINE_string(ex_file, "examples/one_demo.json", "Examples file");
-DEFINE_string(lib_file, "ops/simple_atk.json", "Operation library file");
+DEFINE_string(ex_file, "examples/merged.json", "Examples file");
+DEFINE_string(lib_file, "ops/social_test.json", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
-DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
-DEFINE_uint32(window_size, 5, "Size of sliding window to subsample demonstrations with.");
+DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
+DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
@@ -131,17 +131,26 @@ int main(int argc, char* argv[]) {
   // For each input/output pair
   for (const auto& transition : transitions) {
     cout << transition.first << "<-" << transition.second << endl;
-    for (const auto& sketch : sketches) {
-      cout << sketch << endl;
-      bool solved = false;
-      ast_ptr solution =
+    // if (transition.first == "STOP" && transition.second == "FOLLOW") {
+      for (const auto& sketch : sketches) {
+        cout << sketch << endl;
+        bool solved = false;
+        ast_ptr solution =
           SolvePredicate(examples,
-                  ops, sketch, transition, FLAGS_min_accuracy, &solved);
-      if (solved) {
+              ops, sketch, transition, FLAGS_min_accuracy, &solved);
+        if (solved) {
           cout << solution << endl;
+          ofstream output_file;
+          const string output_name =
+              transition.first + "_" + transition.second + ".json";
+          output_file.open(output_name);
+          const json output = solution->ToJson();
+          output_file << std::setw(4) << output << std::endl;
+          output_file.close();
           break;
+        }
       }
-    }
-    cout << endl;
+      cout << endl;
+    // }
   }
 }
