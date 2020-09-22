@@ -27,6 +27,9 @@
 #include <nlohmann/json.hpp>
 #include <string.h>
 #include <vector>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
 
 #include "amrl_msgs/NavStatusMsg.h"
 #include "amrl_msgs/NavigationConfigMsg.h"
@@ -58,6 +61,7 @@ using std::max;
 using std::min;
 using std::cout;
 using std::endl;
+using std::ofstream;
 using geometry_msgs::Pose2D;
 using geometry::Angle;
 using math_util::AngleDiff;
@@ -89,6 +93,7 @@ float omega_ = 0;
 Vector2f goal_pose_(0, 0);
 float goal_theta_ = 0;
 vector<HumanStateMsg> human_states_ = {};
+vector<json> demos = {};
 
 // Publishers
 ros::Publisher halt_pub_;
@@ -172,7 +177,8 @@ void Follow() {
 }
 
 // TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
-float GetStraightFreePathLength(const Vector2f& start, const Vector2f& end) {
+float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
+  //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   const float kRobotLength = 0.0;
   const float kRearAxleOffset = 0.0;
   const float kObstacleMargin = 0.0;
@@ -204,7 +210,7 @@ float GetStraightFreePathLength(const Vector2f& start, const Vector2f& end) {
 bool ShouldGoAlone() {
   // Check if Path blocked by unmapped obstacle (humans for now)
   const Vector2f path = pose_ - local_target_;
-  if (GetStraightFreePathLength(pose_, local_target_) < path.norm()) {
+  if (StraightFreePathLength(pose_, local_target_) < path.norm()) {
     return false;
   }
   return true;
@@ -279,9 +285,16 @@ void SaveDemo() {
       {1, -1, 0});
   // TODO(jaholtz) needs to write out all of the human positions, as this
   // is necessary for GetStraightFreePathLength.
+  demos.push_back(demo);
 }
 
 void WriteDemos() {
+  ofstream output_file;
+  const string output_name = "mpdm_demo.json";
+  const json output = demos;
+  output_file.open(output_name);
+  output_file << std::setw(4) << output << std::endl;
+  output_file.close();
 }
 
 string Transition() {

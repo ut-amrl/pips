@@ -50,6 +50,12 @@ AST::ast_ptr Gt(AST::ast_ptr x, AST::ast_ptr y);
 AST::ast_ptr Lte(AST::ast_ptr x, AST::ast_ptr y);
 AST::ast_ptr Gte(AST::ast_ptr x, AST::ast_ptr y);
 
+// Tentative idea, function that loads presets from the examples
+AST::ast_ptr StraightFreePathLength(
+    AST::ast_ptr u,
+    AST::ast_ptr v,
+    const std::vector<Eigen::Vector2f> obstacles);
+
 float Average(std::vector<float> xs);
 Polygon ConvexHull(Polygon a, Polygon b);
 bool PointInPolygon(Eigen::Vector2f point, Polygon polygon);
