@@ -66,7 +66,7 @@ string TypeToString(Type type) {
     case Type::VEC:
       return "VEC";
     default:
-      throw invalid_argument("unknown type " + type);
+      throw invalid_argument("unknown type ");
   }
 }
 
