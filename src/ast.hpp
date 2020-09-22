@@ -61,6 +61,7 @@ std::ostream& operator<<(std::ostream& stream, const SymEntry& symentry);
 // Format of input to all ASTs
 struct Example {
   std::map<std::string, SymEntry> symbol_table_;
+  std::vector<Eigen::Vector2f> obstacles_;
   SymEntry result_; // Output may not necessarily be a state
   SymEntry start_; // Start should be a state, but leaving as SymEntry
   bool operator==(const Example& other) const;

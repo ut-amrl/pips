@@ -1,10 +1,14 @@
 #include "library_functions.hpp"
 
+#include <Eigen/src/Core/Matrix.h>
 #include <cmath>
 #include <eigen3/Eigen/Core>
+#include "eigen3/Eigen/Geometry"
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include "amrl_shared_lib/math/geometry.h"
+#include "amrl_shared_lib/math/math_util.h"
 
 #include "ast.hpp"
 
@@ -28,7 +32,10 @@ using std::invalid_argument;
 using std::make_shared;
 using std::pow;
 using std::sin;
+using std::min;
+using std::max;
 using std::vector;
+using geometry::Angle;
 
 #define ASSERT_DIM(expression, dimensionality)                  \
   {                                                             \
@@ -353,6 +360,45 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
   Bool result(x_cast->value_ >= y_cast->value_);
   return make_shared<Bool>(result);
+}
+
+ast_ptr StraightFreePathLength(ast_ptr u, ast_ptr v,
+    const vector<Vector2f> obstacles) {
+  //TODO(jaholtz) need to set these to sane defaults (copy from sim)
+  const float kRobotLength = 0.0;
+  const float kRearAxleOffset = 0.0;
+  const float kObstacleMargin = 0.0;
+  const float kRobotWidth = 0.0;
+
+  ASSERT_TYPE(u, Type::VEC);
+  ASSERT_TYPE(v, Type::VEC);
+  vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
+  vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
+  const Vector2f start = u_cast->value_;
+  const Vector2f end = v_cast->value_;
+
+  // How much the robot's body extends in front of its base link frame.
+  const float l = 0.5 * kRobotLength - kRearAxleOffset + kObstacleMargin;
+  // The robot's half-width.
+  const float w = 0.5 * kRobotWidth + kObstacleMargin;
+
+  const Vector2f path = end - start;
+  const float angle = Angle(path);
+  const Eigen::Rotation2Df rot(-angle);
+  float free_path_length = path.norm();
+
+  for (const Vector2f& obst :obstacles) {
+    Vector2f pose(obst.x(), obst.y());
+    // Transform pose to start reference frame;
+    const Vector2f p = rot * (pose - start);
+    // If outside width, or behind robot, skip
+    if (fabs(p.y()) > w || p.x() < 0.0f) continue;
+    // Calculate distance and store if shorter.
+    free_path_length = min(free_path_length, p.x() - l);
+  }
+  free_path_length = max(0.0f, free_path_length);
+  Num result(free_path_length, {1, 0, 0});
+  return make_shared<Num>(result);
 }
 
 // TODO(simon) implement everything after this point with AST stuff
