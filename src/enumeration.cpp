@@ -145,7 +145,7 @@ vector<ast_ptr> EnumerateSketches(int depth) {
 
   //  Add the recursive sketches first (we want them to be earliest).
   for (auto skt : rec_sketches) {
-    // sketches.push_back(skt);
+    sketches.push_back(skt);
   }
 
   for (auto skt : rec_sketches) {
