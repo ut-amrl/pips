@@ -38,6 +38,7 @@
 #include "amrl_msgs/NavigationConfigMsg.h"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
+#include "ros/publisher.h"
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
 #include "gflags/gflags.h"
@@ -47,6 +48,7 @@
 #include "geometry_msgs/Pose2D.h"
 #include "amrl_shared_lib/math/geometry.h"
 #include "amrl_shared_lib/math/math_util.h"
+#include "visualization_msgs/Marker.h"
 
 using amrl_msgs::Pose2Df;
 using amrl_msgs::NavigationConfigMsg;
@@ -69,8 +71,8 @@ using math_util::AngleDiff;
 // These are here because everything dies without them.
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
-DEFINE_double(x,  0.0, "X-Coordinate of target location.");
-DEFINE_double(y,  0.0, "Y-Coordinate of target location.");
+DEFINE_double(x,  12.3, "X-Coordinate of target location.");
+DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
 DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
 
 bool run_ = true;
@@ -90,7 +92,7 @@ Vector2f local_target_(0, 0);
 float local_goal_theta_ = 0;
 Vector2f vel_(0, 0);
 float omega_ = 0;
-Vector2f goal_pose_(0, 0);
+Vector2f goal_pose_(3.98, 8.855);
 float goal_theta_ = 0;
 vector<HumanStateMsg> human_states_ = {};
 vector<json> demos = {};
@@ -100,6 +102,7 @@ ros::Publisher halt_pub_;
 ros::Publisher go_alone_pub_;
 ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
+ros::Publisher viz_pub_;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -129,12 +132,14 @@ void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
 }
 
 void Halt() {
+  target_locked_ = false;
   Bool halt_message;
   halt_message.data = true;
   halt_pub_.publish(halt_message);
 }
 
 void GoAlone() {
+  target_locked_ = false;
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
   target_message.y = goal_pose_.y();
@@ -150,7 +155,9 @@ int FindTarget() {
     const Vector2f h_pose(human.pose.x, human.pose.y);
     const Vector2f diff = h_pose - pose_;
     const float dist = diff.norm();
-    if (dist < best_dist) {
+    Eigen::Rotation2Df rot(-theta_);
+    const Vector2f transformed = rot * diff;
+    if (dist < best_dist && transformed.x() > 0) {
       best_dist = dist;
       best_target = i;
     }
@@ -168,9 +175,15 @@ void Follow() {
   const Vector2f target_vel(target.translational_velocity.x,
       target.translational_velocity.y);
   NavigationConfigMsg conf_msg;
-  conf_msg.max_vel = target_vel.norm();
+  cout << target_vel.norm() << endl;
+  conf_msg.max_vel = target_vel.norm() + -0.05;
+  conf_msg.ang_accel = -1;
+  conf_msg.max_accel = -1;
+  conf_msg.carrot_dist = -1;
+  conf_msg.margin = -1;
+  conf_msg.max_decel = -1;
   config_pub_.publish(conf_msg);
-  Pose2D follow_msg;
+  Pose2Df follow_msg;
   follow_msg.x = target.pose.x;
   follow_msg.y = target.pose.y;
   follow_pub_.publish(follow_msg);
@@ -179,13 +192,14 @@ void Follow() {
 // TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
 float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
-  const float kRobotLength = 0.0;
+  const float kRobotLength = 0.5;
   const float kRearAxleOffset = 0.0;
-  const float kObstacleMargin = 0.0;
-  const float kRobotWidth = 0.0;
+  const float kObstacleMargin = 0.5;
+  const float kRobotWidth = 0.44;
 
   // How much the robot's body extends in front of its base link frame.
   const float l = 0.5 * kRobotLength - kRearAxleOffset + kObstacleMargin;
+  // const float l = 0;
   // The robot's half-width.
   const float w = 0.5 * kRobotWidth + kObstacleMargin;
 
@@ -199,17 +213,28 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
     // Transform pose to start reference frame;
     const Vector2f p = rot * (pose - start);
     // If outside width, or behind robot, skip
+    //
     if (fabs(p.y()) > w || p.x() < 0.0f) continue;
+    cout << "Start: " << start << endl;
+    cout << "End: " << end << endl;
+    cout << "Angle: " << angle << endl;
+    cout << "w: " << w << endl;
+    cout << "l: " << l << endl;
+    cout << "py: " << p.y() << endl;
+    cout << "px: " << p.x() << endl;
+
     // Calculate distance and store if shorter.
     free_path_length = min(free_path_length, p.x() - l);
   }
   free_path_length = max(0.0f, free_path_length);
+  cout << free_path_length << endl;
   return free_path_length;
 }
 
 bool ShouldGoAlone() {
   // Check if Path blocked by unmapped obstacle (humans for now)
   const Vector2f path = pose_ - local_target_;
+  cout << "Path norm: " << path.norm() << endl;
   if (StraightFreePathLength(pose_, local_target_) < path.norm()) {
     return false;
   }
@@ -218,16 +243,21 @@ bool ShouldGoAlone() {
 
 bool ShouldFollow() {
   // If the closest robot is moving in the right direction, follow it.
-  HumanStateMsg target = human_states_[target_];
+  int target_id = target_;
   if (!target_locked_) {
-    target = human_states_[FindTarget()];
+    target_id = FindTarget();
   }
+  HumanStateMsg target = human_states_[target_id];
   const Vector2f closest_vel(target.translational_velocity.x,
       target.translational_velocity.y);
-  const Vector2f path = pose_ - local_target_;
+  const Vector2f path = local_target_ - pose_;
+  const Vector2f target_pose(target.pose.x, target.pose.y);
+  const Vector2f distance = target_pose - pose_;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <= 1.5708) {
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.8 && distance.norm() > 1.15) {
+    target_ = target_id;
+    target_locked_ = true;
     return true;
   }
   return false;
@@ -311,12 +341,38 @@ void Run() {
     last_state_ = state_;
     state_ = Transition();
     SaveDemo();
+    cout << "State: " << state_ << endl;
     if (state_ == "GoAlone") {
       GoAlone();
     } else if (state_ == "Follow") {
       Follow();
     } else {
       Halt();
+    }
+    // PUblish the target
+    if (target_locked_) {
+      visualization_msgs::Marker marker;
+      marker.header.frame_id = "map";
+      marker.header.stamp = ros::Time();
+      marker.ns = "my_namespace";
+      marker.id = 0;
+      marker.type = visualization_msgs::Marker::SPHERE;
+      marker.action = visualization_msgs::Marker::ADD;
+      marker.pose.position.x = human_states_[target_].pose.x;
+      marker.pose.position.y = human_states_[target_].pose.y;
+      marker.pose.position.z = 0;
+      marker.pose.orientation.x = 0.0;
+      marker.pose.orientation.y = 0.0;
+      marker.pose.orientation.z = 0.0;
+      marker.pose.orientation.w = 1.0;
+      marker.scale.x = 1;
+      marker.scale.y = 1;
+      marker.scale.z = 0.0;
+      marker.color.a = 1.0; // Don't forget to set the alpha!
+      marker.color.r = 0.0;
+      marker.color.g = 1.0;
+      marker.color.b = 0.0;
+      viz_pub_.publish( marker );
     }
   }
 }
@@ -325,7 +381,7 @@ int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   signal(SIGINT, SignalHandler);
   // Initialize ROS.
-  ros::init(argc, argv, "navigation", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "mpdm_ref", ros::init_options::NoSigintHandler);
   ros::NodeHandle n;
 
   // Set target
@@ -343,10 +399,11 @@ int main(int argc, char** argv) {
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
   go_alone_pub_ = n.advertise<Pose2Df>("/move_base_simple/goal", 1);
-  follow_pub_ = n.advertise<Pose2D>("/nav_override", 1);
+  follow_pub_ = n.advertise<Pose2Df>("/nav_override", 1);
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
+  viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
 
-  ros::Rate loop(20.0);
+  ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
     ros::spinOnce();
     Run();
