@@ -1,0 +1,8 @@
+<package>
+  <depend package="roscpp"/>
+  <depend package="std_msgs"/>
+  <depend package="geometry_msgs"/>
+  <depend package="nav_msgs"/>
+  <depend package="amrl_msgs"/>
+  <depend package="ut_multirobot_sim"/>
+</package>

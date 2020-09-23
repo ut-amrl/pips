@@ -170,7 +170,7 @@ void Follow() {
   NavigationConfigMsg conf_msg;
   conf_msg.max_vel = target_vel.norm();
   config_pub_.publish(conf_msg);
-  Pose2D follow_msg;
+  Pose2Df follow_msg;
   follow_msg.x = target.pose.x;
   follow_msg.y = target.pose.y;
   follow_pub_.publish(follow_msg);
@@ -343,7 +343,7 @@ int main(int argc, char** argv) {
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
   go_alone_pub_ = n.advertise<Pose2Df>("/move_base_simple/goal", 1);
-  follow_pub_ = n.advertise<Pose2D>("/nav_override", 1);
+  follow_pub_ = n.advertise<Pose2Df>("/nav_override", 1);
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
 
   ros::Rate loop(20.0);
