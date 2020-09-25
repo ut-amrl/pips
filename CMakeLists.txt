@@ -87,3 +87,6 @@ target_link_libraries(ldips-l3 c++-pips-core)
 rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
 target_link_libraries(mpdm_ref c++-pips-core)
 target_link_libraries(mpdm_ref amrl_shared_lib)
+
+rosbuild_add_executable(sketch_runner src/sketch_runner/main.cpp)
+target_link_libraries(sketch_runner c++-pips-core)
