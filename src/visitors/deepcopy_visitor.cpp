@@ -3,7 +3,7 @@
 #include <memory>
 #include <stdexcept>
 
-#include "../ast.hpp"
+// #include "../ast.hpp"
 
 using std::logic_error;
 using std::make_shared;

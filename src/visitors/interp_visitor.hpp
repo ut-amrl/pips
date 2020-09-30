@@ -1,11 +1,12 @@
 #pragma once
 
-#include "../ast.hpp"
+#include "ast/ast.hpp"
 
 namespace AST {
 
 ast_ptr Interpret(const ast_ptr& program);
 ast_ptr Interpret(const ast_ptr& program, const Example& example);
+bool InterpretBool(const ast_ptr& program, const Example& example);
 
 class Interp : public Visitor {
  public:

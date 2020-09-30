@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../ast.hpp"
+#include "ast/ast.hpp"
 
 namespace AST {
 

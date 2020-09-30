@@ -365,10 +365,10 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
 ast_ptr StraightFreePathLength(ast_ptr u, ast_ptr v,
     const vector<Vector2f> obstacles) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
-  const float kRobotLength = 0.0;
+  const float kRobotLength = 0.5;
   const float kRearAxleOffset = 0.0;
-  const float kObstacleMargin = 0.0;
-  const float kRobotWidth = 0.0;
+  const float kObstacleMargin = 0.5;
+  const float kRobotWidth = 0.44;
 
   ASSERT_TYPE(u, Type::VEC);
   ASSERT_TYPE(v, Type::VEC);
@@ -396,7 +396,10 @@ ast_ptr StraightFreePathLength(ast_ptr u, ast_ptr v,
     // Calculate distance and store if shorter.
     free_path_length = min(free_path_length, p.x() - l);
   }
-  free_path_length = max(0.0f, free_path_length);
+  if (free_path_length == path.norm()) {
+    free_path_length = 9999;
+  }
+  // cout << free_path_length << endl;
   Num result(free_path_length, {1, 0, 0});
   return make_shared<Num>(result);
 }

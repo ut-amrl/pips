@@ -17,10 +17,9 @@
 */
 //========================================================================
 
+#include <dlfcn.h>
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
-#include <Eigen/src/Core/Matrix.h>
-#include <Eigen/src/Geometry/Rotation2D.h>
 #include <signal.h>
 #include <stdlib.h>
 #include <math.h>
@@ -31,6 +30,10 @@
 #include <iomanip>
 #include <iostream>
 
+#include "ast/ast.hpp"
+#include "ast/parsing.hpp"
+#include "visitors/interp_visitor.hpp"
+#include "visitors/print_visitor.hpp"
 #include "amrl_msgs/NavStatusMsg.h"
 #include "amrl_msgs/NavigationConfigMsg.h"
 #include "amrl_msgs/Pose2Df.h"
@@ -67,6 +70,9 @@ using std::ofstream;
 using geometry_msgs::Pose2D;
 using geometry::Angle;
 using math_util::AngleDiff;
+using AST::Example;
+using AST::ast_ptr;
+using AST::Interpret;
 
 // These are here because everything dies without them.
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
@@ -74,6 +80,7 @@ DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_double(x,  12.3, "X-Coordinate of target location.");
 DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
 DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
+DEFINE_string(ast_path,  "synthd/mpdm_1/", "Path to synthesized predicates.");
 
 bool run_ = true;
 
@@ -103,6 +110,18 @@ ros::Publisher go_alone_pub_;
 ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
+
+// Path to the folder containing pieces of the tranisition function.
+// Transition Function ASTs
+ast_ptr ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
+ast_ptr ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
+ast_ptr ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");
+ast_ptr follow_to_ga = LoadJson(FLAGS_ast_path + "Follow_GoAlone.json");
+ast_ptr follow_to_follow = LoadJson(FLAGS_ast_path + "Follow_Follow.json");
+ast_ptr follow_to_halt = LoadJson(FLAGS_ast_path + "Follow_Halt.json");
+ast_ptr halt_to_ga = LoadJson(FLAGS_ast_path + "Halt_GoAlone.json");
+// ast_ptr halt_to_follow = LoadJson(FLAGS_ast_path + "Halt_Follow.json");
+// ast_ptr halt_to_halt = LoadJson(FLAGS_ast_path + "Halt_Halt.json");
 
 void SignalHandler(int) {
   if (!run_) {
@@ -309,7 +328,7 @@ json GetHumanJson() {
     return output;
 }
 
-void SaveDemo() {
+json GetDemo() {
   json demo;
   const HumanStateMsg target = human_states_[target_];
   const HumanStateMsg closest = human_states_[FindTarget()];
@@ -332,9 +351,7 @@ void SaveDemo() {
       {closest.translational_velocity.x, closest.translational_velocity.y},
       {1, -1, 0});
   demo["human_states"] = GetHumanJson();
-  // TODO(jaholtz) needs to write out all of the human positions, as this
-  // is necessary for GetStraightFreePathLength.
-  demos.push_back(demo);
+  return demo;
 }
 
 void WriteDemos() {
@@ -346,11 +363,48 @@ void WriteDemos() {
   output_file.close();
 }
 
+Example MakeDemo() {
+  Example example;
+  json demo = GetDemo();
+  return JsonToExample(demo);
+}
+
 string Transition() {
-  if (ShouldGoAlone()) {
-    return "GoAlone";
-  } else if (ShouldFollow()) {
-    return "Follow";
+  const Example example = MakeDemo();
+  if (state_ == "GoAlone") {
+    if (InterpretBool(ga_to_halt, example)) {
+      return "Halt";
+    }
+    if (InterpretBool(ga_to_follow, example)) {
+      return "Follow";
+    }
+    if (InterpretBool(ga_to_ga, example)) {
+      return "GoAlone";
+    }
+  }
+
+  if (state_ == "Follow") {
+    if (InterpretBool(follow_to_ga, example)) {
+      return "GoAlone";
+    }
+    if (InterpretBool(follow_to_follow, example)) {
+      return "Follow";
+    }
+    if (InterpretBool(follow_to_halt, example)) {
+      return "Halt";
+    }
+  }
+
+  if (state_ == "Halt") {
+    if (InterpretBool(halt_to_ga, example)) {
+      return "GoAlone";
+    }
+    // if (Interpret(halt_to_follow, example)) {
+      // return "Follow";
+    // }
+    // if (Interpret(halt_to_halt, example)) {
+      // return "Halt";
+    // }
   }
   return "Halt";
 }
@@ -359,7 +413,6 @@ void Run() {
   if (have_localization_ && have_dynamics_ && have_nav_stats_) {
     last_state_ = state_;
     state_ = Transition();
-    SaveDemo();
     cout << "State: " << state_ << endl;
     cout << "Local Target: " << local_target_ << endl << endl;
     if (state_ == "GoAlone") {
@@ -369,7 +422,7 @@ void Run() {
     } else {
       Halt();
     }
-    // PUblish the target
+    // Publish the target
     if (target_locked_) {
       visualization_msgs::Marker marker;
       marker.header.frame_id = "map";
@@ -429,6 +482,5 @@ int main(int argc, char** argv) {
     Run();
     loop.sleep();
   }
-  WriteDemos();
   return 0;
 }

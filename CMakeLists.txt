@@ -8,10 +8,23 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules/")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
 # Set some useful compile flags
 set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fPIC -fopenmp")
 if(${CXX} MATCHES "g++")
   set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
+endif()
+
+# TinyDir stuff
+################################
+# Add definitions
+
+if(MSVC)
+	add_definitions(-W4 -WX -wd"4996")
+else()
+	add_definitions(-fsigned-char -Wall -W -Wpointer-arith -Wcast-qual -Winline)
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 endif()
 
 # ros setup stuff
@@ -36,6 +49,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system lua5.1 gflags
     pthread)
 
+include_directories(src/)
 # Load amrl_shared_lib from submodule
 add_subdirectory(submodules/amrl_shared_lib/)
 include_directories(submodules/amrl_shared_lib/)
@@ -63,14 +77,14 @@ set(CXX_PIPS_SRCS
     src/visitors/print_visitor.hpp
     src/visitors/tosmtlib_visitor.cpp
     src/visitors/tosmtlib_visitor.hpp
-    src/ast.cpp
-    src/ast.hpp
-    src/enumeration.cpp
-    src/enumeration.hpp
-    src/library_functions.cpp
-    src/library_functions.hpp
-    src/parsing.cpp
-    src/parsing.hpp)
+    src/ast/ast.cpp
+    src/ast/ast.hpp
+    src/ast/enumeration.cpp
+    src/ast/enumeration.hpp
+    src/ast/library_functions.cpp
+    src/ast/library_functions.hpp
+    src/ast/parsing.cpp
+    src/ast/parsing.hpp)
 add_library(c++-pips-core ${CXX_PIPS_SRCS})
 # target_link_libraries(c++-pips-core amrl_shared_lib)
 target_link_libraries(c++-pips-core Eigen3::Eigen)
@@ -82,8 +96,18 @@ target_link_libraries(c++-pips-core ${libs})
 # Add an executable for ldips-l3
 add_executable(ldips-l3 src/ldips-l3.cpp)
 target_link_libraries(ldips-l3 c++-pips-core)
-# target_link_libraries(ldips-l3 gflags::gflags)
 
+add_executable(srtr src/srtr.cpp)
+target_link_libraries(srtr c++-pips-core)
+
+add_executable(dipr src/dipr.cpp)
+target_link_libraries(dipr c++-pips-core)
+
+# Behaviors (Running Ros)
 rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
 target_link_libraries(mpdm_ref c++-pips-core)
 target_link_libraries(mpdm_ref amrl_shared_lib)
+
+rosbuild_add_executable(mpdm_synth src/policy/mpdm_synth.cpp)
+target_link_libraries(mpdm_synth c++-pips-core)
+target_link_libraries(mpdm_synth amrl_shared_lib)
