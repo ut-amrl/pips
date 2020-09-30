@@ -7,7 +7,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../ast.hpp"
+#include "ast/ast.hpp"
 
 using std::cout;
 using std::endl;
@@ -97,8 +97,14 @@ ast_ptr ToSMTLIB::Visit(Num* node) {
 
 ast_ptr ToSMTLIB::Visit(Param* node) {
   const string param_name = node->name_;
-  output_ += param_name;
-  parameters_.insert(param_name);
+  if (node->current_value_ != nullptr) {
+    output_ += "(+ ";
+    node->current_value_->Accept(this);
+    output_ += " " + param_name + ")";
+  } else {
+    output_ += param_name;
+    parameters_.insert(param_name);
+  }
   return make_shared<Param>(*node);
 }
 

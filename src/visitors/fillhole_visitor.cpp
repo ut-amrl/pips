@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "../ast.hpp"
+#include "ast/ast.hpp"
 #include "deepcopy_visitor.hpp"
 
 using AST::Dimension;

@@ -47,7 +47,7 @@ SymEntry::SymEntry(const Eigen::Vector2f& value)
 
 ValueProxy SymEntry::GetValue() { return ValueProxy(this); }
 
-const bool SymEntry::GetBool() const {
+bool SymEntry::GetBool() const {
   if (type_ != BOOL) {
     throw invalid_argument(
         "Attempted to get Boolean "
@@ -56,7 +56,7 @@ const bool SymEntry::GetBool() const {
   return bool_value_;
 }
 
-const float SymEntry::GetFloat() const {
+float SymEntry::GetFloat() const {
   if (type_ != NUM) {
     throw invalid_argument(
         "Attempted to get float "
@@ -65,7 +65,7 @@ const float SymEntry::GetFloat() const {
   return float_value_;
 }
 
-const string SymEntry::GetString() const {
+string SymEntry::GetString() const {
   if (type_ != STATE) {
     throw invalid_argument(
         "Attempted to get string "
@@ -74,7 +74,7 @@ const string SymEntry::GetString() const {
   return string_value_;
 }
 
-const Vector2f SymEntry::GetVector() const {
+Vector2f SymEntry::GetVector() const {
   if (type_ != VEC) {
     throw invalid_argument(
         "Attempted to get vector "
@@ -83,7 +83,7 @@ const Vector2f SymEntry::GetVector() const {
   return vec_value_;
 }
 
-const Type SymEntry::GetType() const { return type_; }
+Type SymEntry::GetType() const { return type_; }
 
 bool SymEntry::operator==(const SymEntry& other) const {
   if (type_ != other.type_) {

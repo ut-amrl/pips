@@ -1,5 +1,6 @@
 #include "parsing.hpp"
 
+#include <Eigen/src/Core/Matrix.h>
 #include <eigen3/Eigen/Core>
 #include <fstream>
 #include <map>
@@ -7,9 +8,24 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
+struct tinydir_dir;
 
+class TinyDir {
+public:
+    TinyDir(const std::string& path);
+    ~TinyDir();
+    std::string BaseName() const;
+private:
+    tinydir_dir* dir;
+};
+
+#include <tinydir.h>
+
+#include "visitors/interp_visitor.hpp"
+#include "visitors/print_visitor.hpp"
 #include "ast.hpp"
 
+using AST::ast_ptr;
 using AST::BOOL;
 using AST::Dimension;
 using AST::Example;
@@ -23,6 +39,7 @@ using AST::STATE;
 using Eigen::Vector2f;
 using nlohmann::json;
 using std::invalid_argument;
+using std::ifstream;
 using std::map;
 using std::string;
 using std::unordered_set;
@@ -119,7 +136,6 @@ vector<Example> ReadExamples(const string& file,
   std::ifstream input(file);
   vector<Example> output;
   json examples;
-  input >> examples;
   // TODO(jaholtz) this is never set to false?
   bool first = true;
   for (json example : examples) {
@@ -153,7 +169,7 @@ vector<Example> WindowExamples(const vector<Example>& examples,
   vector<Example> results;
   int start = 0;
   int center = window_size / 2;
-  int end = window_size;
+  size_t end = window_size;
 
   while (end < examples.size()) {
     const Example ex = examples[center];
@@ -172,6 +188,28 @@ vector<Example> WindowExamples(const vector<Example>& examples,
   return results;
 }
 
+Example JsonToExample(const json& example) {
+  Example new_ex;
+  map<string, SymEntry> table;
+  for (json input : example) {
+    if (input.is_array()) {
+      for (auto& obs : input) {
+        const Vector2f obstacle(obs["pose"][0], obs["pose"][1]);
+        new_ex.obstacles_.push_back(obstacle);
+      }
+    } else if (input["name"] != "output" && input["name"] != "start") {
+      vector<int> dim = input["dim"];
+      Var var(input["name"], Dimension(dim.data()),
+          StringToType(input["type"]));
+      table[input["name"]] = json_to_symentry(input);
+    }
+  }
+  new_ex.symbol_table_ = table;
+  new_ex.result_ = json_to_symentry(example["output"]);
+  new_ex.start_ = json_to_symentry(example["start"]);
+  return new_ex;
+}
+
 // This version assumes that the file will contain state transitions
 // and is used for ASP synthesis. The transitions in the examples
 // will be saved to transitions, and written to the examples.
@@ -187,7 +225,12 @@ vector<Example> ReadExamples(const string& file,
     Example new_ex;
     map<string, SymEntry> table;
     for (json input : example) {
-      if (input["name"] != "output" && input["name"] != "start") {
+      if (input.is_array()) {
+        for (auto& obs : input) {
+          const Vector2f obstacle(obs["pose"][0], obs["pose"][1]);
+          new_ex.obstacles_.push_back(obstacle);
+        }
+      } else if (input["name"] != "output" && input["name"] != "start") {
         vector<int> dim = input["dim"];
         Var var(input["name"], Dimension(dim.data()),
             StringToType(input["type"]));
@@ -202,6 +245,58 @@ vector<Example> ReadExamples(const string& file,
                                 example["output"]["value"]);
     transitions->insert(trans);
     output.push_back(new_ex);
+  }
+  return output;
+}
+
+vector<string> FilesInDir(const string& path) {
+  vector<string> output;
+  tinydir_dir dir;
+  tinydir_open(&dir, path.c_str());
+
+  while (dir.has_next) {
+    tinydir_file file;
+    tinydir_readfile(&dir, &file);
+
+    printf("%s", file.name);
+    if (file.is_dir) {
+      printf("/");
+    } else {
+      output.push_back(file.name);
+    }
+    printf("\n");
+
+    tinydir_next(&dir);
+  }
+
+  tinydir_close(&dir);
+  return output;
+}
+
+ast_ptr LoadJson(const string& file) {
+  ifstream input_file;
+  input_file.open(file);
+  json loaded;
+  input_file >> loaded;
+  ast_ptr recovered = AST::AstFromJson(loaded);
+  return recovered;
+}
+
+vector<ast_ptr> LoadSketches(const string& dir,
+    vector<std::pair<string, string>>* branches) {
+  vector<ast_ptr> output;
+  const vector<string> files = FilesInDir(dir);
+  const string d1 = "_";
+  const string d2 = ".";
+  for (const string& file : files) {
+    output.push_back(LoadJson(file));
+    std::pair<string, string> branch;
+    const auto pos1 = file.find(d1);
+    const auto pos2 = file.find(d2);
+    const string start = file.substr(0, pos1);
+    const string end = file.substr(pos1, pos2);
+    cout << start << "->" << end << endl;
+    branches->push_back({start,end});
   }
   return output;
 }

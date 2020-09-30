@@ -9,19 +9,19 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ast/ast.hpp"
-#include "ast/enumeration.hpp"
-#include "ast/library_functions.hpp"
-#include "ast/parsing.hpp"
+#include "ast.hpp"
+#include "enumeration.hpp"
+#include "library_functions.hpp"
+#include "parsing.hpp"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 // #include "sketches/sketches.hpp"
 
-DEFINE_string(ex_file, "examples/merged.json", "Examples file");
-DEFINE_string(lib_file, "ops/social_test.json", "Operation library file");
+DEFINE_string(ex_file, "examples/simple_atk.json", "Examples file");
+DEFINE_string(lib_file, "ops/simple_atk.json", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
-DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
+DEFINE_uint32(window_size, 5, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
@@ -64,11 +64,6 @@ using json = nlohmann::json;
 using z3::context;
 using z3::solver;
 
-bool ExistsFile(const string& filename) {
-  ifstream infile(filename);
-  return infile.good();
-}
-
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
 
@@ -85,8 +80,6 @@ int main(int argc, char* argv[]) {
   vector<Example> examples = ReadExamples(FLAGS_ex_file,
       variables,
       &transitions);
-
-  cout << "Examples Loaded" << endl;
 
   examples = WindowExamples(examples, FLAGS_window_size);
 
@@ -136,49 +129,33 @@ int main(int argc, char* argv[]) {
 
   // Enumerate possible sketches
   const auto sketches = AST::EnumerateSketches(FLAGS_sketch_depth);
-
   // For each input/output pair
   for (const auto& transition : transitions) {
-    // Skipping already synthesized conditions, allows for very basic
-    // checkpointing.
-    const string output_name =
-      "synthd/" + transition.first + "_" + transition.second + ".json";
-    if (ExistsFile(output_name)) {
-      continue;
-    }
-    cout << transition.first << "->" << transition.second << endl;
-    float current_best = 0.0;
-    ast_ptr current_solution = nullptr;
+    cout << transition.first << "<-" << transition.second << endl;
     for (const auto& sketch : sketches) {
       cout << sketch << endl;
-      // Find best performing completion of current sketch
-      float solved = 0.0;
+      bool solved = false;
       ast_ptr solution =
-        SolvePredicate(examples,
-            ops, sketch, transition, FLAGS_min_accuracy, &solved);
+          SolvePredicate(examples,
+                  ops, sketch, transition, FLAGS_min_accuracy, &solved);
+      if (solved) {
+          // cout << "Solution: " << solution << endl;
+          // Test writing ast as json to file
+          // ofstream output_file;
+          // output_file.open("synthd/mpdm_1/GoAlone_GoAlone.json");
+          // const json output = solution->ToJson();
+          // output_file << std::setw(4) << output << std::endl;
+          // output_file.close();
 
-      // If the perfomance meets needs, stop searching
-      // otherwise, keep if beats best performing solution.
-      if (solved >= FLAGS_min_accuracy) {
-        current_best = solved;
-        current_solution = solution;
-        break;
-      } else if (solved > current_best) {
-        current_best = solved;
-        current_solution = solution;
+          // Test reading it back in again
+          ifstream input_file;
+          input_file.open("synthd/mpdm_1/GoAlone_GoAlone.json");
+          json loaded;
+          input_file >> loaded;
+          ast_ptr recovered = AST::AstFromJson(loaded);
+          cout << "Recovered: " << recovered << endl;
       }
-
-      Z3_reset_memory();
-      cout << "Score: " << current_best << endl;
     }
-    // Write the solution out to a file.
-    cout << current_solution << endl;
-    ofstream output_file;
-    output_file.open(output_name);
-    const json output = current_solution->ToJson();
-    output_file << std::setw(4) << output << std::endl;
-    output_file.close();
-
     cout << endl;
   }
 }

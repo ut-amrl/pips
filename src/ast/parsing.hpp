@@ -32,3 +32,9 @@ std::vector<AST::Example> WindowExamples(
 std::vector<AST::Example> ReadExamples(const std::string& file,
     std::unordered_set<AST::Var>& vars,
     std::unordered_set<std::pair<std::string, std::string>, pair_hash>* transitions);
+
+AST::ast_ptr LoadJson(const std::string& file);
+AST::Example JsonToExample(const nlohmann::json& example);
+
+std::vector<AST::ast_ptr> LoadSketches(const std::string& dir,
+    std::vector<std::pair<std::string, std::string>>* branches);

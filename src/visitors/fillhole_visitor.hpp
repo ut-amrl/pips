@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "../ast.hpp"
-#include "../enumeration.hpp"
+#include "ast/ast.hpp"
+#include "ast/enumeration.hpp"
 
 namespace AST {
 

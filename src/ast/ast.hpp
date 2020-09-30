@@ -38,11 +38,11 @@ class SymEntry {
   SymEntry(const float value);
   SymEntry(const Eigen::Vector2f& value);
   ValueProxy GetValue();
-  const bool GetBool() const;
-  const float GetFloat() const;
-  const std::string GetString() const;
-  const Eigen::Vector2f GetVector() const;
-  const Type GetType() const;
+  bool GetBool() const;
+  float GetFloat() const;
+  std::string GetString() const;
+  Eigen::Vector2f GetVector() const;
+  Type GetType() const;
   bool operator==(const SymEntry& other) const;
   friend std::ostream& operator<<(std::ostream& stream,
                                   const SymEntry& symentry);

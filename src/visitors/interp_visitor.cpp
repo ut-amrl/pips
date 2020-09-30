@@ -6,7 +6,7 @@
 #include <stdexcept>          // invalid_argument
 #include <string>             // string
 
-#include "../library_functions.hpp"
+#include "ast/library_functions.hpp"
 
 using Eigen::Vector2f;
 using std::cout;
@@ -27,6 +27,16 @@ ast_ptr Interpret(const ast_ptr& program, const Example& example) {
   Interp interpreter(example);
   const ast_ptr result = program->Accept(&interpreter);
   return result;
+}
+
+bool InterpretBool(const ast_ptr& program, const Example& example) {
+  Interp interpreter(example);
+  ast_ptr result = program->Accept(&interpreter);
+  if (result->type_ == BOOL) {
+    bool_ptr bool_result = std::dynamic_pointer_cast<Bool>(result);
+    return bool_result->value_;
+  }
+  throw invalid_argument("Not a boolean expression.");
 }
 
 Interp::Interp() {}

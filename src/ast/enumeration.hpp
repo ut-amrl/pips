@@ -37,6 +37,9 @@ std::vector<ast_ptr> GetLegalOps(ast_ptr node, std::vector<ast_ptr> input,
 
 std::vector<ast_ptr> EnumerateSketches(int depth);
 
+ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
+    const float& pos, const float& neg);
+
 std::vector<ast_ptr> Enumerate(const std::vector<ast_ptr>& roots,
                                const std::vector<ast_ptr>& inputs,
                                const std::vector<FunctionEntry>& library);
@@ -58,7 +61,7 @@ ast_ptr SolvePredicate(const std::vector<Example>& examples,
     const ast_ptr& sketch,
     const std::pair<std::string, std::string>& transition,
     double min_accuracy,
-    bool* solved);
+    float* solved);
 
 template <typename T>
 bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
@@ -71,5 +74,16 @@ bool IndexInVector(const std::vector<T>& vec, const T& element, int* index) {
   *index = -1;
   return false;
 }
+
+double CheckModelAccuracy(const ast_ptr& cond,
+                          const std::unordered_set<Example>& yes,
+                          const std::unordered_set<Example>& no);
+
+double CheckModelAccuracy(const ast_ptr& cond,
+                          const std::unordered_set<Example>& yes,
+                          const std::unordered_set<Example>& no,
+                          float* pos,
+                          float* neg);
+
 
 }  // namespace AST

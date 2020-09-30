@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <z3_api.h>
 
 #include "../submodules/amrl_shared_lib/util/terminal_colors.h"
 #include "../submodules/amrl_shared_lib/util/timer.h"
@@ -161,6 +162,28 @@ vector<ast_ptr> EnumerateSketches(int depth) {
     }
   }
   return sketches;
+}
+
+// Extends a predicate to match new examples, based on
+// the performance of the existing examples, and the sketches.
+ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
+    const float& pos, const float& neg) {
+  // If we have both positive and negative examples
+  // b'' && b || b'' && b'
+  if (pos > 0 && neg > 0) {
+    BinOp left(neg_sketch, base, "And");
+    BinOp right(neg_sketch, pos_sketch, "And");
+    BinOp result(make_shared<BinOp>(left), make_shared<BinOp>(right), "Or");
+    return make_shared<BinOp>(result);
+  }
+
+  if (pos > 0) {
+    BinOp result(base, pos_sketch, "Or");
+    return make_shared<BinOp>(result);
+  }
+
+  BinOp result(base, neg_sketch, "And");
+  return make_shared<BinOp>(result);
 }
 
 // Enumerate for a set of nodes
@@ -316,7 +339,44 @@ Model Z3ModelToMap(const z3::model& z3_model) {
   return ret;
 }
 
-double CheckModelAccuracy(const ast_ptr& cond, const SymEntry& output,
+double CheckModelAccuracy(const ast_ptr& cond,
+                          const unordered_set<Example>& yes,
+                          const unordered_set<Example>& no,
+                          float* pos,
+                          float* neg) {
+  // Create a variable for keeping track of the number of examples where we get
+  // the expected result.
+  size_t satisfied = 0;
+  // Count for how many "yes" examples the interpretation of the condition is
+  // true.
+  for (const Example& example : yes) {
+    const ast_ptr result = Interpret(cond, example);
+    bool_ptr result_cast = dynamic_pointer_cast<Bool>(result);
+    if (result_cast->value_) {
+      satisfied += 1;
+    } else {
+      *pos += 1;
+    }
+  }
+
+  // Count for how many "no" examples the interpretation of the condition is
+  // false.
+  for (const Example& example : no) {
+    const ast_ptr result = Interpret(cond, example);
+    bool_ptr result_cast = dynamic_pointer_cast<Bool>(result);
+    if (!result_cast->value_) {
+      satisfied += 1;
+    } else {
+      *neg += 1;
+    }
+  }
+
+  // Compute the final percentage of satisfied examples to all examples.
+  const double sat_ratio = (double)satisfied / (yes.size() + no.size());
+  return sat_ratio;
+}
+
+double CheckModelAccuracy(const ast_ptr& cond,
                           const unordered_set<Example>& yes,
                           const unordered_set<Example>& no) {
   // Create a variable for keeping track of the number of examples where we get
@@ -441,6 +501,16 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   for (const string& assertion : assertions) {
     problem += assertion + "\n";
   }
+
+  for (const string& param : params) {
+    // minimize the absolute value of these constants. Closer to 0 is better
+    // in the SRTR case, and ignoreable the rest of the time (because of
+    // lexicographic optimization)
+    const string absolute =
+        "(ite (> 0 " + param + ") (- 0 " + param + ") " + param + ")";
+    problem += "(minimize " + absolute + ")\n" ;
+  }
+  // cout << problem << endl;
 
   // Now that the problem string has been completely generated, return it.
   // There is no need to add instructions to the solver like (check-sat) or
@@ -621,7 +691,7 @@ vector<ast_ptr> SolveConditional(
       try {
         solution = SolveSMTLIBProblem(problem);
         FillHoles(cond_copy, solution);
-        const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
+        const double sat_ratio = CheckModelAccuracy(cond_copy, yes, no);
 #pragma omp critical
         {
           if (keep_searching && sat_ratio >= min_accuracy) {
@@ -648,7 +718,7 @@ CumulativeFunctionTimer solve_predicate("SolvePredicate");
 ast_ptr SolvePredicate(
     const vector<Example>& examples, const vector<ast_ptr>& ops,
     const ast_ptr& sketch, const pair<string,string>& transition,
-    double min_accuracy, bool* solved) {
+    double min_accuracy, float* solved) {
   CumulativeFunctionTimer::Invocation invoke(&solve_predicate);
 
   const SymEntry out(transition.second);
@@ -681,6 +751,7 @@ ast_ptr SolvePredicate(
   // Start iterating through possible models. index_iterator is explained
   // seperately.
   ast_ptr solution_cond = sketch;
+  float current_best =  0.0;
   if (feature_hole_count > 0) {
     index_iterator c(ops.size(), feature_hole_count);
     solution_cond = nullptr;
@@ -703,6 +774,7 @@ ast_ptr SolvePredicate(
       Model m;
 
       // For every feature hole...
+      bool no_solve = false;
       for (size_t i = 0; i < feature_hole_count; ++i) {
         // Get the name of a feature hole to fill and a possible value for it.
         const string& feature_hole = feature_holes[i];
@@ -712,7 +784,6 @@ ast_ptr SolvePredicate(
         const Dimension feature_hole_dims = feature_hole_info.second;
         const size_t index = op_indicies[i];
         const ast_ptr& op = ops[index];
-
         // If the type of the selected op doesn't match, we can stop creating
         // this model.
         if (op->type_ != feature_hole_type) {
@@ -731,7 +802,7 @@ ast_ptr SolvePredicate(
       // as the number of holes that ought to be filled (indicating a type
       // error), we can give up and try the next model.
       if (m.size() != feature_hole_count) {
-        continue;
+        no_solve = true;
       }
 
       // Since no errors occured while creating the model, we can take the hole
@@ -740,56 +811,30 @@ ast_ptr SolvePredicate(
       ast_ptr cond_copy = DeepCopyAST(sketch);
       FillHoles(cond_copy, m);
 
-      // Now that we've built our candidate condition, build an SMT-LIB problem
-      // and pass it to Z3 to attempt to solve.
-      // TODO(jaholtz), find a less hacky way to handle this.
-      // As it currently stands this just gets arbitrary elements for
-      // the smt portion. Done because smt solving uses huge amounts of
-      // ram otherwise.
-      unordered_set<Example> yes_sample = yes;
-      unordered_set<Example> no_sample = no;
-      if (yes.size() > 50.0 && yes.size() + no.size() > 150.0) {
-        yes_sample.clear();
-        int count = 0;
-        for (Example ex : yes) {
-          if (count >= 50.0) {
-            break;
+      if (!no_solve) {
+        const string problem = MakeSMTLIBProblem(yes, no, cond_copy);
+        // cout << "Current Problem" << endl;
+        // cout << problem << endl;
+        // cout << endl;
+        Model solution;
+        try {
+          solution = SolveSMTLIBProblem(problem);
+          FillHoles(cond_copy, solution);
+          const double sat_ratio = CheckModelAccuracy(cond_copy, yes, no);
+#pragma omp critical
+          {
+            if (keep_searching && sat_ratio >= min_accuracy) {
+              keep_searching = false;
+              solution_cond = cond_copy;
+              current_best = sat_ratio;
+            } else if (sat_ratio >= current_best) {
+              solution_cond = cond_copy;
+              current_best = sat_ratio;
+            }
           }
-          yes_sample.emplace(ex);
-          count++;
+        } catch (const invalid_argument&) {
+          // not SAT, do nothing
         }
-      }
-      if (no.size() > 50.0 && yes.size() + no.size() > 150.0) {
-        no_sample.clear();
-        int count = 0;
-        for (Example ex : no) {
-          if (count >= 50.0) {
-            break;
-          }
-          no_sample.emplace(ex);
-          count++;
-        }
-      }
-      const string problem = MakeSMTLIBProblem(yes_sample, no_sample, cond_copy);
-      // cout << "Current Problem" << endl;
-      // cout << problem << endl;
-      // cout << endl;
-      Model solution;
-      try {
-        solution = SolveSMTLIBProblem(problem);
-        FillHoles(cond_copy, solution);
-        const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
-        #pragma omp barrier
-        #pragma omp single
-        Z3_finalize_memory();
-        {
-          if (keep_searching && sat_ratio >= min_accuracy) {
-            keep_searching = false;
-            solution_cond = cond_copy;
-          }
-        }
-      } catch (const invalid_argument&) {
-        // not SAT, do nothing
       }
     }
   } else {
@@ -805,18 +850,14 @@ ast_ptr SolvePredicate(
     try {
       solution = SolveSMTLIBProblem(problem);
       FillHoles(cond_copy, solution);
-      const double sat_ratio = CheckModelAccuracy(cond_copy, out, yes, no);
-      if (sat_ratio < min_accuracy) {
-        solution_cond = nullptr;
-      }
+      const double sat_ratio = CheckModelAccuracy(cond_copy, yes, no);
+      current_best = sat_ratio;
     } catch (const invalid_argument&) {
       solution_cond = nullptr;
     }
   }
-  Z3_finalize_memory();
-  *solved = false;
   if (solution_cond != nullptr) {
-    *solved = true;
+    *solved = current_best;
   }
   return solution_cond;
 }
