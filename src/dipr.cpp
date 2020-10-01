@@ -178,7 +178,7 @@ int main(int argc, char* argv[]) {
       // Find best performing completion of current sketch
       float solved = 0.0;
       ast_ptr solution =
-        SolvePredicate(examples,
+        SolvePredicate(&examples,
             ops, candidate, transition, FLAGS_min_accuracy, &solved);
 
       // If the perfomance meets needs, stop searching

@@ -71,8 +71,12 @@ using math_util::AngleDiff;
 // These are here because everything dies without them.
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
-DEFINE_double(x,  12.3, "X-Coordinate of target location.");
-DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
+// // Room Above the hallway
+// DEFINE_double(x,  12.3, "X-Coordinate of target location.");
+// DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
+// Other End of the Hallway
+DEFINE_double(x,  8.8, "X-Coordinate of target location.");
+DEFINE_double(y,  8.7, "Y-Coordinate of target location.");
 DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
 
 bool run_ = true;
@@ -238,9 +242,8 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
 
 bool ShouldGoAlone() {
   // Check if Path blocked by unmapped obstacle (humans for now)
-  const Vector2f path = pose_ - local_target_;
   // cout << "Path norm: " << path.norm() << endl;
-  if (StraightFreePathLength(pose_, local_target_) < path.norm()) {
+  if (StraightFreePathLength(pose_, local_target_) < 9999) {
     return false;
   }
   return true;
@@ -260,7 +263,7 @@ bool ShouldFollow() {
   const Vector2f distance = target_pose - pose_;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.8 && distance.norm() > 1.5) {
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.8 && distance.norm() > 2.0) {
     target_ = target_id;
     target_locked_ = true;
     return true;

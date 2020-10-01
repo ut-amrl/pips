@@ -124,8 +124,9 @@ int main(int argc, char* argv[]) {
 
     // Find best performing completion of current sketch
     float solved = 0.0;
+    // TODO(jaholtz) do we actually want to remove examples here?
     ast_ptr solution =
-      SolvePredicate(examples,
+      SolvePredicate(&examples,
           {}, sketch, transition, FLAGS_min_accuracy, &solved);
 
     cout << "Adjusted Program: " << solution << endl;

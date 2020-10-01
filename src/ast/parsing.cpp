@@ -215,12 +215,12 @@ Example JsonToExample(const json& example) {
 // will be saved to transitions, and written to the examples.
 vector<Example> ReadExamples(const string& file,
                              unordered_set<AST::Var>& vars,
-                             unordered_set<pair<string,string>,
-                                pair_hash>* transitions) {
+                             vector<pair<string, string>>* transitions) {
   std::ifstream input(file);
   vector<Example> output;
   json examples;
   input >> examples;
+  std::map<pair<string,string>, int> trans_count;
   for (json example : examples) {
     Example new_ex;
     map<string, SymEntry> table;
@@ -243,9 +243,26 @@ vector<Example> ReadExamples(const string& file,
     new_ex.start_ = json_to_symentry(example["start"]);
     auto trans = std::make_pair(example["start"]["value"],
                                 example["output"]["value"]);
-    transitions->insert(trans);
+    trans_count[trans] += 1;
+    // transitions->insert(trans);
     output.push_back(new_ex);
   }
+
+  // TODO(jaholtz) this is a mess, but it works for now.
+  vector<pair<int, pair<string, string>>> trans;
+  for (auto& entry : trans_count) {
+    trans.push_back(std::make_pair(entry.second, entry.first));
+  }
+  sort(trans.begin(), trans.end());
+  reverse(trans.begin(), trans.end());
+  cout << "----- Transition Demonstrations -----" << endl;
+  for (auto& entry : trans) {
+    cout << entry.second.first << "->";
+    cout << entry.second.second <<  " : " << entry.first << endl;
+    transitions->push_back(entry.second);
+  }
+  cout << endl;
+
   return output;
 }
 
@@ -277,6 +294,9 @@ ast_ptr LoadJson(const string& file) {
   ifstream input_file;
   input_file.open(file);
   json loaded;
+  string line;
+  input_file.close();
+  input_file.open(file);
   input_file >> loaded;
   ast_ptr recovered = AST::AstFromJson(loaded);
   return recovered;
@@ -295,7 +315,6 @@ vector<ast_ptr> LoadSketches(const string& dir,
     const auto pos2 = file.find(d2);
     const string start = file.substr(0, pos1);
     const string end = file.substr(pos1, pos2);
-    cout << start << "->" << end << endl;
     branches->push_back({start,end});
   }
   return output;

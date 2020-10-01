@@ -112,15 +112,15 @@ vector<Signature> CalcSigs(const vector<ast_ptr>& functions,
 }
 
 // Grow a set of sketches to try and fill in
-vector<ast_ptr> EnumerateSketches(int depth) {
+vector<ast_ptr> EnumerateSketchesHelper(int depth) {
   vector<ast_ptr> sketches;
 
   if (depth == 0) {
     // Return [true, false]
     bool_ptr t = make_shared<Bool>(true);
     bool_ptr f = make_shared<Bool>(false);
-    sketches.push_back(t);
-    sketches.push_back(f);
+    // sketches.push_back(t);
+    // sketches.push_back(f);
     return sketches;
   }
 
@@ -136,17 +136,12 @@ vector<ast_ptr> EnumerateSketches(int depth) {
                                 make_shared<Param>(p), "Lt");
 
   // Depth > 0
-  vector<ast_ptr> rec_sketches = EnumerateSketches(depth - 1);
+  vector<ast_ptr> rec_sketches = EnumerateSketchesHelper(depth - 1);
 
   if (depth == 1) {
-    rec_sketches.push_back(great);
-    rec_sketches.push_back(less);
-    return rec_sketches;
-  }
-
-  //  Add the recursive sketches first (we want them to be earliest).
-  for (auto skt : rec_sketches) {
-    sketches.push_back(skt);
+    sketches.push_back(great);
+    sketches.push_back(less);
+    return sketches;
   }
 
   for (auto skt : rec_sketches) {
@@ -160,6 +155,19 @@ vector<ast_ptr> EnumerateSketches(int depth) {
       sketches.push_back(andl);
       sketches.push_back(orl);
     }
+  }
+  return sketches;
+}
+
+vector<ast_ptr> EnumerateSketches(int depth) {
+  vector<ast_ptr> sketches;
+  int counter = 0;
+  while (counter <= depth) {
+    const vector<ast_ptr> current = EnumerateSketchesHelper(counter);
+    for (auto astptr : current) {
+    }
+    sketches.insert(sketches.end(), current.begin(), current.end());
+    counter++;
   }
   return sketches;
 }
@@ -376,9 +384,11 @@ double CheckModelAccuracy(const ast_ptr& cond,
   return sat_ratio;
 }
 
+CumulativeFunctionTimer check_accuracy("CheckModelAccuracy");
 double CheckModelAccuracy(const ast_ptr& cond,
                           const unordered_set<Example>& yes,
                           const unordered_set<Example>& no) {
+  CumulativeFunctionTimer::Invocation invoke(&check_accuracy);
   // Create a variable for keeping track of the number of examples where we get
   // the expected result.
   size_t satisfied = 0;
@@ -407,7 +417,7 @@ double CheckModelAccuracy(const ast_ptr& cond,
 
 CumulativeFunctionTimer solve_smtlib("SolveSMTLIBProblem");
 Model SolveSMTLIBProblem(const string& problem) {
-  // CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
+  CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
   z3::context context;
   z3::optimize solver(context);
   solver.from_string(problem.c_str());
@@ -510,7 +520,6 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
         "(ite (> 0 " + param + ") (- 0 " + param + ") " + param + ")";
     problem += "(minimize " + absolute + ")\n" ;
   }
-  // cout << problem << endl;
 
   // Now that the problem string has been completely generated, return it.
   // There is no need to add instructions to the solver like (check-sat) or
@@ -713,10 +722,42 @@ vector<ast_ptr> SolveConditional(
   return ret;
 }
 
+void SplitExamples(const vector<Example>& examples,
+    pair<string, string> transition,
+    unordered_set<Example>* yes, unordered_set<Example>* no) {
+  // Split up all the examples into a "yes" set or a "no" set based on
+  // whether the result for the example matches the current example's
+  // behavior.
+  string out = transition.second;
+  string in = transition.first;
+  for (const Example& example : examples) {
+    if (example.result_ == out && example.start_ == in) {
+      yes->insert(example);
+    } else if (example.start_ == in) {
+      no->insert(example);
+    }
+  }
+}
+
+vector<Example> FilterExamples(const vector<Example>& examples,
+    pair<string, string> transition) {
+  unordered_set<Example> yes;
+  unordered_set<Example> no;
+  SplitExamples(examples, transition, &yes, &no);
+  vector<Example> copy = examples;
+  for (const Example& example : yes) {
+    vector<Example>::iterator pos =
+      std::find(copy.begin(), copy.end(), example);
+    if (pos != copy.end()) {
+      copy.erase(pos);
+    }
+  }
+  return copy;
+}
 
 CumulativeFunctionTimer solve_predicate("SolvePredicate");
 ast_ptr SolvePredicate(
-    const vector<Example>& examples, const vector<ast_ptr>& ops,
+    vector<Example>* examples, const vector<ast_ptr>& ops,
     const ast_ptr& sketch, const pair<string,string>& transition,
     double min_accuracy, float* solved) {
   CumulativeFunctionTimer::Invocation invoke(&solve_predicate);
@@ -740,13 +781,12 @@ ast_ptr SolvePredicate(
   // behavior.
   unordered_set<Example> yes;
   unordered_set<Example> no;
-  for (const Example& example : examples) {
-    if (example.result_ == out && example.start_ == in) {
-      yes.insert(example);
-    } else if (example.start_ == in) {
-      no.insert(example);
-    }
-  }
+  SplitExamples(*examples, transition, &yes, &no);
+
+  cout << "Training Demonstrations -- ";
+  cout << "Examples: " << examples->size();
+  cout << ", Positive: " << yes.size();
+  cout << ", Negative: " <<  no.size() << endl;
 
   // Start iterating through possible models. index_iterator is explained
   // seperately.
@@ -756,6 +796,7 @@ ast_ptr SolvePredicate(
     index_iterator c(ops.size(), feature_hole_count);
     solution_cond = nullptr;
     bool keep_searching = true;
+    int count = 0.0;
     #pragma omp parallel
     while (keep_searching) {
       // Use the indices given to us by the iterator to select ops for filling
@@ -769,6 +810,7 @@ ast_ptr SolvePredicate(
           keep_searching = false;
           op_indicies = c.zeros();
         }
+        count++;
       }
 
       Model m;
@@ -813,9 +855,6 @@ ast_ptr SolvePredicate(
 
       if (!no_solve) {
         const string problem = MakeSMTLIBProblem(yes, no, cond_copy);
-        // cout << "Current Problem" << endl;
-        // cout << problem << endl;
-        // cout << endl;
         Model solution;
         try {
           solution = SolveSMTLIBProblem(problem);

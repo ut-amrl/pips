@@ -11,6 +11,7 @@ namespace AST {
 
 std::unordered_map<std::string, std::pair<Type, Dimension>> MapFeatureHoles(
     const ast_ptr& ast);
+void ResetParams(ast_ptr ast);
 void FillHoles(ast_ptr& ast, const Model& model);
 ast_ptr FillHoles(const ast_ptr& ast, const Model& model);
 
@@ -29,6 +30,7 @@ class MapHoles : public Visitor {
   std::unordered_map<std::string, std::pair<Type, Dimension>> GetFeatureHoles()
       const;
   std::unordered_set<std::string> GetParameterHoles() const;
+  bool reset_params_;
   void Reset();
 
  private:

@@ -17,7 +17,7 @@
 #include "visitors/print_visitor.hpp"
 // #include "sketches/sketches.hpp"
 
-DEFINE_string(ex_file, "examples/merged.json", "Examples file");
+DEFINE_string(ex_file, "", "Examples file");
 DEFINE_string(lib_file, "ops/social_test.json", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
   // Also obtains variables that can be used (roots for synthesis)
   // and the possible input->output state pairs.
   unordered_set<Var> variables;
-  unordered_set<std::pair<string,string>, pair_hash> transitions;
+  vector<std::pair<string,string>> transitions;
   vector<Example> examples = ReadExamples(FLAGS_ex_file,
       variables,
       &transitions);
@@ -138,23 +138,26 @@ int main(int argc, char* argv[]) {
   const auto sketches = AST::EnumerateSketches(FLAGS_sketch_depth);
 
   // For each input/output pair
+  // TODO(jaholtz) make L3, L2, L1, IDIPS, DIPR, and SRTR calls, not
+  // just main files.
   for (const auto& transition : transitions) {
     // Skipping already synthesized conditions, allows for very basic
     // checkpointing.
     const string output_name =
-      "synthd/" + transition.first + "_" + transition.second + ".json";
+      "synthd/dips-window/" + transition.first + "_" + transition.second + ".json";
     if (ExistsFile(output_name)) {
       continue;
     }
-    cout << transition.first << "->" << transition.second << endl;
+    cout << "----- " << transition.first << "->";
+    cout << transition.second << " -----" << endl;
     float current_best = 0.0;
     ast_ptr current_solution = nullptr;
     for (const auto& sketch : sketches) {
-      cout << sketch << endl;
+      cout << "Sketch: " << sketch << endl;
       // Find best performing completion of current sketch
       float solved = 0.0;
       ast_ptr solution =
-        SolvePredicate(examples,
+        SolvePredicate(&examples,
             ops, sketch, transition, FLAGS_min_accuracy, &solved);
 
       // If the perfomance meets needs, stop searching
@@ -170,14 +173,18 @@ int main(int argc, char* argv[]) {
 
       Z3_reset_memory();
       cout << "Score: " << current_best << endl;
+      cout << "Solution: " << current_solution << endl;
+      cout << "- - - - -" << endl;
     }
     // Write the solution out to a file.
-    cout << current_solution << endl;
+    cout << "Score: " << current_best << endl;
+    cout << "Final Solution: " << current_solution << endl;
     ofstream output_file;
     output_file.open(output_name);
     const json output = current_solution->ToJson();
     output_file << std::setw(4) << output << std::endl;
     output_file.close();
+    examples = FilterExamples(examples, transition);
 
     cout << endl;
   }

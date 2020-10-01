@@ -70,6 +70,8 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = Dot(left, right);
     } else if (op == "SqDist") {
       result = SqDist(left, right);
+    } else if (op == "AngleDist") {
+      result = AngleDist(left, right);
     } else if (op == "And") {
       result = And(left, right);
     } else if (op == "Or") {

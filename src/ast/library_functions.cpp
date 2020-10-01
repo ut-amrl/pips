@@ -36,6 +36,7 @@ using std::min;
 using std::max;
 using std::vector;
 using geometry::Angle;
+using math_util::AngleDist;
 
 #define ASSERT_DIM(expression, dimensionality)                  \
   {                                                             \
@@ -106,6 +107,20 @@ ast_ptr Minus(ast_ptr left, ast_ptr right) {
     throw invalid_argument(
         "expected types of `left' and `right' to be `Type::NUM' or "
         "`Type::VEC'");
+  }
+}
+
+ast_ptr AngleDist(ast_ptr left, ast_ptr right) {
+  ASSERT_DIMS_EQUAL(left, right);
+  ASSERT_TYPES_EQUAL(left, right);
+  if (left->type_ == Type::NUM) {
+    num_ptr left_cast = dynamic_pointer_cast<Num>(left);
+    num_ptr right_cast = dynamic_pointer_cast<Num>(right);
+    Num result(AngleDist(left_cast->value_, right_cast->value_), left->dims_);
+    return make_shared<Num>(result);
+  } else {
+    throw invalid_argument(
+        "expected types of `left' and `right' to be `Type::NUM'");
   }
 }
 
@@ -230,7 +245,7 @@ ast_ptr SqDist(ast_ptr u, ast_ptr v) {
   vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   const float euc_dist = (u_cast->value_ - v_cast->value_).norm();
-  Num result(pow(euc_dist, 2), 2 * u->dims_);
+  Num result(euc_dist, u->dims_);
   return make_shared<Num>(result);
 }
 
