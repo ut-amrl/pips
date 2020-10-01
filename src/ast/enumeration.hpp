@@ -36,6 +36,7 @@ std::vector<ast_ptr> GetLegalOps(ast_ptr node, std::vector<ast_ptr> input,
                                  const std::vector<FunctionEntry>& library);
 
 std::vector<ast_ptr> EnumerateSketches(int depth);
+std::vector<ast_ptr> EnumerateSketchesHelper(int depth);
 
 ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
     const float& pos, const float& neg);
@@ -56,7 +57,7 @@ std::vector<ast_ptr> SolveConditional(const std::vector<Example>& examples,
                                       const Sketch& sketch,
                                       double min_accuracy);
 
-ast_ptr SolvePredicate(const std::vector<Example>& examples,
+ast_ptr SolvePredicate(std::vector<Example>* examples,
     const std::vector<ast_ptr>& ops,
     const ast_ptr& sketch,
     const std::pair<std::string, std::string>& transition,
@@ -85,5 +86,7 @@ double CheckModelAccuracy(const ast_ptr& cond,
                           float* pos,
                           float* neg);
 
+std::vector<Example> FilterExamples(const std::vector<Example>& examples,
+    std::pair<std::string, std::string> transition);
 
 }  // namespace AST

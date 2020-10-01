@@ -31,7 +31,7 @@ std::vector<AST::Example> WindowExamples(
 
 std::vector<AST::Example> ReadExamples(const std::string& file,
     std::unordered_set<AST::Var>& vars,
-    std::unordered_set<std::pair<std::string, std::string>, pair_hash>* transitions);
+    std::vector<std::pair<std::string, std::string>>* transitions);
 
 AST::ast_ptr LoadJson(const std::string& file);
 AST::Example JsonToExample(const nlohmann::json& example);

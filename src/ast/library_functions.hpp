@@ -23,6 +23,7 @@ AST::ast_ptr Plus(AST::ast_ptr left, AST::ast_ptr right);
 AST::ast_ptr Minus(AST::ast_ptr left, AST::ast_ptr right);
 AST::ast_ptr Times(AST::ast_ptr left, AST::ast_ptr right);
 AST::ast_ptr DividedBy(AST::ast_ptr left, AST::ast_ptr right);
+AST::ast_ptr AngleDist(AST::ast_ptr left, AST::ast_ptr right);
 
 AST::ast_ptr Abs(AST::ast_ptr operand);
 AST::ast_ptr Pow(AST::ast_ptr base, AST::ast_ptr power);

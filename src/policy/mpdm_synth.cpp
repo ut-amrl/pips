@@ -77,8 +77,12 @@ using AST::Interpret;
 // These are here because everything dies without them.
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
+// Room Above the hallway
 DEFINE_double(x,  12.3, "X-Coordinate of target location.");
 DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
+// // Other End of the Hallway
+// DEFINE_double(x,  8.8, "X-Coordinate of target location.");
+// DEFINE_double(y,  8.7, "Y-Coordinate of target location.");
 DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
 DEFINE_string(ast_path,  "synthd/mpdm_1/", "Path to synthesized predicates.");
 
@@ -113,15 +117,15 @@ ros::Publisher viz_pub_;
 
 // Path to the folder containing pieces of the tranisition function.
 // Transition Function ASTs
-ast_ptr ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
-ast_ptr ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
-ast_ptr ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");
-ast_ptr follow_to_ga = LoadJson(FLAGS_ast_path + "Follow_GoAlone.json");
-ast_ptr follow_to_follow = LoadJson(FLAGS_ast_path + "Follow_Follow.json");
-ast_ptr follow_to_halt = LoadJson(FLAGS_ast_path + "Follow_Halt.json");
-ast_ptr halt_to_ga = LoadJson(FLAGS_ast_path + "Halt_GoAlone.json");
-// ast_ptr halt_to_follow = LoadJson(FLAGS_ast_path + "Halt_Follow.json");
-// ast_ptr halt_to_halt = LoadJson(FLAGS_ast_path + "Halt_Halt.json");
+ast_ptr ga_to_ga;
+ast_ptr ga_to_follow;
+ast_ptr ga_to_halt;
+ast_ptr follow_to_ga;
+ast_ptr follow_to_follow;
+ast_ptr follow_to_halt;
+ast_ptr halt_to_ga;
+ast_ptr halt_to_follow;
+ast_ptr halt_to_halt;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -371,40 +375,42 @@ Example MakeDemo() {
 
 string Transition() {
   const Example example = MakeDemo();
-  if (state_ == "GoAlone") {
-    if (InterpretBool(ga_to_halt, example)) {
-      return "Halt";
-    }
-    if (InterpretBool(ga_to_follow, example)) {
-      return "Follow";
-    }
-    if (InterpretBool(ga_to_ga, example)) {
-      return "GoAlone";
-    }
-  }
 
-  if (state_ == "Follow") {
-    if (InterpretBool(follow_to_ga, example)) {
-      return "GoAlone";
-    }
-    if (InterpretBool(follow_to_follow, example)) {
-      return "Follow";
-    }
-    if (InterpretBool(follow_to_halt, example)) {
-      return "Halt";
-    }
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_ga, example)) {
+    return "GoAlone";
   }
-
-  if (state_ == "Halt") {
-    if (InterpretBool(halt_to_ga, example)) {
-      return "GoAlone";
-    }
-    // if (Interpret(halt_to_follow, example)) {
-      // return "Follow";
-    // }
-    // if (Interpret(halt_to_halt, example)) {
-      // return "Halt";
-    // }
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_follow, example)) {
+    return "Follow";
+  }
+  if (state_ == "Halt" &&
+      InterpretBool(halt_to_halt, example)) {
+    return "Halt";
+  }
+  if (state_ == "Halt" &&
+      InterpretBool(halt_to_follow, example)) {
+    return "Follow";
+  }
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_halt, example)) {
+    return "Halt";
+  }
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_ga, example)) {
+    return "GoAlone";
+  }
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_halt, example)) {
+    return "Halt";
+  }
+  if (state_ == "Halt" &&
+      InterpretBool(halt_to_ga, example)) {
+    return "GoAlone";
+  }
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_follow, example)) {
+    return "Follow";
   }
   return "Halt";
 }
@@ -456,6 +462,15 @@ int main(int argc, char** argv) {
   // Initialize ROS.
   ros::init(argc, argv, "mpdm_ref", ros::init_options::NoSigintHandler);
   ros::NodeHandle n;
+  ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
+  ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
+  ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");
+  follow_to_ga = LoadJson(FLAGS_ast_path + "Follow_GoAlone.json");
+  follow_to_follow = LoadJson(FLAGS_ast_path + "Follow_Follow.json");
+  follow_to_halt = LoadJson(FLAGS_ast_path + "Follow_Halt.json");
+  halt_to_ga = LoadJson(FLAGS_ast_path + "Halt_GoAlone.json");
+  halt_to_follow = LoadJson(FLAGS_ast_path + "Halt_Follow.json");
+  halt_to_halt = LoadJson(FLAGS_ast_path + "Halt_Halt.json");
 
   // Set target
   goal_pose_ = Vector2f(FLAGS_x, FLAGS_y);

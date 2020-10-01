@@ -29,6 +29,12 @@ unordered_map<string, pair<Type, Dimension>> MapFeatureHoles(
   return mapper.GetFeatureHoles();
 }
 
+void ResetParams(ast_ptr ast) {
+  MapHoles mapper;
+  mapper.reset_params_ = true;
+  ast->Accept(&mapper);
+}
+
 void FillHoles(ast_ptr& ast, const Model& model) {
   // If there are no holes that still need filling, work is done so exit.
   if (model.empty()) {
@@ -82,6 +88,9 @@ ast_ptr MapHoles::Visit(Num* node) { return make_shared<Num>(*node); }
 
 ast_ptr MapHoles::Visit(Param* node) {
   const string& hole_name = node->name_;
+  if (reset_params_) {
+    node->current_value_ = nullptr;
+  }
   parameters_.insert(hole_name);
   return make_shared<Param>(*node);
 }

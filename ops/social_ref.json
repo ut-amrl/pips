@@ -25,7 +25,7 @@
     ]
   },
   {
-    "op": "Minus",
+    "op": "AngleDist",
     "inputType": [
       "NUM",
       "NUM"

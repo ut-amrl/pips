@@ -97,11 +97,14 @@ target_link_libraries(c++-pips-core ${libs})
 add_executable(ldips-l3 src/ldips-l3.cpp)
 target_link_libraries(ldips-l3 c++-pips-core)
 
-add_executable(srtr src/srtr.cpp)
-target_link_libraries(srtr c++-pips-core)
+# add_executable(idips src/idips.cpp)
+# target_link_libraries(idips c++-pips-core)
 
-add_executable(dipr src/dipr.cpp)
-target_link_libraries(dipr c++-pips-core)
+# add_executable(srtr src/srtr.cpp)
+# target_link_libraries(srtr c++-pips-core)
+
+# add_executable(dipr src/dipr.cpp)
+# target_link_libraries(dipr c++-pips-core)
 
 # Behaviors (Running Ros)
 rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
