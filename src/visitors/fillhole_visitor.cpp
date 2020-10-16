@@ -7,7 +7,11 @@
 #include <unordered_set>
 
 #include "ast/ast.hpp"
+#include "visitors/interp_visitor.hpp"
+#include "visitors/tosmtlib_visitor.hpp"
+#include "ast/library_functions.hpp"
 #include "deepcopy_visitor.hpp"
+#include "visitors/print_visitor.hpp"
 
 using AST::Dimension;
 using std::cout;
@@ -19,6 +23,7 @@ using std::string;
 using std::to_string;
 using std::unordered_map;
 using std::unordered_set;
+using std::ostream;
 
 namespace AST {
 
@@ -27,6 +32,18 @@ unordered_map<string, pair<Type, Dimension>> MapFeatureHoles(
   MapHoles mapper;
   ast->Accept(&mapper);
   return mapper.GetFeatureHoles();
+}
+
+ast_ptr Srtrize(ast_ptr &ast) {
+  MapHoles mapper;
+  mapper.srtrize_ = true;
+  return ast->Accept(&mapper);
+}
+
+bool IsRelative(ast_ptr &ast) {
+  MapHoles mapper;
+  ast->Accept(&mapper);
+  return mapper.IsRelative();
 }
 
 void ResetParams(ast_ptr ast) {
@@ -64,23 +81,40 @@ ast_ptr FillHoles(const ast_ptr& ast, const Model& model) {
   return copy;
 }
 
-MapHoles::MapHoles() {}
+MapHoles::MapHoles(): reset_params_(false),
+  srtrize_(false), is_relative_(false) {
+}
+
+string PrintAst(ast_ptr ast) {
+  Print printer;
+  ast->Accept(&printer);
+  return printer.GetString();
+}
 
 ast_ptr MapHoles::Visit(AST* node) { return ast_ptr(node); }
 
 ast_ptr MapHoles::Visit(BinOp* node) {
-  node->left_->Accept(this);
-  node->right_->Accept(this);
+  depth_ += 1;
+  ast_ptr left = node->left_->Accept(this);
+  ast_ptr right = node->right_->Accept(this);
+  if (srtrize_) {
+    BinOp srtrd(left, right, node->op_);
+    node = &srtrd;
+    return make_shared<BinOp>(srtrd);
+  }
+  is_relative_ = true;
   return make_shared<BinOp>(*node);
 }
 
 ast_ptr MapHoles::Visit(Bool* node) { return make_shared<Bool>(*node); }
 
 ast_ptr MapHoles::Visit(Feature* node) {
-  const string& hole_name = node->name_;
-  const Type hole_type = node->type_;
-  const Dimension hole_dims = node->dims_;
-  features_[hole_name] = make_pair(hole_type, hole_dims);
+  if (node->current_value_ == nullptr) {
+    const string& hole_name = node->name_;
+    const Type hole_type = node->type_;
+    const Dimension hole_dims = node->dims_;
+    features_[hole_name] = make_pair(hole_type, hole_dims);
+  }
   return make_shared<Feature>(*node);
 }
 
@@ -91,12 +125,23 @@ ast_ptr MapHoles::Visit(Param* node) {
   if (reset_params_) {
     node->current_value_ = nullptr;
   }
+  if (srtrize_ && node->current_value_ != nullptr) {
+    Param srtr_param(node->name_ + "A", node->dims_, node->type_);
+    BinOp mod(make_shared<Param>(*node), make_shared<Param>(srtr_param), "Plus");
+    return make_shared<BinOp>(mod);
+  }
   parameters_.insert(hole_name);
   return make_shared<Param>(*node);
 }
 
 ast_ptr MapHoles::Visit(UnOp* node) {
-  node->input_->Accept(this);
+  ast_ptr input = node->input_->Accept(this);
+  depth_ += 1;
+  if (srtrize_) {
+    UnOp srtrd(input, node->op_);
+    node = &srtrd;
+    return make_shared<UnOp>(srtrd);
+  }
   return make_shared<UnOp>(*node);
 }
 
@@ -110,6 +155,10 @@ unordered_map<string, pair<Type, Dimension>> MapHoles::GetFeatureHoles() const {
 
 unordered_set<string> MapHoles::GetParameterHoles() const {
   return parameters_;
+}
+
+bool MapHoles::IsRelative() const {
+  return (depth_ > 1 || is_relative_);
 }
 
 void MapHoles::Reset() {
@@ -131,7 +180,7 @@ ast_ptr FillHole::Visit(BinOp* node) {
 ast_ptr FillHole::Visit(Bool* node) { return make_shared<Bool>(*node); }
 
 ast_ptr FillHole::Visit(Feature* node) {
-  if (node->name_ == target_name_) {
+  if (node->name_ == target_name_ && node->current_value_ == nullptr) {
     node->current_value_ = new_value_;
   }
   if (node->current_value_ != nullptr) {
@@ -143,7 +192,9 @@ ast_ptr FillHole::Visit(Feature* node) {
 ast_ptr FillHole::Visit(Num* node) { return make_shared<Num>(*node); }
 
 ast_ptr FillHole::Visit(Param* node) {
-  if (node->name_ == target_name_) {
+  if (node->name_ == target_name_ && node->current_value_ != nullptr) {
+    // node->current_value_ = Plus(node->current_value_, new_value_);
+  } else if (node->name_ == target_name_) {
     node->current_value_ = new_value_;
   }
   if (node->current_value_ != nullptr) {

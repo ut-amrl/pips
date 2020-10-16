@@ -15,6 +15,7 @@
 #include "ast/parsing.hpp"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
+#include "ast/synthesis.hpp"
 // #include "sketches/sketches.hpp"
 
 DEFINE_string(ex_file, "", "Examples file");
@@ -43,7 +44,6 @@ using AST::NUM;
 using AST::Param;
 using AST::Signature;
 using AST::Sketch;
-using AST::SolveConditional;
 using AST::SymEntry;
 using AST::Type;
 using AST::Var;
@@ -86,14 +86,14 @@ int main(int argc, char* argv[]) {
       variables,
       &transitions);
 
-  cout << "Examples Loaded" << endl;
-
   examples = WindowExamples(examples, FLAGS_window_size);
 
   // Turning variables into roots
   vector<ast_ptr> inputs, roots;
   for (const Var& variable : variables) {
-    roots.push_back(make_shared<Var>(variable));
+    if (variable.name_ != "free_path") {
+      roots.push_back(make_shared<Var>(variable));
+    }
   }
 
   cout << "----Roots----" << endl;
@@ -134,58 +134,7 @@ int main(int argc, char* argv[]) {
   cout << ops.size() << endl << endl;
   cout << endl;
 
-  // Enumerate possible sketches
-  const auto sketches = AST::EnumerateSketches(FLAGS_sketch_depth);
-
-  // For each input/output pair
-  // TODO(jaholtz) make L3, L2, L1, IDIPS, DIPR, and SRTR calls, not
-  // just main files.
-  for (const auto& transition : transitions) {
-    // Skipping already synthesized conditions, allows for very basic
-    // checkpointing.
-    const string output_name =
-      "synthd/dips-window/" + transition.first + "_" + transition.second + ".json";
-    if (ExistsFile(output_name)) {
-      continue;
-    }
-    cout << "----- " << transition.first << "->";
-    cout << transition.second << " -----" << endl;
-    float current_best = 0.0;
-    ast_ptr current_solution = nullptr;
-    for (const auto& sketch : sketches) {
-      cout << "Sketch: " << sketch << endl;
-      // Find best performing completion of current sketch
-      float solved = 0.0;
-      ast_ptr solution =
-        SolvePredicate(&examples,
-            ops, sketch, transition, FLAGS_min_accuracy, &solved);
-
-      // If the perfomance meets needs, stop searching
-      // otherwise, keep if beats best performing solution.
-      if (solved >= FLAGS_min_accuracy) {
-        current_best = solved;
-        current_solution = solution;
-        break;
-      } else if (solved > current_best) {
-        current_best = solved;
-        current_solution = solution;
-      }
-
-      Z3_reset_memory();
-      cout << "Score: " << current_best << endl;
-      cout << "Solution: " << current_solution << endl;
-      cout << "- - - - -" << endl;
-    }
-    // Write the solution out to a file.
-    cout << "Score: " << current_best << endl;
-    cout << "Final Solution: " << current_solution << endl;
-    ofstream output_file;
-    output_file.open(output_name);
-    const json output = current_solution->ToJson();
-    output_file << std::setw(4) << output << std::endl;
-    output_file.close();
-    examples = FilterExamples(examples, transition);
-
-    cout << endl;
-  }
+  // Run L3 Synthesis
+  ldipsL3(examples, transitions, ops, FLAGS_sketch_depth, FLAGS_min_accuracy,
+      "synthd/dipsl3/");
 }

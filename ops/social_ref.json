@@ -1,30 +1,5 @@
 [
   {
-    "op": "SqDist",
-    "inputType": [
-      "VEC",
-      "VEC"
-    ],
-    "inputDim": [
-      [
-        1,
-        0,
-        0
-      ],
-      [
-        1,
-        0,
-        0
-      ]
-    ],
-    "outputType": "NUM",
-    "outputDim": [
-      1,
-      0,
-      0
-    ]
-  },
-  {
     "op": "AngleDist",
     "inputType": [
       "NUM",
@@ -52,15 +27,9 @@
   {
     "op": "StraightFreePathLength",
     "inputType": [
-      "VEC",
       "VEC"
     ],
     "inputDim": [
-      [
-        1,
-        0,
-        0
-      ],
       [
         1,
         0,
@@ -109,6 +78,139 @@
     "outputDim": [
       0,
       0,
+      0
+    ]
+  },
+  {
+    "op": "Abs",
+    "inputType": [
+      "NUM"
+    ],
+    "inputDim": [
+      [
+        0,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Norm",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "Norm",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        -1,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      -1,
+      0
+    ]
+  },
+  {
+    "op": "VecX",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "VecX",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        -1,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      -1,
+      0
+    ]
+  },
+  {
+    "op": "VecY",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "VecY",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        -1,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      -1,
       0
     ]
   }

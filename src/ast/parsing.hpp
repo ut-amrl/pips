@@ -38,3 +38,8 @@ AST::Example JsonToExample(const nlohmann::json& example);
 
 std::vector<AST::ast_ptr> LoadSketches(const std::string& dir,
     std::vector<std::pair<std::string, std::string>>* branches);
+
+std::vector<AST::ast_ptr> LoadSketches(const std::string& dir,
+    const std::vector<std::pair<std::string, std::string>>& branches);
+
+bool ExistsFile(const std::string& filename);

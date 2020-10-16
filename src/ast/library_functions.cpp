@@ -343,7 +343,7 @@ ast_ptr Lt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ < y_cast->value_);
+  Bool result(x_cast->value_ - y_cast->value_ < geometry::kEpsilon);
   return make_shared<Bool>(result);
 }
 
@@ -353,7 +353,7 @@ ast_ptr Gt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ > y_cast->value_);
+  Bool result(x_cast->value_ - y_cast->value_ > geometry::kEpsilon);
   return make_shared<Bool>(result);
 }
 
@@ -377,7 +377,7 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
   return make_shared<Bool>(result);
 }
 
-ast_ptr StraightFreePathLength(ast_ptr u, ast_ptr v,
+ast_ptr StraightFreePathLength(ast_ptr v,
     const vector<Vector2f> obstacles) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   const float kRobotLength = 0.5;
@@ -385,11 +385,8 @@ ast_ptr StraightFreePathLength(ast_ptr u, ast_ptr v,
   const float kObstacleMargin = 0.5;
   const float kRobotWidth = 0.44;
 
-  ASSERT_TYPE(u, Type::VEC);
   ASSERT_TYPE(v, Type::VEC);
-  vec_ptr u_cast = dynamic_pointer_cast<Vec>(u);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
-  const Vector2f start = u_cast->value_;
   const Vector2f end = v_cast->value_;
 
   // How much the robot's body extends in front of its base link frame.
@@ -397,24 +394,24 @@ ast_ptr StraightFreePathLength(ast_ptr u, ast_ptr v,
   // The robot's half-width.
   const float w = 0.5 * kRobotWidth + kObstacleMargin;
 
-  const Vector2f path = end - start;
-  const float angle = Angle(path);
+  float free_path_length = end.norm();
+  const float angle = Angle(end);
   const Eigen::Rotation2Df rot(-angle);
-  float free_path_length = path.norm();
 
   for (const Vector2f& obst :obstacles) {
     Vector2f pose(obst.x(), obst.y());
-    // Transform pose to start reference frame;
-    const Vector2f p = rot * (pose - start);
+    // Assuming robot frame, no transform.
+    const Vector2f p = rot * pose;
     // If outside width, or behind robot, skip
     if (fabs(p.y()) > w || p.x() < 0.0f) continue;
     // Calculate distance and store if shorter.
     free_path_length = min(free_path_length, p.x() - l);
   }
-  if (free_path_length == path.norm()) {
+  // cout << "Free Length: " << free_path_length << endl;
+  // cout << "End Norm: " << end.norm() << endl;
+  if (fabs(free_path_length - end.norm()) < geometry::kEpsilon) {
     free_path_length = 9999;
   }
-  // cout << free_path_length << endl;
   Num result(free_path_length, {1, 0, 0});
   return make_shared<Num>(result);
 }
