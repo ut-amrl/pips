@@ -163,7 +163,7 @@ vector<Example> ReadExamples(const string& file,
 // takes all examples on either side of a transition point
 vector<Example> WindowExamples(const vector<Example>& examples,
     const int window_size) {
-  if (window_size < 0) {
+  if (window_size <= 0) {
     return examples;
   }
   vector<Example> results;
@@ -275,13 +275,13 @@ vector<string> FilesInDir(const string& path) {
     tinydir_file file;
     tinydir_readfile(&dir, &file);
 
-    printf("%s", file.name);
+    // printf("%s", file.name);
     if (file.is_dir) {
-      printf("/");
+      // printf("/");
     } else {
       output.push_back(file.name);
     }
-    printf("\n");
+    // printf("\n");
 
     tinydir_next(&dir);
   }
@@ -293,13 +293,30 @@ vector<string> FilesInDir(const string& path) {
 ast_ptr LoadJson(const string& file) {
   ifstream input_file;
   input_file.open(file);
-  json loaded;
-  string line;
-  input_file.close();
-  input_file.open(file);
-  input_file >> loaded;
-  ast_ptr recovered = AST::AstFromJson(loaded);
+  ast_ptr recovered;
+  if (input_file.good()) {
+      json loaded;
+      string line;
+      input_file.close();
+      input_file.open(file);
+      input_file >> loaded;
+      recovered = AST::AstFromJson(loaded);
+  } else {
+      AST::Bool none(false);
+      recovered = std::make_shared<AST::Bool>(none);
+  }
   return recovered;
+}
+
+vector<ast_ptr> LoadSketches(const string& dir,
+    const vector<std::pair<string, string>>& branches) {
+  vector<ast_ptr> output;
+  for (auto& branch : branches) {
+    const string file = branch.first + "_" + branch.second + ".json";
+    const string filename = dir + file;
+    output.push_back(LoadJson(filename));
+  }
+  return output;
 }
 
 vector<ast_ptr> LoadSketches(const string& dir,
@@ -307,15 +324,22 @@ vector<ast_ptr> LoadSketches(const string& dir,
   vector<ast_ptr> output;
   const vector<string> files = FilesInDir(dir);
   const string d1 = "_";
-  const string d2 = ".";
+  const string d2 = ".json";
   for (const string& file : files) {
-    output.push_back(LoadJson(file));
+    const string filename = dir + file;
+    output.push_back(LoadJson(filename));
     std::pair<string, string> branch;
     const auto pos1 = file.find(d1);
-    const auto pos2 = file.find(d2);
     const string start = file.substr(0, pos1);
-    const string end = file.substr(pos1, pos2);
+    // Number of characters to retreive
+    const int length = file.length() - 6 - pos1;
+    const string end = file.substr(pos1 + 1, length);
     branches->push_back({start,end});
   }
   return output;
+}
+
+bool ExistsFile(const string& filename) {
+  ifstream infile(filename);
+  return infile.good();
 }

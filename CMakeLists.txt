@@ -84,7 +84,9 @@ set(CXX_PIPS_SRCS
     src/ast/library_functions.cpp
     src/ast/library_functions.hpp
     src/ast/parsing.cpp
-    src/ast/parsing.hpp)
+    src/ast/parsing.hpp
+    src/ast/synthesis.cpp
+    src/ast/synthesis.hpp)
 add_library(c++-pips-core ${CXX_PIPS_SRCS})
 # target_link_libraries(c++-pips-core amrl_shared_lib)
 target_link_libraries(c++-pips-core Eigen3::Eigen)
@@ -103,8 +105,8 @@ target_link_libraries(ldips-l3 c++-pips-core)
 # add_executable(srtr src/srtr.cpp)
 # target_link_libraries(srtr c++-pips-core)
 
-# add_executable(dipr src/dipr.cpp)
-# target_link_libraries(dipr c++-pips-core)
+add_executable(dipr src/dipr.cpp)
+target_link_libraries(dipr c++-pips-core)
 
 # Behaviors (Running Ros)
 rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
@@ -114,3 +116,11 @@ target_link_libraries(mpdm_ref amrl_shared_lib)
 rosbuild_add_executable(mpdm_synth src/policy/mpdm_synth.cpp)
 target_link_libraries(mpdm_synth c++-pips-core)
 target_link_libraries(mpdm_synth amrl_shared_lib)
+
+rosbuild_add_executable(mpdm_demo src/policy/mpdm_demo.cpp)
+target_link_libraries(mpdm_demo c++-pips-core)
+target_link_libraries(mpdm_demo amrl_shared_lib)
+
+rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
+target_link_libraries(demo_watcher c++-pips-core)
+target_link_libraries(demo_watcher amrl_shared_lib)

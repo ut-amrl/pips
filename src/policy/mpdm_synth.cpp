@@ -73,12 +73,15 @@ using math_util::AngleDiff;
 using AST::Example;
 using AST::ast_ptr;
 using AST::Interpret;
+using math_util::AngleDiff;
+using math_util::DegToRad;
 
 // These are here because everything dies without them.
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
+DEFINE_bool(debug, false, "Enable Debug Printing");
 // Room Above the hallway
-DEFINE_double(x,  12.3, "X-Coordinate of target location.");
+DEFINE_double(x,  14.8, "X-Coordinate of target location.");
 DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
 // // Other End of the Hallway
 // DEFINE_double(x,  8.8, "X-Coordinate of target location.");
@@ -106,6 +109,11 @@ float omega_ = 0;
 Vector2f goal_pose_(3.98, 8.855);
 float goal_theta_ = 0;
 vector<HumanStateMsg> human_states_ = {};
+HumanStateMsg front_;
+HumanStateMsg front_left_;
+HumanStateMsg front_right_;
+HumanStateMsg left_;
+HumanStateMsg right_;
 vector<json> demos = {};
 
 // Publishers
@@ -165,6 +173,15 @@ void Halt() {
 
 void GoAlone() {
   target_locked_ = false;
+  NavigationConfigMsg conf_msg;
+  conf_msg.max_vel = 2.0;
+  conf_msg.ang_accel = -1;
+  conf_msg.max_accel = -1;
+  conf_msg.carrot_dist = -1;
+  conf_msg.margin = 0.0;
+  conf_msg.max_decel = -1;
+  conf_msg.clearance_weight = -0.5;
+  config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
   target_message.y = goal_pose_.y();
@@ -192,25 +209,26 @@ int FindTarget() {
 }
 
 void Follow() {
-  if (!target_locked_) {
-    target_ = FindTarget();
-    target_locked_ = true;
-  }
-  HumanStateMsg target = human_states_[target_];
+  const float kFollowDist = 0.5;
+  HumanStateMsg target = front_;
+  const Vector2f h_pose(target.pose.x, target.pose.y);
+  const Vector2f towards_bot = pose_ - h_pose;
+  const Vector2f target_pose = h_pose + kFollowDist * towards_bot.normalized();
   const Vector2f target_vel(target.translational_velocity.x,
       target.translational_velocity.y);
   NavigationConfigMsg conf_msg;
   // cout << target_vel.norm() << endl;
-  conf_msg.max_vel = target_vel.norm() + -0.05;
+  conf_msg.max_vel = target_vel.norm() - .001;
   conf_msg.ang_accel = -1;
   conf_msg.max_accel = -1;
   conf_msg.carrot_dist = -1;
   conf_msg.margin = -1;
   conf_msg.max_decel = -1;
+  conf_msg.clearance_weight = 1.0;
   config_pub_.publish(conf_msg);
   Pose2Df follow_msg;
-  follow_msg.x = target.pose.x;
-  follow_msg.y = target.pose.y;
+  follow_msg.x = target_pose.x();
+  follow_msg.y = target_pose.y();
   follow_pub_.publish(follow_msg);
 }
 
@@ -320,47 +338,189 @@ json MakeEntry(const string& name,
   return entry;
 }
 
+Vector2f ToRobotFrameP(const Vector2f pose) {
+    // Transform the pose to robot reference frame
+    const Vector2f diff = pose - pose_;
+    Eigen::Rotation2Df rot(-theta_);
+    return rot * diff;
+}
+
+Vector2f ToRobotFrameV(const Vector2f vel) {
+    // Transform the pose to robot reference frame
+    const Vector2f diff = vel - vel_;
+    Eigen::Rotation2Df rot(-theta_);
+    return rot * diff;
+}
+
 json GetHumanJson() {
     vector<json> humans;
     for (HumanStateMsg human : human_states_) {
         const Vector2f pose(human.pose.x, human.pose.y);
         json h_json;
-        h_json["pose"] = {pose.x(), pose.y()};
+        const Vector2f transformed = ToRobotFrameP(pose);
+        h_json["pose"] = {transformed.x(), transformed.y()};
         humans.push_back(h_json);
     }
     json output = humans;
     return output;
 }
 
+HumanStateMsg GetClosest(const vector<HumanStateMsg> humans) {
+  float best_dist = 9999;
+  HumanStateMsg best_human;
+  best_human.pose.x = 9999;
+  best_human.pose.y = 9999;
+  best_human.translational_velocity.x = 0.0;
+  best_human.translational_velocity.y = 0.0;
+  for (HumanStateMsg human : humans) {
+    const Vector2f h_pose(human.pose.x, human.pose.y);
+    const Vector2f diff = h_pose - pose_;
+    const float dist = diff.norm();
+    if (dist < best_dist) {
+      best_dist = dist;
+      best_human = human;
+    }
+  }
+  return best_human;
+}
+
+vector<HumanStateMsg> GetRelevantHumans() {
+  // Order is front_left, front, front_right
+  vector<HumanStateMsg> output(5);
+  vector<HumanStateMsg> left;
+  vector<HumanStateMsg> front_left;
+  vector<HumanStateMsg> front;
+  vector<HumanStateMsg> front_right;
+  vector<HumanStateMsg> right;
+  // todo(jaholtz) Consider if we need to shrink or grow this margin.
+  const float kRobotLength = 0.5;
+  const float kLowerLeft = DegToRad(90.0);
+  const float kUpperLeft = DegToRad(15.0);
+  const float kLowerRight = DegToRad(270.0);
+  const float kUpperRight = DegToRad(345.0);
+
+  for (HumanStateMsg human : human_states_) {
+    const Vector2f h_pose(human.pose.x, human.pose.y);
+    // Transform the pose to robot reference frame
+    const Vector2f diff = h_pose - pose_;
+    Eigen::Rotation2Df rot(-theta_);
+    const Vector2f transformed = rot * diff;
+    const float angle = math_util::AngleMod(Angle(diff) - theta_);
+    if (transformed.x() > kRobotLength) {
+      if (angle < kLowerLeft && angle > kUpperLeft) {
+        front_left.push_back(human);
+      } else if (angle > kLowerRight && angle < kUpperRight) {
+        front_right.push_back(human);
+      } else if (angle < kUpperLeft || angle > kUpperRight) {
+        front.push_back(human);
+      }
+    } else if (transformed.x() > 0) {
+      if (angle < kLowerLeft && angle > kUpperLeft) {
+        left.push_back(human);
+      } else if (angle > kLowerRight && angle < kUpperRight) {
+        right.push_back(human);
+      }
+    }
+  }
+  front_left_ = GetClosest(front_left);
+  front_ = GetClosest(front);
+  front_right_ = GetClosest(front_right);
+  left_ = GetClosest(left);
+  right_ = GetClosest(right);
+  return output;
+}
+
 json GetDemo() {
   json demo;
-  const HumanStateMsg target = human_states_[target_];
-  const HumanStateMsg closest = human_states_[FindTarget()];
+
+  // Input and output states
   demo["start"] = MakeEntry("start", last_state_);
   demo["output"] = MakeEntry("output", state_);
-  demo["bot_pose"] = MakeEntry("bot_pose", pose_, {1, 0, 0});
-  demo["local_target"] = MakeEntry("local_target", local_target_, {1, 0, 0});
-  // demo["bot_theta"] = MakeEntry("bot_theta", theta_, {0, 0, 0});
+  // demo["bot_pose"] = MakeEntry("bot_pose", pose_, {1, 0, 0});
   // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
-  // demo["goal_pose"] = MakeEntry("goal_pose", goal_pose_, {1, 0, 0});
-  // demo["goal_theta"] = MakeEntry("goal_theta", goal_theta_, {0, 0, 0});
-  demo["target_pose"] =
-      MakeEntry("target_pose", {target.pose.x, target.pose.y}, {1, 0, 0});
-  demo["target_vel"] = MakeEntry("target_vel",
-      {target.translational_velocity.x, target.translational_velocity.y},
+  // demo["desired_vel"] = 2.0;
+  demo["target"] = MakeEntry("target",
+      ToRobotFrameP(local_target_), {1, 0, 0});
+  demo["goal"] = MakeEntry("goal",
+      ToRobotFrameP(goal_pose_), {1, 0, 0});
+  demo["free_path_length"] = MakeEntry("free_path",
+      StraightFreePathLength(pose_, local_target_), {1, 0, 0});
+
+  // Special Humans
+  demo["front_p"] =
+      MakeEntry("front_p",
+          ToRobotFrameP({front_.pose.x, front_.pose.y}), {1, 0, 0});
+  demo["front_v"] = MakeEntry("front_v",
+      ToRobotFrameV({front_.translational_velocity.x,
+                    front_.translational_velocity.y}),
       {1, -1, 0});
-  demo["closest_pose"] =
-      MakeEntry("closest_pose", {closest.pose.x, closest.pose.y}, {1, 0, 0});
-  demo["closest_vel"] = MakeEntry("closest_vel",
-      {closest.translational_velocity.x, closest.translational_velocity.y},
+  demo["fLeft_p"] =
+      MakeEntry("fLeft_p",
+          ToRobotFrameP({front_left_.pose.x, front_left_.pose.y}), {1, 0, 0});
+  demo["fLeft_v"] = MakeEntry("fLeft_v",
+      ToRobotFrameV({front_left_.translational_velocity.x,
+                    front_left_.translational_velocity.y}),
       {1, -1, 0});
+  demo["fRight_p"] =
+      MakeEntry("fRight_p",
+          ToRobotFrameP({front_right_.pose.x, front_right_.pose.y}), {1, 0, 0});
+  demo["fRight_v"] = MakeEntry("fRight_v",
+      ToRobotFrameV({front_right_.translational_velocity.x,
+                    front_right_.translational_velocity.y}),
+      {1, -1, 0});
+  // All Humans in a vector
   demo["human_states"] = GetHumanJson();
+
+  // Need to add door state, let's make it a single door for now.
   return demo;
+}
+
+void SaveDemo() {
+  json demo;
+
+  // Input and output states
+  demo["start"] = MakeEntry("start", last_state_);
+  demo["output"] = MakeEntry("output", state_);
+  // demo["bot_pose"] = MakeEntry("bot_pose", pose_, {1, 0, 0});
+  // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
+  // demo["desired_vel"] = 2.0;
+  demo["target"] = MakeEntry("target",
+      ToRobotFrameP(local_target_), {1, 0, 0});
+  demo["goal"] = MakeEntry("goal",
+      ToRobotFrameP(goal_pose_), {1, 0, 0});
+
+  // Special Humans
+  demo["front_p"] =
+      MakeEntry("front_p",
+          ToRobotFrameP({front_.pose.x, front_.pose.y}), {1, 0, 0});
+  demo["front_v"] = MakeEntry("front_v",
+      ToRobotFrameV({front_.translational_velocity.x,
+                    front_.translational_velocity.y}),
+      {1, -1, 0});
+  demo["fLeft_p"] =
+      MakeEntry("fLeft_p",
+          ToRobotFrameP({front_left_.pose.x, front_left_.pose.y}), {1, 0, 0});
+  demo["fLeft_v"] = MakeEntry("fLeft_v",
+      ToRobotFrameV({front_left_.translational_velocity.x,
+                    front_left_.translational_velocity.y}),
+      {1, -1, 0});
+  demo["fRight_p"] =
+      MakeEntry("fRight_p",
+          ToRobotFrameP({front_right_.pose.x, front_right_.pose.y}), {1, 0, 0});
+  demo["fRight_v"] = MakeEntry("fRight_v",
+      ToRobotFrameV({front_right_.translational_velocity.x,
+                    front_right_.translational_velocity.y}),
+      {1, -1, 0});
+  // All Humans in a vector
+  demo["human_states"] = GetHumanJson();
+
+  // Need to add door state, let's make it a single door for now.
+  demos.push_back(demo);
 }
 
 void WriteDemos() {
   ofstream output_file;
-  const string output_name = "mpdm_demo.json";
+  const string output_name = "mpdm_synth_demo.json";
   const json output = demos;
   output_file.open(output_name);
   output_file << std::setw(4) << output << std::endl;
@@ -417,41 +577,16 @@ string Transition() {
 
 void Run() {
   if (have_localization_ && have_dynamics_ && have_nav_stats_) {
+    GetRelevantHumans();
     last_state_ = state_;
     state_ = Transition();
     cout << "State: " << state_ << endl;
-    cout << "Local Target: " << local_target_ << endl << endl;
     if (state_ == "GoAlone") {
       GoAlone();
     } else if (state_ == "Follow") {
       Follow();
     } else {
       Halt();
-    }
-    // Publish the target
-    if (target_locked_) {
-      visualization_msgs::Marker marker;
-      marker.header.frame_id = "map";
-      marker.header.stamp = ros::Time();
-      marker.ns = "my_namespace";
-      marker.id = 0;
-      marker.type = visualization_msgs::Marker::SPHERE;
-      marker.action = visualization_msgs::Marker::ADD;
-      marker.pose.position.x = human_states_[target_].pose.x;
-      marker.pose.position.y = human_states_[target_].pose.y;
-      marker.pose.position.z = 0;
-      marker.pose.orientation.x = 0.0;
-      marker.pose.orientation.y = 0.0;
-      marker.pose.orientation.z = 0.0;
-      marker.pose.orientation.w = 1.0;
-      marker.scale.x = 1;
-      marker.scale.y = 1;
-      marker.scale.z = 0.0;
-      marker.color.a = 1.0; // Don't forget to set the alpha!
-      marker.color.r = 0.0;
-      marker.color.g = 1.0;
-      marker.color.b = 0.0;
-      viz_pub_.publish( marker );
     }
   }
 }

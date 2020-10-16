@@ -86,8 +86,6 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = Gte(left, right);
     } else if (op == "Lte") {
       result = Lte(left, right);
-    } else if (op == "StraightFreePathLength") {
-      result = StraightFreePathLength(left, right, world_.obstacles_);
     } else {
       throw invalid_argument("unknown binary operation `" + op + "'");
     }
@@ -143,6 +141,8 @@ ast_ptr Interp::Visit(UnOp* node) {
       result = Angle(input);
     } else if (op == "NormSq") {
       result = NormSq(input);
+    } else if (op == "Norm") {
+      result = NormSq(input);
     } else if (op == "Perp") {
       result = Perp(input);
     } else if (op == "VecX") {
@@ -151,6 +151,8 @@ ast_ptr Interp::Visit(UnOp* node) {
       result = VecY(input);
     } else if (op == "Not") {
       result = Not(input);
+    } else if (op == "StraightFreePathLength") {
+      result = StraightFreePathLength(input, world_.obstacles_);
     } else {
       throw invalid_argument("unknown unary operation `" + op + "'");
     }

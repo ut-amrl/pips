@@ -41,6 +41,7 @@
 #include "ros/publisher.h"
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
+#include "ut_multirobot_sim/SimulatorStateMsg.h"
 #include "gflags/gflags.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
@@ -57,6 +58,7 @@ using nlohmann::json;
 using std::vector;
 using std::string;
 using ut_multirobot_sim::HumanStateMsg;
+using ut_multirobot_sim::SimulatorStateMsg;
 using std_msgs::Bool;
 using std_msgs::String;
 using std::max;
@@ -84,12 +86,14 @@ DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
 bool run_ = true;
 
 // Globals for a quick and dirty controller
+SimulatorStateMsg sim_state_;
+bool sim_step_ = false;
 bool nav_complete_ = false;
 bool have_dynamics_ = false;
 bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool target_locked_ = false;
-int target_  = 0;
+int pass_target_;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
 Vector2f pose_(0, 0);
@@ -145,62 +149,16 @@ void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
   have_dynamics_ = true;
 }
 
-void Halt() {
-  target_locked_ = false;
-  Bool halt_message;
-  halt_message.data = true;
-  halt_pub_.publish(halt_message);
+void SetStateCb(const std_msgs::String msg) {
+  last_state_ = state_;
+  state_ = msg.data;
 }
 
-void GoAlone() {
-  target_locked_ = false;
-  Pose2Df target_message;
-  target_message.x = goal_pose_.x();
-  target_message.y = goal_pose_.y();
-  target_message.theta = goal_theta_;
-  go_alone_pub_.publish(target_message);
-}
-
-int FindTarget() {
-  int best_target = 0;
-  float best_dist = 9999;
-  for (size_t i = 0; i < human_states_.size(); ++i) {
-    const HumanStateMsg human = human_states_[i];
-    const Vector2f h_pose(human.pose.x, human.pose.y);
-    const Vector2f diff = h_pose - pose_;
-    const float dist = diff.norm();
-    Eigen::Rotation2Df rot(-theta_);
-    const Vector2f transformed = rot * diff;
-    if (dist < best_dist && transformed.x() > 0.0) {
-      best_dist = dist;
-      best_target = i;
-    }
+void SimStateCb(const SimulatorStateMsg msg) {
+  if (msg.sim_step_count > sim_state_.sim_step_count) {
+    sim_step_ = true;
   }
-  // target_ = best_target;
-  return best_target;
-}
-
-void Follow() {
-  const float kFollowDist = 0.5;
-  HumanStateMsg target = front_;
-  const Vector2f h_pose(target.pose.x, target.pose.y);
-  const Vector2f towards_bot = pose_ - h_pose;
-  const Vector2f target_pose = h_pose + kFollowDist * towards_bot.normalized();
-  const Vector2f target_vel(target.translational_velocity.x,
-      target.translational_velocity.y);
-  NavigationConfigMsg conf_msg;
-  // cout << target_vel.norm() << endl;
-  conf_msg.max_vel = target_vel.norm() - .001;
-  conf_msg.ang_accel = -1;
-  conf_msg.max_accel = -1;
-  conf_msg.carrot_dist = -1;
-  conf_msg.margin = -1;
-  conf_msg.max_decel = -1;
-  config_pub_.publish(conf_msg);
-  Pose2Df follow_msg;
-  follow_msg.x = target_pose.x();
-  follow_msg.y = target_pose.y();
-  follow_pub_.publish(follow_msg);
+  sim_state_ = msg;
 }
 
 // TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
@@ -246,31 +204,6 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   // free_path_length = max(0.0f, free_path_length);
   // // cout << free_path_length << endl;
   return free_path_length;
-}
-
-bool ShouldGoAlone() {
-  // Check if Path blocked by unmapped obstacle (humans for now)
-  // cout << "Path norm: " << path.norm() << endl;
-  if (StraightFreePathLength(pose_, local_target_) < 9999) {
-    return false;
-  }
-  return true;
-}
-
-bool ShouldFollow() {
-  // If the closest robot is moving in the right direction, follow it.
-  HumanStateMsg target = front_;
-  const Vector2f closest_vel(target.translational_velocity.x,
-      target.translational_velocity.y);
-  const Vector2f path = local_target_ - pose_;
-  const Vector2f target_pose(target.pose.x, target.pose.y);
-  const Vector2f distance = target_pose - pose_;
-  const float goal_angle = Angle(path);
-  const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.8 && distance.norm() > 1.0) {
-    return true;
-  }
-  return false;
 }
 
 json MakeEntry(const string& name, const float& value, const vector<int>& dim) {
@@ -370,8 +303,6 @@ vector<HumanStateMsg> GetRelevantHumans() {
     Eigen::Rotation2Df rot(-theta_);
     const Vector2f transformed = rot * diff;
     const float angle = math_util::AngleMod(Angle(diff) - theta_);
-    cout << "Angle: " << angle << endl;
-    cout << "X Value: " << transformed.x() << endl;
     if (transformed.x() > kRobotLength) {
       if (angle < kLowerLeft && angle > kUpperLeft) {
         front_left.push_back(human);
@@ -388,9 +319,6 @@ vector<HumanStateMsg> GetRelevantHumans() {
       }
     }
   }
-  cout << "Front Human Length: " << front.size() << endl;
-  cout << "Left Human Length: " << front_left.size() << endl;
-  cout << "Right Human Length: " << front_right.size() << endl;
   front_left_ = GetClosest(front_left);
   front_ = GetClosest(front);
   front_right_ = GetClosest(front_right);
@@ -409,6 +337,8 @@ void SaveDemo() {
   // demo["bot_theta"] = MakeEntry("theta", theta_, {0, 0, 0});
   // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
   // demo["desired_vel"] = 2.0;
+  // Add the actual state of the door to this when it is implemented.
+  demo["door_state"] = MakeEntry("DoorState", 1, {0, 0, 0});
   demo["target"] = MakeEntry("target",
       ToRobotFrameP(local_target_), {1, 0, 0});
   demo["goal"] = MakeEntry("goal",
@@ -454,55 +384,11 @@ void WriteDemos() {
   output_file.close();
 }
 
-string Transition() {
-  if (ShouldGoAlone()) {
-    return "GoAlone";
-  } else if (ShouldFollow()) {
-    return "Follow";
-  }
-  return "Halt";
-}
-
 void Run() {
   if (have_localization_ && have_dynamics_ && have_nav_stats_) {
-    last_state_ = state_;
     GetRelevantHumans();
-    state_ = Transition();
     SaveDemo();
-    cout << "State: " << state_ << endl;
-    cout << "Local Target: " << local_target_ << endl << endl;
-    if (state_ == "GoAlone") {
-      GoAlone();
-    } else if (state_ == "Follow") {
-      Follow();
-    } else {
-      Halt();
-    }
-    // PUblish the target
-    // if (target_locked_) {
-      visualization_msgs::Marker marker;
-      marker.header.frame_id = "map";
-      marker.header.stamp = ros::Time();
-      marker.ns = "my_namespace";
-      marker.id = 0;
-      marker.type = visualization_msgs::Marker::SPHERE;
-      marker.action = visualization_msgs::Marker::ADD;
-      marker.pose.position.x = front_.pose.x;
-      marker.pose.position.y = front_.pose.y;
-      marker.pose.position.z = 0;
-      marker.pose.orientation.x = 0.0;
-      marker.pose.orientation.y = 0.0;
-      marker.pose.orientation.z = 0.0;
-      marker.pose.orientation.w = 1.0;
-      marker.scale.x = 0.5;
-      marker.scale.y = 0.5;
-      marker.scale.z = 0.0;
-      marker.color.a = 1.0; // Don't forget to set the alpha!
-      marker.color.r = 0.0;
-      marker.color.g = 1.0;
-      marker.color.b = 0.0;
-      viz_pub_.publish( marker );
-    // }
+    last_state_ = state_;
   }
 }
 
@@ -524,19 +410,33 @@ int main(int argc, char** argv) {
       n.subscribe("/localization", 1, &LocalizationCb);
   ros::Subscriber human_sub =
       n.subscribe("/human_states", 1, &HumanStateCb);
-
-  // Publishers
-  halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
-  go_alone_pub_ = n.advertise<Pose2Df>("/move_base_simple/goal", 1);
-  follow_pub_ = n.advertise<Pose2Df>("/nav_override", 1);
-  config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
-  viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
+  ros::Subscriber state_sub =
+      n.subscribe("/robot_state", 1, &SetStateCb);
+  ros::Subscriber sim_state_sub =
+      n.subscribe("/sim_state", 1, &SimStateCb);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
-    ros::spinOnce();
-    Run();
-    loop.sleep();
+    cout << "SimState: " << sim_state_.sim_state;
+    switch (sim_state_.sim_state) {
+      case 1 : {
+        ros::spinOnce();
+        Run();
+        sim_step_ = false;
+        loop.sleep();
+      } break;
+      case SimulatorStateMsg::SIM_STOPPED : {
+        ros::spinOnce();
+        // Do nothing unless stepping.
+        if (sim_step_) {
+          Run();
+          // Disable stepping until a step message is received.
+          sim_step_ = false;
+        }
+      } break;
+      default: {
+      }
+    }
   }
   WriteDemos();
   return 0;
