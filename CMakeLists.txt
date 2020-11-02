@@ -102,8 +102,8 @@ target_link_libraries(ldips-l3 c++-pips-core)
 # add_executable(idips src/idips.cpp)
 # target_link_libraries(idips c++-pips-core)
 
-# add_executable(srtr src/srtr.cpp)
-# target_link_libraries(srtr c++-pips-core)
+add_executable(srtr src/srtr.cpp)
+target_link_libraries(srtr c++-pips-core)
 
 add_executable(dipr src/dipr.cpp)
 target_link_libraries(dipr c++-pips-core)
@@ -124,3 +124,10 @@ target_link_libraries(mpdm_demo amrl_shared_lib)
 rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
 target_link_libraries(demo_watcher c++-pips-core)
 target_link_libraries(demo_watcher amrl_shared_lib)
+
+ROSBUILD_ADD_EXECUTABLE(laser_segmentation
+    src/laser_segmentation_main.cc)
+ADD_DEPENDENCIES(laser_segmentation rosbuild_precompile)
+TARGET_LINK_LIBRARIES(laser_segmentation roslib roscpp pthread boost_system
+    ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
+    ${BUILD_SPECIFIC_LIBRARIES})

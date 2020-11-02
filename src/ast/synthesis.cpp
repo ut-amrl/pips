@@ -380,7 +380,6 @@ ast_ptr PredicateL2(
       }
 
       ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
-
       if (filled != nullptr) {
         const double sat_ratio = PredicateL1(filled, yes, no, false);
         #pragma omp critical
@@ -546,7 +545,7 @@ void DIPR(const vector<Example>& demos,
       if (FLAGS_debug) {
         cout << "Pos: " << pos << " Neg: " << neg << endl;
       }
-      ast_ptr candidate = ExtendPred(best_program, sketch, sketch, pos, neg);
+      ast_ptr candidate = ExtendPred(programs[i], sketch, sketch, pos, neg);
 
       // Attempt L2 Synthesis with the extended sketch.
       best_program = ldipsL2(candidate, examples, lib, transition,
@@ -567,7 +566,7 @@ void DIPR(const vector<Example>& demos,
     output_file.close();
 
     // Filter out Examples used by this transition
-    // examples = FilterExamples(examples, transition);
+    examples = FilterExamples(examples, transition);
     cout << endl;
   }
 }

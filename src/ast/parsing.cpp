@@ -246,6 +246,10 @@ vector<Example> ReadExamples(const string& file,
     trans_count[trans] += 1;
     // transitions->insert(trans);
     output.push_back(new_ex);
+    if (example["start"]["value"] == "Halt" && example["output"]["value"] == "Follow") {
+        cout << "Example" << endl;
+        cout << new_ex.symbol_table_["target"] << endl;
+    }
   }
 
   // TODO(jaholtz) this is a mess, but it works for now.
