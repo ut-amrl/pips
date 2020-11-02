@@ -36,11 +36,16 @@
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
 #include "amrl_msgs/NavigationConfigMsg.h"
+#include "cobot_msgs/CobotLocalizationMsg.h"
+#include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 #include "ros/publisher.h"
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
+#include "ut_multirobot_sim/DoorArrayMsg.h"
+#include "ut_multirobot_sim/DoorStateMsg.h"
+#include "ut_multirobot_sim/DoorControlMsg.h"
 #include "gflags/gflags.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
@@ -57,6 +62,9 @@ using nlohmann::json;
 using std::vector;
 using std::string;
 using ut_multirobot_sim::HumanStateMsg;
+using ut_multirobot_sim::DoorStateMsg;
+using ut_multirobot_sim::DoorArrayMsg;
+using ut_multirobot_sim::DoorControlMsg;
 using std_msgs::Bool;
 using std_msgs::String;
 using std::max;
@@ -88,6 +96,7 @@ bool nav_complete_ = false;
 bool have_dynamics_ = false;
 bool have_nav_stats_ = false;
 bool have_localization_ = false;
+bool have_doors_ = false;
 bool target_locked_ = false;
 int target_  = 0;
 string state_ = "GoAlone";
@@ -101,6 +110,7 @@ float omega_ = 0;
 Vector2f goal_pose_(3.98, 8.855);
 float goal_theta_ = 0;
 vector<HumanStateMsg> human_states_ = {};
+vector<DoorStateMsg> door_states_ = {};
 HumanStateMsg front_;
 HumanStateMsg front_left_;
 HumanStateMsg front_right_;
@@ -115,6 +125,7 @@ ros::Publisher go_alone_pub_;
 ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
+ros::Publisher door_pub_;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -123,6 +134,41 @@ void SignalHandler(int) {
   }
   printf("Exiting.\n");
   run_ = false;
+}
+
+void CobotDoorCallback(const cobot_msgs::CobotDoorDetectionsMsg msg) {
+  door_states_.clear();
+  if (msg.doorID.size() > 0) {
+    DoorStateMsg door;
+    have_doors_ = true;
+    const Vector2f door_left(msg.doorX1[0], msg.doorY1[0]);
+    const Vector2f door_right(msg.doorX2[0], msg.doorY2[0]);
+    const Vector2f door_pose = door_left - door_right;
+    door.pose.x = door_pose.x();
+    door.pose.y = door_pose.y();
+    const float distance = (door_pose - pose_).norm();
+    if (msg.doorStatus[0] == 1) {
+      door.doorStatus = 2;
+    } else if (distance < 2.0 && distance > 0.5) {
+      door.doorStatus = 1;
+      // Publish Open Message
+      DoorControlMsg control_msg;
+      control_msg.command = 2;
+      door_pub_.publish(control_msg);
+    } else {
+      door.doorStatus = 0;
+      DoorControlMsg control_msg;
+      control_msg.command = 3;
+      door_pub_.publish(control_msg);
+    }
+    door_states_.push_back(door);
+  }
+}
+
+void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
+  pose_ = Vector2f(msg.x, msg.y);
+  theta_ = msg.angle;
+  have_localization_ = true;
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -145,6 +191,27 @@ void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
   have_dynamics_ = true;
 }
 
+void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
+  door_states_ = msg.door_states;
+  if (door_states_.size() > 0) {
+    have_doors_ = true;
+    const DoorStateMsg door = door_states_[0];
+    const Vector2f door_pose(door.pose.x, door.pose.y);
+    const float distance = (door_pose - pose_).norm();
+    if (door.doorStatus == 2) {
+    } else if (distance < 2.0 && distance > 0.5) {
+      // Publish Open Message
+      DoorControlMsg control_msg;
+      control_msg.command = 2;
+      door_pub_.publish(control_msg);
+    } else {
+      DoorControlMsg control_msg;
+      control_msg.command = 3;
+      door_pub_.publish(control_msg);
+    }
+  }
+}
+
 void Halt() {
   target_locked_ = false;
   Bool halt_message;
@@ -154,6 +221,15 @@ void Halt() {
 
 void GoAlone() {
   target_locked_ = false;
+  NavigationConfigMsg conf_msg;
+  conf_msg.max_vel = 2.0;
+  conf_msg.ang_accel = -1;
+  conf_msg.max_accel = -1;
+  conf_msg.carrot_dist = -1;
+  conf_msg.margin = 0.0;
+  conf_msg.max_decel = -1;
+  conf_msg.clearance_weight = 1.0;
+  config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
   target_message.y = goal_pose_.y();
@@ -267,7 +343,7 @@ bool ShouldFollow() {
   const Vector2f distance = target_pose - pose_;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.8 && distance.norm() > 1.0) {
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.8 && distance.norm() > 1.9) {
     return true;
   }
   return false;
@@ -370,8 +446,6 @@ vector<HumanStateMsg> GetRelevantHumans() {
     Eigen::Rotation2Df rot(-theta_);
     const Vector2f transformed = rot * diff;
     const float angle = math_util::AngleMod(Angle(diff) - theta_);
-    cout << "Angle: " << angle << endl;
-    cout << "X Value: " << transformed.x() << endl;
     if (transformed.x() > kRobotLength) {
       if (angle < kLowerLeft && angle > kUpperLeft) {
         front_left.push_back(human);
@@ -388,9 +462,6 @@ vector<HumanStateMsg> GetRelevantHumans() {
       }
     }
   }
-  cout << "Front Human Length: " << front.size() << endl;
-  cout << "Left Human Length: " << front_left.size() << endl;
-  cout << "Right Human Length: " << front_right.size() << endl;
   front_left_ = GetClosest(front_left);
   front_ = GetClosest(front);
   front_right_ = GetClosest(front_right);
@@ -415,7 +486,14 @@ void SaveDemo() {
       ToRobotFrameP(goal_pose_), {1, 0, 0});
   demo["free_path_length"] = MakeEntry("free_path",
       StraightFreePathLength(pose_, local_target_), {1, 0, 0});
-
+  if (have_doors_ && door_states_.size() > 0) {
+    demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose",
+        ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
+  } else {
+    demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
+  }
   // Special Humans
   demo["front_p"] =
       MakeEntry("front_p",
@@ -464,13 +542,12 @@ string Transition() {
 }
 
 void Run() {
-  if (have_localization_ && have_dynamics_ && have_nav_stats_) {
+  if (have_localization_ && have_nav_stats_) {
     last_state_ = state_;
     GetRelevantHumans();
     state_ = Transition();
     SaveDemo();
     cout << "State: " << state_ << endl;
-    cout << "Local Target: " << local_target_ << endl << endl;
     if (state_ == "GoAlone") {
       GoAlone();
     } else if (state_ == "Follow") {
@@ -478,31 +555,6 @@ void Run() {
     } else {
       Halt();
     }
-    // PUblish the target
-    // if (target_locked_) {
-      visualization_msgs::Marker marker;
-      marker.header.frame_id = "map";
-      marker.header.stamp = ros::Time();
-      marker.ns = "my_namespace";
-      marker.id = 0;
-      marker.type = visualization_msgs::Marker::SPHERE;
-      marker.action = visualization_msgs::Marker::ADD;
-      marker.pose.position.x = front_.pose.x;
-      marker.pose.position.y = front_.pose.y;
-      marker.pose.position.z = 0;
-      marker.pose.orientation.x = 0.0;
-      marker.pose.orientation.y = 0.0;
-      marker.pose.orientation.z = 0.0;
-      marker.pose.orientation.w = 1.0;
-      marker.scale.x = 0.5;
-      marker.scale.y = 0.5;
-      marker.scale.z = 0.0;
-      marker.color.a = 1.0; // Don't forget to set the alpha!
-      marker.color.r = 0.0;
-      marker.color.g = 1.0;
-      marker.color.b = 0.0;
-      viz_pub_.publish( marker );
-    // }
   }
 }
 
@@ -524,6 +576,10 @@ int main(int argc, char** argv) {
       n.subscribe("/localization", 1, &LocalizationCb);
   ros::Subscriber human_sub =
       n.subscribe("/human_states", 1, &HumanStateCb);
+  ros::Subscriber cobot_sub =
+      n.subscribe("/Cobot/Localization", 1, &CobotLocalCb);
+  ros::Subscriber door_sub =
+      n.subscribe("/door_states", 1, &DoorStateCb);
 
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
@@ -531,6 +587,7 @@ int main(int argc, char** argv) {
   follow_pub_ = n.advertise<Pose2Df>("/nav_override", 1);
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
+  door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {

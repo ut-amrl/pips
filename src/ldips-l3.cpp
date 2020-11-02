@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -86,12 +87,14 @@ int main(int argc, char* argv[]) {
       variables,
       &transitions);
 
+  std::reverse(transitions.begin(), transitions.end());
+
   examples = WindowExamples(examples, FLAGS_window_size);
 
   // Turning variables into roots
   vector<ast_ptr> inputs, roots;
   for (const Var& variable : variables) {
-    if (variable.name_ != "free_path") {
+    if (variable.name_ != "goal" && variable.name_ != "free_path" && variable.name_ != "DoorState") {
       roots.push_back(make_shared<Var>(variable));
     }
   }

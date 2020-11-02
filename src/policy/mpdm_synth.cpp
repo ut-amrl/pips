@@ -39,11 +39,16 @@
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
 #include "amrl_msgs/NavigationConfigMsg.h"
+#include "cobot_msgs/CobotLocalizationMsg.h"
+#include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 #include "ros/publisher.h"
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
+#include "ut_multirobot_sim/DoorArrayMsg.h"
+#include "ut_multirobot_sim/DoorStateMsg.h"
+#include "ut_multirobot_sim/DoorControlMsg.h"
 #include "gflags/gflags.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
@@ -60,6 +65,9 @@ using nlohmann::json;
 using std::vector;
 using std::string;
 using ut_multirobot_sim::HumanStateMsg;
+using ut_multirobot_sim::DoorStateMsg;
+using ut_multirobot_sim::DoorArrayMsg;
+using ut_multirobot_sim::DoorControlMsg;
 using std_msgs::Bool;
 using std_msgs::String;
 using std::max;
@@ -97,6 +105,7 @@ bool have_dynamics_ = false;
 bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool target_locked_ = false;
+bool have_doors_ = false;
 int target_  = 0;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -109,6 +118,7 @@ float omega_ = 0;
 Vector2f goal_pose_(3.98, 8.855);
 float goal_theta_ = 0;
 vector<HumanStateMsg> human_states_ = {};
+vector<DoorStateMsg> door_states_ = {};
 HumanStateMsg front_;
 HumanStateMsg front_left_;
 HumanStateMsg front_right_;
@@ -122,18 +132,27 @@ ros::Publisher go_alone_pub_;
 ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
+ros::Publisher door_pub_;
 
 // Path to the folder containing pieces of the tranisition function.
 // Transition Function ASTs
 ast_ptr ga_to_ga;
 ast_ptr ga_to_follow;
 ast_ptr ga_to_halt;
+ast_ptr ga_to_pass;
 ast_ptr follow_to_ga;
 ast_ptr follow_to_follow;
 ast_ptr follow_to_halt;
+ast_ptr follow_to_pass;
 ast_ptr halt_to_ga;
 ast_ptr halt_to_follow;
 ast_ptr halt_to_halt;
+ast_ptr halt_to_pass;
+ast_ptr pass_to_pass;
+ast_ptr pass_to_ga;
+ast_ptr pass_to_halt;
+ast_ptr pass_to_follow;
+
 
 void SignalHandler(int) {
   if (!run_) {
@@ -142,6 +161,12 @@ void SignalHandler(int) {
   }
   printf("Exiting.\n");
   run_ = false;
+}
+
+void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
+  pose_ = Vector2f(msg.x, msg.y);
+  theta_ = msg.angle;
+  have_localization_ = true;
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -153,15 +178,66 @@ void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
 void NavStatusCb(const amrl_msgs::NavStatusMsg msg) {
   nav_complete_ = msg.nav_complete;
   if (state_ != "Halt") {
+      cout << "Nav Callback" << endl;
       local_target_ = Vector2f(msg.local_target.x, msg.local_target.y);
+      have_nav_stats_ = true;
   }
   vel_ = Vector2f(msg.velocity.x, msg.velocity.y);
-  have_nav_stats_ = true;
 }
 
 void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
   human_states_ = msg.human_states;
   have_dynamics_ = true;
+}
+
+void CobotDoorCallback(const cobot_msgs::CobotDoorDetectionsMsg msg) {
+  door_states_.clear();
+  if (msg.doorID.size() > 0) {
+    DoorStateMsg door;
+    have_doors_ = true;
+    const Vector2f door_left(msg.doorX1[0], msg.doorY1[0]);
+    const Vector2f door_right(msg.doorX2[0], msg.doorY2[0]);
+    const Vector2f door_pose = door_left - door_right;
+    door.pose.x = door_pose.x();
+    door.pose.y = door_pose.y();
+    const float distance = (door_pose - pose_).norm();
+    if (msg.doorStatus[0] == 1) {
+      door.doorStatus = 2;
+    } else if (distance < 2.0 && distance > 0.5) {
+      door.doorStatus = 1;
+      // Publish Open Message
+      DoorControlMsg control_msg;
+      control_msg.command = 2;
+      door_pub_.publish(control_msg);
+    } else {
+      door.doorStatus = 0;
+      DoorControlMsg control_msg;
+      control_msg.command = 3;
+      door_pub_.publish(control_msg);
+    }
+    door_states_.push_back(door);
+  }
+}
+
+void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
+  door_states_ = msg.door_states;
+  if (door_states_.size() > 0) {
+    have_doors_ = true;
+    const DoorStateMsg door = door_states_[0];
+    const Vector2f door_pose(door.pose.x, door.pose.y);
+    const float distance = (door_pose - pose_).norm();
+    if (door.doorStatus == 2) {
+    } else if (distance < 2.0 && distance > 0.5) {
+      // Publish Open Message
+      DoorControlMsg control_msg;
+      control_msg.command = 2;
+      door_pub_.publish(control_msg);
+    } else {
+      DoorControlMsg control_msg;
+      control_msg.command = 3;
+      door_pub_.publish(control_msg);
+    }
+  }
 }
 
 void Halt() {
@@ -180,7 +256,7 @@ void GoAlone() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = -0.5;
+  conf_msg.clearance_weight = 1.0;
   config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
@@ -217,7 +293,6 @@ void Follow() {
   const Vector2f target_vel(target.translational_velocity.x,
       target.translational_velocity.y);
   NavigationConfigMsg conf_msg;
-  // cout << target_vel.norm() << endl;
   conf_msg.max_vel = target_vel.norm() - .001;
   conf_msg.ang_accel = -1;
   conf_msg.max_accel = -1;
@@ -230,6 +305,46 @@ void Follow() {
   follow_msg.x = target_pose.x();
   follow_msg.y = target_pose.y();
   follow_pub_.publish(follow_msg);
+}
+
+void Pass() {
+  const float kLeadDist = 1.5;
+  HumanStateMsg pass_target_ = human_states_[0];
+  const Vector2f h_pose(pass_target_.pose.x, pass_target_.pose.y);
+  const Vector2f target_vel(pass_target_.translational_velocity.x,
+      pass_target_.translational_velocity.y);
+  const Vector2f target_pose = h_pose + kLeadDist * target_vel.normalized();
+  NavigationConfigMsg conf_msg;
+  conf_msg.max_vel = target_vel.norm() * 3.0;
+  conf_msg.ang_accel = -1;
+  conf_msg.max_accel = -1;
+  conf_msg.carrot_dist = -1;
+  conf_msg.margin = 0.0;
+  conf_msg.max_decel = -1;
+  conf_msg.clearance_weight = 1.0;
+  config_pub_.publish(conf_msg);
+  Pose2Df follow_msg;
+  follow_msg.x = target_pose.x();
+  follow_msg.y = target_pose.y();
+  follow_pub_.publish(follow_msg);
+}
+
+void Pass2() {
+  target_locked_ = false;
+  Pose2Df target_message;
+  target_message.x = goal_pose_.x();
+  target_message.y = goal_pose_.y();
+  target_message.theta = goal_theta_;
+  NavigationConfigMsg conf_msg;
+  conf_msg.max_vel = 6.0;
+  conf_msg.ang_accel = -1;
+  conf_msg.max_accel = -1;
+  conf_msg.carrot_dist = -1;
+  conf_msg.margin = 0.0;
+  conf_msg.max_decel = -1;
+  conf_msg.clearance_weight = 1.0;
+  config_pub_.publish(conf_msg);
+  go_alone_pub_.publish(target_message);
 }
 
 // TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
@@ -439,6 +554,14 @@ json GetDemo() {
   // demo["bot_pose"] = MakeEntry("bot_pose", pose_, {1, 0, 0});
   // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
   // demo["desired_vel"] = 2.0;
+  if (have_doors_ && door_states_.size() > 0) {
+    demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose",
+        ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
+  } else {
+    demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
+  }
   demo["target"] = MakeEntry("target",
       ToRobotFrameP(local_target_), {1, 0, 0});
   demo["goal"] = MakeEntry("goal",
@@ -482,12 +605,24 @@ void SaveDemo() {
   demo["start"] = MakeEntry("start", last_state_);
   demo["output"] = MakeEntry("output", state_);
   // demo["bot_pose"] = MakeEntry("bot_pose", pose_, {1, 0, 0});
+  // demo["bot_theta"] = MakeEntry("theta", theta_, {0, 0, 0});
   // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
   // demo["desired_vel"] = 2.0;
+  // Add the actual state of the door to this when it is implemented.
+  if (have_doors_ && door_states_.size() > 0) {
+    demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose",
+        ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
+  } else {
+    demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
+  }
   demo["target"] = MakeEntry("target",
       ToRobotFrameP(local_target_), {1, 0, 0});
   demo["goal"] = MakeEntry("goal",
       ToRobotFrameP(goal_pose_), {1, 0, 0});
+  demo["free_path_length"] = MakeEntry("free_path",
+      StraightFreePathLength(pose_, local_target_), {1, 0, 0});
 
   // Special Humans
   demo["front_p"] =
@@ -535,26 +670,27 @@ Example MakeDemo() {
 
 string Transition() {
   const Example example = MakeDemo();
-
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_ga, example)) {
-    return "GoAlone";
-  }
-  if (state_ == "Follow" &&
-      InterpretBool(follow_to_follow, example)) {
-    return "Follow";
-  }
+  // Halts
   if (state_ == "Halt" &&
-      InterpretBool(halt_to_halt, example)) {
-    return "Halt";
+      InterpretBool(halt_to_ga, example)) {
+    return "GoAlone";
   }
   if (state_ == "Halt" &&
       InterpretBool(halt_to_follow, example)) {
     return "Follow";
   }
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_halt, example)) {
+  if (state_ == "Halt" &&
+      InterpretBool(halt_to_pass, example)) {
+    return "Pass";
+  }
+  if (state_ == "Halt" &&
+      InterpretBool(halt_to_halt, example)) {
     return "Halt";
+  }
+  // Follows
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_pass, example)) {
+    return "Pass";
   }
   if (state_ == "Follow" &&
       InterpretBool(follow_to_ga, example)) {
@@ -564,30 +700,64 @@ string Transition() {
       InterpretBool(follow_to_halt, example)) {
     return "Halt";
   }
-  if (state_ == "Halt" &&
-      InterpretBool(halt_to_ga, example)) {
-    return "GoAlone";
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_follow, example)) {
+    return "Follow";
+  }
+  // GoAlones
+  cout << "GA>H: " << ga_to_halt << endl;
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_halt, example)) {
+    return "Halt";
   }
   if (state_ == "GoAlone" &&
       InterpretBool(ga_to_follow, example)) {
     return "Follow";
   }
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_pass, example)) {
+    return "Pass";
+  }
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_ga, example)) {
+    return "GoAlone";
+  }
+  // Passes
+  if (state_ == "Pass" &&
+      InterpretBool(pass_to_ga, example)) {
+    return "GoAlone";
+  }
+  if (state_ == "Pass" &&
+      InterpretBool(pass_to_follow, example)) {
+    return "Follow";
+  }
+  if (state_ == "Pass" &&
+      InterpretBool(pass_to_pass, example)) {
+    return "Pass";
+  }
   return "Halt";
 }
 
 void Run() {
-  if (have_localization_ && have_dynamics_ && have_nav_stats_) {
+  cout << "Run" << endl;
+  if (have_localization_ && have_nav_stats_) {
+    cout << "Get Runned" << endl;
     GetRelevantHumans();
+    SaveDemo();
     last_state_ = state_;
     state_ = Transition();
-    cout << "State: " << state_ << endl;
     if (state_ == "GoAlone") {
       GoAlone();
     } else if (state_ == "Follow") {
       Follow();
+    } else if (state_ == "Pass") {
+      Pass2();
     } else {
       Halt();
     }
+    cout << "State: " << state_ << endl;
+  } else {
+      GoAlone();
   }
 }
 
@@ -600,12 +770,19 @@ int main(int argc, char** argv) {
   ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
   ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
   ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");
+  ga_to_pass = LoadJson(FLAGS_ast_path + "GoAlone_Pass.json");
   follow_to_ga = LoadJson(FLAGS_ast_path + "Follow_GoAlone.json");
   follow_to_follow = LoadJson(FLAGS_ast_path + "Follow_Follow.json");
   follow_to_halt = LoadJson(FLAGS_ast_path + "Follow_Halt.json");
+  follow_to_pass = LoadJson(FLAGS_ast_path + "Follow_Pass.json");
   halt_to_ga = LoadJson(FLAGS_ast_path + "Halt_GoAlone.json");
   halt_to_follow = LoadJson(FLAGS_ast_path + "Halt_Follow.json");
   halt_to_halt = LoadJson(FLAGS_ast_path + "Halt_Halt.json");
+  halt_to_pass = LoadJson(FLAGS_ast_path + "Halt_Pass.json");
+  pass_to_ga = LoadJson(FLAGS_ast_path + "Pass_GoAlone.json");
+  pass_to_follow = LoadJson(FLAGS_ast_path + "Pass_Follow.json");
+  pass_to_pass = LoadJson(FLAGS_ast_path + "Pass_Pass.json");
+  pass_to_halt = LoadJson(FLAGS_ast_path + "Pass_Halt.json");
 
   // Set target
   goal_pose_ = Vector2f(FLAGS_x, FLAGS_y);
@@ -614,10 +791,16 @@ int main(int argc, char** argv) {
   // Subscribers
   ros::Subscriber status_sub =
       n.subscribe("/nav_status", 1, &NavStatusCb);
+  ros::Subscriber cobot_sub =
+      n.subscribe("/Cobot/Localization", 1, &CobotLocalCb);
   ros::Subscriber localization_sub =
       n.subscribe("/localization", 1, &LocalizationCb);
   ros::Subscriber human_sub =
       n.subscribe("/human_states", 1, &HumanStateCb);
+  ros::Subscriber door_sub =
+      n.subscribe("/door_states", 1, &DoorStateCb);
+  ros::Subscriber cobot_door_sub =
+      n.subscribe("/Cobot/DoorDetector", 1, &CobotDoorCallback);
 
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
@@ -625,6 +808,7 @@ int main(int argc, char** argv) {
   follow_pub_ = n.advertise<Pose2Df>("/nav_override", 1);
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
+  door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
@@ -632,5 +816,6 @@ int main(int argc, char** argv) {
     Run();
     loop.sleep();
   }
+  WriteDemos();
   return 0;
 }

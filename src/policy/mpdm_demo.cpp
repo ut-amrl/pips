@@ -42,6 +42,9 @@
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
 #include "ut_multirobot_sim/SimulatorStateMsg.h"
+#include "ut_multirobot_sim/DoorArrayMsg.h"
+#include "ut_multirobot_sim/DoorStateMsg.h"
+#include "ut_multirobot_sim/DoorControlMsg.h"
 #include "gflags/gflags.h"
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
@@ -59,6 +62,9 @@ using std::vector;
 using std::string;
 using ut_multirobot_sim::HumanStateMsg;
 using ut_multirobot_sim::SimulatorStateMsg;
+using ut_multirobot_sim::DoorStateMsg;
+using ut_multirobot_sim::DoorArrayMsg;
+using ut_multirobot_sim::DoorControlMsg;
 using std_msgs::Bool;
 using std_msgs::String;
 using std::max;
@@ -93,6 +99,7 @@ bool have_dynamics_ = false;
 bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool target_locked_ = false;
+bool have_doors_ = false;
 int pass_target_;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -105,6 +112,7 @@ float omega_ = 0;
 Vector2f goal_pose_(3.98, 8.855);
 float goal_theta_ = 0;
 vector<HumanStateMsg> human_states_ = {};
+vector<DoorStateMsg> door_states_ = {};
 HumanStateMsg front_;
 HumanStateMsg front_left_;
 HumanStateMsg front_right_;
@@ -119,6 +127,7 @@ ros::Publisher go_alone_pub_;
 ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
+ros::Publisher door_pub_;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -137,16 +146,37 @@ void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
 
 void NavStatusCb(const amrl_msgs::NavStatusMsg msg) {
   nav_complete_ = msg.nav_complete;
-  if (state_ != "Halt") {
+  const Vector2f zero_vec(0.0, 0.0);
+  const Vector2f local_target(msg.local_target.x && msg.local_target.y);
+  if (state_ != "Halt" && local_target != zero_vec) {
       local_target_ = Vector2f(msg.local_target.x, msg.local_target.y);
+      have_nav_stats_ = true;
   }
   vel_ = Vector2f(msg.velocity.x, msg.velocity.y);
-  have_nav_stats_ = true;
 }
 
 void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
   human_states_ = msg.human_states;
   have_dynamics_ = true;
+}
+
+void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
+  door_states_ = msg.door_states;
+  have_doors_ = true;
+  const DoorStateMsg door = door_states_[0];
+  const Vector2f door_pose(door.pose.x, door.pose.y);
+  const float distance = (door_pose - pose_).norm();
+  if (door.doorStatus == 2) {
+  } else if (distance < 2.0 && distance > 0.5) {
+    // Publish Open Message
+    DoorControlMsg control_msg;
+    control_msg.command = 2;
+    door_pub_.publish(control_msg);
+  } else {
+    DoorControlMsg control_msg;
+    control_msg.command = 3;
+    door_pub_.publish(control_msg);
+  }
 }
 
 void SetStateCb(const std_msgs::String msg) {
@@ -177,7 +207,7 @@ void GoAlone() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = -0.5;
+  conf_msg.clearance_weight = 0.0;
   config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
@@ -471,7 +501,9 @@ void SaveDemo() {
   // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
   // demo["desired_vel"] = 2.0;
   // Add the actual state of the door to this when it is implemented.
-  demo["door_state"] = MakeEntry("DoorState", 1, {0, 0, 0});
+  demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
+  demo["door_pose"] = MakeEntry("DoorPose",
+      ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
   demo["target"] = MakeEntry("target",
       ToRobotFrameP(local_target_), {1, 0, 0});
   demo["goal"] = MakeEntry("goal",
@@ -479,6 +511,7 @@ void SaveDemo() {
   demo["free_path_length"] = MakeEntry("free_path",
       StraightFreePathLength(pose_, local_target_), {1, 0, 0});
 
+  cout << "Door Pose: " << ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}).norm() << endl;
   // Special Humans
   demo["front_p"] =
       MakeEntry("front_p",
@@ -527,7 +560,7 @@ string Transition() {
 }
 
 void Run() {
-  if (have_localization_ && have_dynamics_ && have_nav_stats_) {
+  if (have_localization_ && have_dynamics_ && have_nav_stats_ && have_doors_) {
     GetRelevantHumans();
     SaveDemo();
     last_state_ = state_;
@@ -566,6 +599,8 @@ int main(int argc, char** argv) {
       n.subscribe("/robot_state", 1, &SetStateCb);
   ros::Subscriber sim_state_sub =
       n.subscribe("/sim_state", 1, &SimStateCb);
+  ros::Subscriber door_sub =
+      n.subscribe("/door_states", 1, &DoorStateCb);
 
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
@@ -573,10 +608,10 @@ int main(int argc, char** argv) {
   follow_pub_ = n.advertise<Pose2Df>("/nav_override", 1);
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
+  door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
-    cout << "SimState: " << sim_state_.sim_state;
     switch (sim_state_.sim_state) {
       case 1 : {
         ros::spinOnce();

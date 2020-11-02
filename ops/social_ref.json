@@ -1,5 +1,49 @@
 [
   {
+    "op": "SqDist",
+    "inputType": [
+      "VEC",
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ],
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
+    "op": "StraightFreePathLength",
+    "inputType": [
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        0,
+        0
+      ]
+    ],
+    "outputType": "NUM",
+    "outputDim": [
+      1,
+      0,
+      0
+    ]
+  },
+  {
     "op": "AngleDist",
     "inputType": [
       "NUM",
@@ -20,25 +64,6 @@
     "outputType": "NUM",
     "outputDim": [
       0,
-      0,
-      0
-    ]
-  },
-  {
-    "op": "StraightFreePathLength",
-    "inputType": [
-      "VEC"
-    ],
-    "inputDim": [
-      [
-        1,
-        0,
-        0
-      ]
-    ],
-    "outputType": "NUM",
-    "outputDim": [
-      1,
       0,
       0
     ]

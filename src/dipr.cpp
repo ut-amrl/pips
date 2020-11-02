@@ -21,7 +21,7 @@
 DEFINE_string(ex_file, "merged.json", "Examples file");
 DEFINE_string(lib_file, "ops/social_ref.json", "Operation library file");
 DEFINE_string(sketch_dir, "synthd/dips-window/", "Directory containing components of sketch.");
-DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
+DEFINE_uint32(feat_depth, 2, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
@@ -82,6 +82,7 @@ int main(int argc, char* argv[]) {
       variables,
       &transitions);
 
+  std::reverse(transitions.begin(), transitions.end());
   cout << "Examples Loaded" << endl;
 
   examples = WindowExamples(examples, FLAGS_window_size);
@@ -89,7 +90,9 @@ int main(int argc, char* argv[]) {
   // Turning variables into roots
   vector<ast_ptr> inputs, roots;
   for (const Var& variable : variables) {
-    roots.push_back(make_shared<Var>(variable));
+    if (variable.name_ != "goal" && variable.name_ != "free_path") {
+      roots.push_back(make_shared<Var>(variable));
+    }
   }
 
   cout << "----Roots----" << endl;
@@ -130,7 +133,7 @@ int main(int argc, char* argv[]) {
   cout << ops.size() << endl << endl;
   cout << endl;
 
-  ops = RelativesOnly(ops);
+  // ops = RelativesOnly(ops);
   // Load the Existing Sketches
   // vector<std::pair<string, string>> branches;
   const vector<ast_ptr> branch_progs = LoadSketches(FLAGS_sketch_dir, transitions);

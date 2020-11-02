@@ -201,12 +201,12 @@ vector<ast_ptr> Enumerate(const vector<ast_ptr>& roots,
                           const vector<ast_ptr>& inputs,
                           const vector<FunctionEntry>& library) {
   CumulativeFunctionTimer::Invocation invoke(&enum_timer);
-  vector<ast_ptr> result_list;
+  vector<ast_ptr> result_list = roots;
   for (size_t i = 0; i < roots.size(); ++i) {
     ast_ptr node = roots.at(i);
     const vector<ast_ptr> new_nodes = GetLegalOps(node, inputs, library);
     CumulativeFunctionTimer::Invocation invoke(&update_list);
-    result_list.push_back(node);
+    // result_list.push_back(node);
     result_list.insert(result_list.end(), new_nodes.begin(), new_nodes.end());
   }
   return result_list;
@@ -354,6 +354,11 @@ double CheckModelAccuracy(const ast_ptr& cond,
     if (!result_cast->value_) {
       satisfied += 1;
     } else {
+      // cout << "StartState: " << example.start_.GetString() << endl;
+      // cout << "OutputState: " << example.result_.GetString() << endl;
+      // cout << "Target Norm: " << example.symbol_table_.at("target").GetVector().x() << endl;
+      // cout << "DoorState: " << example.symbol_table_.at("DoorState") << endl;
+      // cout << "DoorPose: " << example.symbol_table_.at("DoorPose").GetVector().norm() << endl;
       *neg += 1;
     }
   }

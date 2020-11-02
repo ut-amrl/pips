@@ -271,7 +271,7 @@ ast_ptr NormSq(ast_ptr v) {
 
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
   const float norm = v_cast->value_.norm();
-  Num result(pow(norm, 2), 2 * v->dims_);
+  Num result(pow(norm, 2), v->dims_);
   return make_shared<Num>(result);
 }
 
@@ -343,7 +343,7 @@ ast_ptr Lt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ - y_cast->value_ < geometry::kEpsilon);
+  Bool result(x_cast->value_ - y_cast->value_ < 0.0);
   return make_shared<Bool>(result);
 }
 
@@ -353,7 +353,7 @@ ast_ptr Gt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ - y_cast->value_ > geometry::kEpsilon);
+  Bool result(x_cast->value_ - y_cast->value_ > 0);
   return make_shared<Bool>(result);
 }
 
@@ -411,6 +411,9 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   // cout << "End Norm: " << end.norm() << endl;
   if (fabs(free_path_length - end.norm()) < geometry::kEpsilon) {
     free_path_length = 9999;
+  }
+  if (free_path_length < 0.0) {
+    free_path_length = 0;
   }
   Num result(free_path_length, {1, 0, 0});
   return make_shared<Num>(result);
