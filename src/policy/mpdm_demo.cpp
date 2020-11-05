@@ -102,6 +102,7 @@ bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool target_locked_ = false;
 bool have_doors_ = false;
+bool local_humans_ = true;
 int pass_target_;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -148,7 +149,7 @@ void CobotDoorCallback(const cobot_msgs::CobotDoorDetectionsMsg msg) {
     have_doors_ = true;
     const Vector2f door_left(msg.doorX1[0], msg.doorY1[0]);
     const Vector2f door_right(msg.doorX2[0], msg.doorY2[0]);
-    const Vector2f door_pose = door_left - door_right;
+    const Vector2f door_pose = (door_left + door_right) / 2.0;
     door.pose.x = door_pose.x();
     door.pose.y = door_pose.y();
     const float distance = (door_pose - pose_).norm();
@@ -180,6 +181,7 @@ void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
   output.pose.x = msg.x;
   output.pose.y = msg.y;
   output.pose.theta = msg.angle;
+  sim_step_ = true;
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -554,36 +556,63 @@ void SaveDemo() {
     demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose",
         ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
+    const Vector2f pose(door_states_[0].pose.x, door_states_[0].pose.y);
+    cout << "Door Norm: " << ToRobotFrameP(pose).norm() << endl;
   } else {
     demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
+    cout << "Door Norm: " << 9999 << endl;
   }
   cout << "Door State: " << demo["door_state"] << endl;
   // Special Humans
-  demo["front_p"] =
+  if (!local_humans_) {
+    demo["front_p"] =
       MakeEntry("front_p",
           ToRobotFrameP({front_.pose.x, front_.pose.y}), {1, 0, 0});
-  demo["front_v"] = MakeEntry("front_v",
-      ToRobotFrameV({front_.translational_velocity.x,
-                    front_.translational_velocity.y}),
-      {1, -1, 0});
-  demo["fLeft_p"] =
+    demo["front_v"] = MakeEntry("front_v",
+        ToRobotFrameV({front_.translational_velocity.x,
+          front_.translational_velocity.y}),
+        {1, -1, 0});
+    demo["fLeft_p"] =
       MakeEntry("fLeft_p",
           ToRobotFrameP({front_left_.pose.x, front_left_.pose.y}), {1, 0, 0});
-  demo["fLeft_v"] = MakeEntry("fLeft_v",
-      ToRobotFrameV({front_left_.translational_velocity.x,
-                    front_left_.translational_velocity.y}),
-      {1, -1, 0});
-  demo["fRight_p"] =
+    demo["fLeft_v"] = MakeEntry("fLeft_v",
+        ToRobotFrameV({front_left_.translational_velocity.x,
+          front_left_.translational_velocity.y}),
+        {1, -1, 0});
+    demo["fRight_p"] =
       MakeEntry("fRight_p",
           ToRobotFrameP({front_right_.pose.x, front_right_.pose.y}), {1, 0, 0});
-  demo["fRight_v"] = MakeEntry("fRight_v",
-      ToRobotFrameV({front_right_.translational_velocity.x,
-                    front_right_.translational_velocity.y}),
-      {1, -1, 0});
-  cout << "Front P: " << front_.pose.x << endl;
-  cout << "Left P: " << front_left_.pose.x << endl;
-  cout << "Right P: " << front_right_.pose.x << endl;
+    demo["fRight_v"] = MakeEntry("fRight_v",
+        ToRobotFrameV({front_right_.translational_velocity.x,
+          front_right_.translational_velocity.y}),
+        {1, -1, 0});
+  } else {
+    demo["front_p"] =
+      MakeEntry("front_p",
+          {front_.pose.x, front_.pose.y}, {1, 0, 0});
+    demo["front_v"] = MakeEntry("front_v",
+        {front_.translational_velocity.x,
+          front_.translational_velocity.y},
+        {1, -1, 0});
+    demo["fLeft_p"] =
+      MakeEntry("fLeft_p",
+          {front_left_.pose.x, front_left_.pose.y}, {1, 0, 0});
+    demo["fLeft_v"] = MakeEntry("fLeft_v",
+        {front_left_.translational_velocity.x,
+          front_left_.translational_velocity.y},
+        {1, -1, 0});
+    demo["fRight_p"] =
+      MakeEntry("fRight_p",
+          {front_right_.pose.x, front_right_.pose.y}, {1, 0, 0});
+    demo["fRight_v"] = MakeEntry("fRight_v",
+        {front_right_.translational_velocity.x,
+          front_right_.translational_velocity.y},
+        {1, -1, 0});
+  }
+  // cout << "Front P: " << front_.pose.x << endl;
+  // cout << "Left P: " << front_left_.pose.x << endl;
+  // cout << "Right P: " << front_right_.pose.x << endl;
   // All Humans in a vector
   demo["human_states"] = GetHumanJson();
 
@@ -610,7 +639,13 @@ string Transition() {
 }
 
 void Run() {
-  if (have_localization_ && have_dynamics_ && have_nav_stats_ && have_doors_) {
+  if (!have_localization_) {
+    cout << "No Localization" << endl;
+  }
+  if (!have_nav_stats_) {
+    cout << "No Navigation" << endl;
+  }
+  if (have_localization_ && have_nav_stats_) {
     GetRelevantHumans();
     SaveDemo();
     last_state_ = state_;
@@ -669,12 +704,14 @@ int main(int argc, char** argv) {
   while (run_ && ros::ok()) {
     switch (sim_state_.sim_state) {
       case 1 : {
+                 cout << "Case 1" << endl;
         ros::spinOnce();
         Run();
         sim_step_ = false;
         loop.sleep();
       } break;
       case SimulatorStateMsg::SIM_STOPPED : {
+                 // cout << "Case Stopped" << endl;
         ros::spinOnce();
         // Do nothing unless stepping.
         if (sim_step_) {

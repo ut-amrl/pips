@@ -1,0 +1,165 @@
+{
+    "dim": [
+        0,
+        0,
+        0
+    ],
+    "left": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "left": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "fX1",
+            "node": "Feature",
+            "symbolic": false,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "left": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "input": {
+                        "dim": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "name": "target",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "UnOp",
+                    "op": "Angle",
+                    "symbolic": false,
+                    "type": 4
+                },
+                "node": "BinOp",
+                "op": "AngleDist",
+                "right": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "input": {
+                        "dim": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "name": "fRight_p",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "UnOp",
+                    "op": "Angle",
+                    "symbolic": false,
+                    "type": 4
+                },
+                "symbolic": false,
+                "type": 4
+            }
+        },
+        "node": "BinOp",
+        "op": "Lt",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "pX1",
+            "node": "Param",
+            "symbolic": true,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "node": "Num",
+                "symbolic": false,
+                "type": 2,
+                "value": 0.3509170114994049
+            }
+        },
+        "symbolic": false,
+        "type": 4
+    },
+    "node": "BinOp",
+    "op": "Or",
+    "right": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "left": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "fX1",
+            "node": "Feature",
+            "symbolic": false,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "DoorState",
+                "node": "Var",
+                "symbolic": false,
+                "type": 2
+            }
+        },
+        "node": "BinOp",
+        "op": "Gt",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "pX1",
+            "node": "Param",
+            "symbolic": true,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "node": "Num",
+                "symbolic": false,
+                "type": 2,
+                "value": 1.0
+            }
+        },
+        "symbolic": false,
+        "type": 4
+    },
+    "symbolic": false,
+    "type": 4
+}
