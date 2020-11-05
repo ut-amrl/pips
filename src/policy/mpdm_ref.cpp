@@ -553,6 +553,12 @@ string Transition() {
 }
 
 void Run() {
+  if (!have_localization_) {
+    cout << "No Localization" << endl;
+  }
+  if (!have_nav_stats_) {
+    cout << "No Navigation" << endl;
+  }
   if (have_localization_ && have_nav_stats_) {
     last_state_ = state_;
     GetRelevantHumans();

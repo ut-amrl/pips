@@ -1,0 +1,231 @@
+{
+    "dim": [
+        0,
+        0,
+        0
+    ],
+    "left": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "left": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "left": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "fX2",
+                "node": "Feature",
+                "symbolic": false,
+                "type": 2,
+                "value": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "input": {
+                        "dim": [
+                            1,
+                            -1,
+                            0
+                        ],
+                        "name": "fLeft_v",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "UnOp",
+                    "op": "Norm",
+                    "symbolic": false,
+                    "type": 4
+                }
+            },
+            "node": "BinOp",
+            "op": "Gt",
+            "right": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "pX2",
+                "node": "Param",
+                "symbolic": true,
+                "type": 2,
+                "value": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "node": "Num",
+                    "symbolic": false,
+                    "type": 2,
+                    "value": 0.7594814896583557
+                }
+            },
+            "symbolic": false,
+            "type": 4
+        },
+        "node": "BinOp",
+        "op": "Or",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "left": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "fX1",
+                "node": "Feature",
+                "symbolic": false,
+                "type": 2,
+                "value": {
+                    "dim": [
+                        1,
+                        0,
+                        0
+                    ],
+                    "left": {
+                        "dim": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "name": "fLeft_p",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "BinOp",
+                    "op": "SqDist",
+                    "right": {
+                        "dim": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "name": "front_p",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "symbolic": false,
+                    "type": 4
+                }
+            },
+            "node": "BinOp",
+            "op": "Gt",
+            "right": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "pX1",
+                "node": "Param",
+                "symbolic": true,
+                "type": 2,
+                "value": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "node": "Num",
+                    "symbolic": false,
+                    "type": 2,
+                    "value": 14111.99609375
+                }
+            },
+            "symbolic": false,
+            "type": 4
+        },
+        "symbolic": false,
+        "type": 4
+    },
+    "node": "BinOp",
+    "op": "Or",
+    "right": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "left": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "fX1",
+            "node": "Feature",
+            "symbolic": false,
+            "type": 2,
+            "value": {
+                "dim": [
+                    1,
+                    -1,
+                    0
+                ],
+                "input": {
+                    "dim": [
+                        1,
+                        -1,
+                        0
+                    ],
+                    "name": "front_v",
+                    "node": "Var",
+                    "symbolic": false,
+                    "type": 3
+                },
+                "node": "UnOp",
+                "op": "Norm",
+                "symbolic": false,
+                "type": 4
+            }
+        },
+        "node": "BinOp",
+        "op": "Gt",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "pX1",
+            "node": "Param",
+            "symbolic": true,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "node": "Num",
+                "symbolic": false,
+                "type": 2,
+                "value": -1.0
+            }
+        },
+        "symbolic": false,
+        "type": 4
+    },
+    "symbolic": false,
+    "type": 4
+}
