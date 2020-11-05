@@ -1,0 +1,66 @@
+{
+    "dim": [
+        0,
+        0,
+        0
+    ],
+    "left": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "name": "fX1",
+        "node": "Feature",
+        "symbolic": false,
+        "type": 2,
+        "value": {
+            "dim": [
+                1,
+                0,
+                0
+            ],
+            "input": {
+                "dim": [
+                    1,
+                    0,
+                    0
+                ],
+                "name": "target",
+                "node": "Var",
+                "symbolic": false,
+                "type": 3
+            },
+            "node": "UnOp",
+            "op": "StraightFreePathLength",
+            "symbolic": false,
+            "type": 4
+        }
+    },
+    "node": "BinOp",
+    "op": "Gt",
+    "right": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "name": "pX1",
+        "node": "Param",
+        "symbolic": true,
+        "type": 2,
+        "value": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "node": "Num",
+            "symbolic": false,
+            "type": 2,
+            "value": 1.9435060024261475
+        }
+    },
+    "symbolic": false,
+    "type": 4
+}

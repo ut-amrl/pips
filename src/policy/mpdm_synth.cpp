@@ -133,6 +133,7 @@ ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
 ros::Publisher door_pub_;
+ros::Publisher local_pub_;
 
 // Path to the folder containing pieces of the tranisition function.
 // Transition Function ASTs
@@ -167,6 +168,11 @@ void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
   pose_ = Vector2f(msg.x, msg.y);
   theta_ = msg.angle;
   have_localization_ = true;
+  amrl_msgs::Localization2DMsg output;
+  output.map = msg.map;
+  output.pose.x = msg.x;
+  output.pose.y = msg.y;
+  output.pose.theta = msg.angle;
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -256,7 +262,7 @@ void GoAlone() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = 1.0;
+  conf_msg.clearance_weight = -0.5;
   config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
@@ -321,7 +327,7 @@ void Pass() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = 1.0;
+  conf_msg.clearance_weight = 0.0;
   config_pub_.publish(conf_msg);
   Pose2Df follow_msg;
   follow_msg.x = target_pose.x();
@@ -809,6 +815,7 @@ int main(int argc, char** argv) {
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
   door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
+  local_pub_ = n.advertise<amrl_msgs::Localization2DMsg>("/localization", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {

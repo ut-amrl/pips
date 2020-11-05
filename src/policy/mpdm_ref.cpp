@@ -126,6 +126,7 @@ ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
 ros::Publisher door_pub_;
+ros::Publisher local_pub_;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -169,6 +170,11 @@ void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
   pose_ = Vector2f(msg.x, msg.y);
   theta_ = msg.angle;
   have_localization_ = true;
+  amrl_msgs::Localization2DMsg output;
+  output.map = msg.map;
+  output.pose.x = msg.x;
+  output.pose.y = msg.y;
+  output.pose.theta = msg.angle;
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -228,7 +234,7 @@ void GoAlone() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = 1.0;
+  conf_msg.clearance_weight = -0.5;
   config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();
@@ -272,6 +278,7 @@ void Follow() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = -1;
   conf_msg.max_decel = -1;
+  conf_msg.clearance_weight = 1.0;
   config_pub_.publish(conf_msg);
   Pose2Df follow_msg;
   follow_msg.x = target_pose.x();
@@ -494,6 +501,7 @@ void SaveDemo() {
     demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
   }
+  cout << "Door State: " << demo["door_state"] << endl;
   // Special Humans
   demo["front_p"] =
       MakeEntry("front_p",
@@ -516,6 +524,9 @@ void SaveDemo() {
       ToRobotFrameV({front_right_.translational_velocity.x,
                     front_right_.translational_velocity.y}),
       {1, -1, 0});
+  cout << "Front P: " << front_.pose.x << endl;
+  cout << "Left P: " << front_left_.pose.x << endl;
+  cout << "Right P: " << front_right_.pose.x << endl;
   // All Humans in a vector
   demo["human_states"] = GetHumanJson();
 
@@ -580,6 +591,8 @@ int main(int argc, char** argv) {
       n.subscribe("/Cobot/Localization", 1, &CobotLocalCb);
   ros::Subscriber door_sub =
       n.subscribe("/door_states", 1, &DoorStateCb);
+  ros::Subscriber cobot_door_sub =
+      n.subscribe("/Cobot/DoorDetector", 1, &CobotDoorCallback);
 
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
@@ -588,6 +601,7 @@ int main(int argc, char** argv) {
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
   door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
+  local_pub_ = n.advertise<amrl_msgs::Localization2DMsg>("/localization", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {

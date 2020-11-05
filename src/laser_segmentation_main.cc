@@ -28,6 +28,7 @@
 #include "glog/logging.h"
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
+#include "std_msgs/ColorRGBA.h"
 #include "visualization_msgs/Marker.h"
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
@@ -49,10 +50,13 @@ DEFINE_string(laser, "scan", "Laser scan topic");
 Marker vis_msg_;
 ros::Publisher vis_pub_;
 ros::Publisher human_pub_;
+ros::Publisher person_viz_pub_;
 
 DEFINE_double(N, 5, "Min num points per cluster");
+DEFINE_double(M, 1000, "Min num points per cluster");
 DEFINE_double(theta, 5, "Min theta angle");
 DEFINE_double(dist, 5, "Distance threshold");
+DEFINE_double(laser_dist, 5, "Distance threshold");
 
 Vector2f human_pose_(0.0 , 0.0);
 const float time_step_ = 1.0 / 60.0;
@@ -75,7 +79,7 @@ vector<vector<Vector2f>> RunClustering(const vector<Vector2f>& point_cloud) {
     //       sqrt(a_sq), sqrt(b_sq), sqrt(c_sq), math_util::RadToDeg(beta));
     // }
     if (cluster.empty()) cluster.push_back(p0);
-    if (beta > kBetaMin && beta < M_PI - kBetaMin && a_sq < kSqDistMax) {
+    if (beta > kBetaMin && beta < M_PI - kBetaMin && a_sq < kSqDistMax && p1.norm() < FLAGS_laser_dist) {
       cluster.push_back(p1);
     } else {
       if (cluster.size() > FLAGS_N) {
@@ -87,7 +91,7 @@ vector<vector<Vector2f>> RunClustering(const vector<Vector2f>& point_cloud) {
   return clusters;
 }
 
-Vector2f GetCentroid(vector<Vector2f> cluster) {
+Vector2f GetCentroid(const vector<Vector2f>& cluster) {
   Vector2f output;
   for (const auto& point : cluster) {
     output += point;
@@ -96,16 +100,54 @@ Vector2f GetCentroid(vector<Vector2f> cluster) {
   return output;
 }
 
+float GetDensityHack(const vector<Vector2f>& cluster) {
+  const int size = cluster.size();
+  float length = 0;
+  for (size_t i = 0; i < cluster.size(); ++i) {
+    for (size_t j = i; j < cluster.size(); ++j) {
+      const float dist = (cluster[j] - cluster[i]).norm();
+      if (dist > length) {
+        length = dist;
+      }
+    }
+  }
+  return length / float(size);
+}
+
+float GetLength(const vector<Vector2f>& cluster) {
+  float length = 0;
+  for (size_t i = 0; i < cluster.size(); ++i) {
+    for (size_t j = i; j < cluster.size(); ++j) {
+      const float dist = (cluster[j] - cluster[i]).norm();
+      if (dist > length) {
+        length = dist;
+      }
+    }
+  }
+  return length;
+}
+
 // TODO (Needs an option for no human, and better condition)
 vector<Vector2f> GetSingleHuman(vector<vector<Vector2f>> clusters) {
   vector<Vector2f> best_cluster;
   float best_size = 9999;
   for (const auto& clust : clusters) {
-    const Vector2f centroid = GetCentroid(clust);
-    if (clust.size() < best_size && centroid.norm() < 10) {
+    const float d_hack = GetDensityHack(clust);
+    const float length = GetDensityHack(clust);
+    std::cout << "Density Hack: " << d_hack << std::endl;
+    if (length < best_size && clust.size() < FLAGS_M) {
       best_cluster = clust;
-      best_size = clust.size();
+      best_size = d_hack;
     }
+  }
+  std::cout << "Best Hack: " << best_size << std::endl << std::endl;
+  std_msgs::ColorRGBA rgb;
+  rgb.a = 1.0;
+  rgb.b = 1.0;
+  rgb.g = 0.0;
+  rgb.r = 0.0;
+  for (size_t i = 0; i + 1 < best_cluster.size(); ++i) {
+    ros_helpers::DrawEigen2DLine(best_cluster[i], best_cluster[i + 1], rgb, &vis_msg_);
   }
   return best_cluster;
 }
@@ -128,6 +170,27 @@ void PublishHumans(const vector<vector<Vector2f>> clusters) {
   human_pose_ = centroid;
   array_msg.human_states = {msg};
   human_pub_.publish(array_msg);
+  // visualization_msgs::Marker marker;
+  // marker.header.frame_id = "laser";
+  // marker.header.stamp = ros::Time();
+  // marker.id = 0;
+  // marker.type = visualization_msgs::Marker::SPHERE;
+  // marker.action = visualization_msgs::Marker::ADD;
+  // marker.pose.position.x = centroid.x();
+  // marker.pose.position.y = centroid.y();
+  // marker.pose.position.z = 0.0;
+  // marker.pose.orientation.x = 0.0;
+  // marker.pose.orientation.y = 0.0;
+  // marker.pose.orientation.z = 0.0;
+  // marker.pose.orientation.w = 1.0;
+  // marker.scale.x = 1;
+  // marker.scale.y = 1;
+  // marker.scale.z = 1;
+  // marker.color.a = 1.0; // Don't forget to set the alpha!
+  // marker.color.r = 0.0;
+  // marker.color.g = 1.0;
+  // marker.color.b = 0.0;
+  // person_viz_pub_.publish(marker);
 }
 
 void LaserCallback(const LaserScan& msg) {
@@ -152,18 +215,22 @@ void LaserCallback(const LaserScan& msg) {
   vis_msg_.header.frame_id = msg.header.frame_id;
   vis_msg_.header.stamp = msg.header.stamp;
   ros_helpers::ClearMarker(&vis_msg_);
-  std::cout << "Num Clusters: " << clusters.size() << std::endl;
   // auto best = GetSingleHuman(clusters);
   // clusters.clear();
   // clusters.push_back(best);
   PublishHumans(clusters);
-  for (const auto& c : clusters) {
-    if (c.size() < 20) {
-      for (size_t i = 0; i + 1 < c.size(); ++i) {
-        ros_helpers::DrawEigen2DLine(c[i], c[i + 1], &vis_msg_);
-      }
-    }
-  }
+  int count = 0;
+  // for (const auto& c : clusters) {
+    // const Vector2f centroid = GetCentroid(c);
+    // // if ((c.size() < FLAGS_M || centroid.norm() < 2.0) && centroid.norm() > 1.0) {
+      // std::cout << centroid .norm() << std::endl;
+      // count++;
+      // for (size_t i = 0; i + 1 < c.size(); ++i) {
+        // ros_helpers::DrawEigen2DLine(c[i], c[i + 1], &vis_msg_);
+      // }
+    // // }
+  // }
+  std::cout << "Num Clusters: " << count << std::endl;
   if (vis_msg_.points.empty()) return;
   vis_pub_.publish(vis_msg_);
 }
@@ -176,6 +243,7 @@ int main(int argc, char* argv[]) {
   ros::Subscriber laser_sub = n.subscribe(FLAGS_laser, 1, LaserCallback);
   vis_pub_ = n.advertise<Marker>("laser_segments", 1, false);
   human_pub_ = n.advertise<Marker>("human_states", 1, false);
+  person_viz_pub_ = n.advertise<visualization_msgs::Marker>( "person_viz", 0 );
   // cluster_pub_ = n.advertise<Marker>("laser_segments", 1, false);
   ros_helpers::InitRosHeader("velodyne", &vis_msg_.header);
   ros_helpers::SetIdentityRosQuaternion(&vis_msg_.pose.orientation);
