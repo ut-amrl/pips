@@ -39,6 +39,8 @@
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 #include "ros/publisher.h"
+#include "cobot_msgs/CobotLocalizationMsg.h"
+#include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "ut_multirobot_sim/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
 #include "ut_multirobot_sim/SimulatorStateMsg.h"
@@ -128,6 +130,7 @@ ros::Publisher follow_pub_;
 ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
 ros::Publisher door_pub_;
+ros::Publisher local_pub_;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -136,6 +139,47 @@ void SignalHandler(int) {
   }
   printf("Exiting.\n");
   run_ = false;
+}
+
+void CobotDoorCallback(const cobot_msgs::CobotDoorDetectionsMsg msg) {
+  door_states_.clear();
+  if (msg.doorID.size() > 0) {
+    DoorStateMsg door;
+    have_doors_ = true;
+    const Vector2f door_left(msg.doorX1[0], msg.doorY1[0]);
+    const Vector2f door_right(msg.doorX2[0], msg.doorY2[0]);
+    const Vector2f door_pose = door_left - door_right;
+    door.pose.x = door_pose.x();
+    door.pose.y = door_pose.y();
+    const float distance = (door_pose - pose_).norm();
+    if (msg.doorStatus[0] == 1) {
+      door.doorStatus = 2;
+    } else if (distance < 2.0 && distance > 0.5) {
+      door.doorStatus = 1;
+      // Publish Open Message
+      DoorControlMsg control_msg;
+      control_msg.command = 2;
+      door_pub_.publish(control_msg);
+    } else {
+      door.doorStatus = 0;
+      DoorControlMsg control_msg;
+      control_msg.command = 3;
+      door_pub_.publish(control_msg);
+    }
+    cout << "Some door shit" << endl;
+    door_states_.push_back(door);
+  }
+}
+
+void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
+  pose_ = Vector2f(msg.x, msg.y);
+  theta_ = msg.angle;
+  have_localization_ = true;
+  amrl_msgs::Localization2DMsg output;
+  output.map = msg.map;
+  output.pose.x = msg.x;
+  output.pose.y = msg.y;
+  output.pose.theta = msg.angle;
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -500,18 +544,21 @@ void SaveDemo() {
   // demo["bot_theta"] = MakeEntry("theta", theta_, {0, 0, 0});
   // demo["bot_vel"] = MakeEntry("bot_vel", vel_, {1, -1, 0});
   // demo["desired_vel"] = 2.0;
-  // Add the actual state of the door to this when it is implemented.
-  demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
-  demo["door_pose"] = MakeEntry("DoorPose",
-      ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
   demo["target"] = MakeEntry("target",
       ToRobotFrameP(local_target_), {1, 0, 0});
   demo["goal"] = MakeEntry("goal",
       ToRobotFrameP(goal_pose_), {1, 0, 0});
   demo["free_path_length"] = MakeEntry("free_path",
       StraightFreePathLength(pose_, local_target_), {1, 0, 0});
-
-  cout << "Door Pose: " << ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}).norm() << endl;
+  if (have_doors_ && door_states_.size() > 0) {
+    demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose",
+        ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
+  } else {
+    demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
+    demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
+  }
+  cout << "Door State: " << demo["door_state"] << endl;
   // Special Humans
   demo["front_p"] =
       MakeEntry("front_p",
@@ -534,6 +581,9 @@ void SaveDemo() {
       ToRobotFrameV({front_right_.translational_velocity.x,
                     front_right_.translational_velocity.y}),
       {1, -1, 0});
+  cout << "Front P: " << front_.pose.x << endl;
+  cout << "Left P: " << front_left_.pose.x << endl;
+  cout << "Right P: " << front_right_.pose.x << endl;
   // All Humans in a vector
   demo["human_states"] = GetHumanJson();
 
@@ -593,6 +643,8 @@ int main(int argc, char** argv) {
       n.subscribe("/nav_status", 1, &NavStatusCb);
   ros::Subscriber localization_sub =
       n.subscribe("/localization", 1, &LocalizationCb);
+  ros::Subscriber cobot_sub =
+      n.subscribe("/Cobot/Localization", 1, &CobotLocalCb);
   ros::Subscriber human_sub =
       n.subscribe("/human_states", 1, &HumanStateCb);
   ros::Subscriber state_sub =
@@ -601,6 +653,8 @@ int main(int argc, char** argv) {
       n.subscribe("/sim_state", 1, &SimStateCb);
   ros::Subscriber door_sub =
       n.subscribe("/door_states", 1, &DoorStateCb);
+  ros::Subscriber cobot_door_sub =
+      n.subscribe("/Cobot/DoorDetector", 1, &CobotDoorCallback);
 
   // Publishers
   halt_pub_ = n.advertise<Bool>("/halt_robot", 1);
@@ -609,6 +663,7 @@ int main(int argc, char** argv) {
   config_pub_ = n.advertise<NavigationConfigMsg>("/nav_config", 1);
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
   door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
+  local_pub_ = n.advertise<amrl_msgs::Localization2DMsg>("/localization", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
