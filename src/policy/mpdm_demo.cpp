@@ -182,6 +182,7 @@ void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
   output.pose.y = msg.y;
   output.pose.theta = msg.angle;
   sim_step_ = true;
+  local_pub_.publish(output);
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -367,7 +368,10 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   for (const HumanStateMsg human : human_states_) {
     Vector2f pose(human.pose.x, human.pose.y);
     // Transform pose to start reference frame;
-    const Vector2f p = rot * (pose - start);
+    Vector2f p = rot * (pose - start);
+    if (local_humans_) {
+      p = pose;
+    }
     // If outside width, or behind robot, skip
     //
     if (fabs(p.y()) > w || p.x() < 0.0f) continue;
