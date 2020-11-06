@@ -98,6 +98,7 @@ bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool have_doors_ = false;
 bool target_locked_ = false;
+bool local_humans_ = true;
 int target_  = 0;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -175,6 +176,7 @@ void CobotLocalCb(const cobot_msgs::CobotLocalizationMsg msg) {
   output.pose.x = msg.x;
   output.pose.y = msg.y;
   output.pose.theta = msg.angle;
+  local_pub_.publish(output);
 }
 
 void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
@@ -308,7 +310,10 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   for (const HumanStateMsg human : human_states_) {
     Vector2f pose(human.pose.x, human.pose.y);
     // Transform pose to start reference frame;
-    const Vector2f p = rot * (pose - start);
+    Vector2f p = rot * (pose - start);
+    if (local_humans_) {
+      p = pose;
+    }
     // If outside width, or behind robot, skip
     //
     if (fabs(p.y()) > w || p.x() < 0.0f) continue;
@@ -503,27 +508,51 @@ void SaveDemo() {
   }
   cout << "Door State: " << demo["door_state"] << endl;
   // Special Humans
-  demo["front_p"] =
+  if (!local_humans_) {
+    demo["front_p"] =
       MakeEntry("front_p",
           ToRobotFrameP({front_.pose.x, front_.pose.y}), {1, 0, 0});
-  demo["front_v"] = MakeEntry("front_v",
-      ToRobotFrameV({front_.translational_velocity.x,
-                    front_.translational_velocity.y}),
-      {1, -1, 0});
-  demo["fLeft_p"] =
+    demo["front_v"] = MakeEntry("front_v",
+        ToRobotFrameV({front_.translational_velocity.x,
+          front_.translational_velocity.y}),
+        {1, -1, 0});
+    demo["fLeft_p"] =
       MakeEntry("fLeft_p",
           ToRobotFrameP({front_left_.pose.x, front_left_.pose.y}), {1, 0, 0});
-  demo["fLeft_v"] = MakeEntry("fLeft_v",
-      ToRobotFrameV({front_left_.translational_velocity.x,
-                    front_left_.translational_velocity.y}),
-      {1, -1, 0});
-  demo["fRight_p"] =
+    demo["fLeft_v"] = MakeEntry("fLeft_v",
+        ToRobotFrameV({front_left_.translational_velocity.x,
+          front_left_.translational_velocity.y}),
+        {1, -1, 0});
+    demo["fRight_p"] =
       MakeEntry("fRight_p",
           ToRobotFrameP({front_right_.pose.x, front_right_.pose.y}), {1, 0, 0});
-  demo["fRight_v"] = MakeEntry("fRight_v",
-      ToRobotFrameV({front_right_.translational_velocity.x,
-                    front_right_.translational_velocity.y}),
-      {1, -1, 0});
+    demo["fRight_v"] = MakeEntry("fRight_v",
+        ToRobotFrameV({front_right_.translational_velocity.x,
+          front_right_.translational_velocity.y}),
+        {1, -1, 0});
+  } else {
+    demo["front_p"] =
+      MakeEntry("front_p",
+          {front_.pose.x, front_.pose.y}, {1, 0, 0});
+    demo["front_v"] = MakeEntry("front_v",
+        {front_.translational_velocity.x,
+          front_.translational_velocity.y},
+        {1, -1, 0});
+    demo["fLeft_p"] =
+      MakeEntry("fLeft_p",
+          {front_left_.pose.x, front_left_.pose.y}, {1, 0, 0});
+    demo["fLeft_v"] = MakeEntry("fLeft_v",
+        {front_left_.translational_velocity.x,
+          front_left_.translational_velocity.y},
+        {1, -1, 0});
+    demo["fRight_p"] =
+      MakeEntry("fRight_p",
+          {front_right_.pose.x, front_right_.pose.y}, {1, 0, 0});
+    demo["fRight_v"] = MakeEntry("fRight_v",
+        {front_right_.translational_velocity.x,
+          front_right_.translational_velocity.y},
+        {1, -1, 0});
+  }
   cout << "Front P: " << front_.pose.x << endl;
   cout << "Left P: " << front_left_.pose.x << endl;
   cout << "Right P: " << front_right_.pose.x << endl;
