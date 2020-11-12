@@ -98,7 +98,7 @@ bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool have_doors_ = false;
 bool target_locked_ = false;
-bool local_humans_ = true;
+bool local_humans_ = false;
 int target_  = 0;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -338,7 +338,7 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
 
 bool ShouldGoAlone() {
   // Check if Path blocked by unmapped obstacle (humans for now)
-  // cout << "Path norm: " << path.norm() << endl;
+  cout << "Free Length: " << StraightFreePathLength(pose_, local_target_) << endl;
   if (StraightFreePathLength(pose_, local_target_) < 9999) {
     return false;
   }
@@ -506,7 +506,7 @@ void SaveDemo() {
     demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
   }
-  cout << "Door State: " << demo["door_state"] << endl;
+  // // cout << "Door State: " << demo["door_state"] << endl;
   // Special Humans
   if (!local_humans_) {
     demo["front_p"] =
@@ -553,9 +553,9 @@ void SaveDemo() {
           front_right_.translational_velocity.y},
         {1, -1, 0});
   }
-  cout << "Front P: " << front_.pose.x << endl;
-  cout << "Left P: " << front_left_.pose.x << endl;
-  cout << "Right P: " << front_right_.pose.x << endl;
+  // cout << "Front P: " << front_.pose.x << endl;
+  // cout << "Left P: " << front_left_.pose.x << endl;
+  // cout << "Right P: " << front_right_.pose.x << endl;
   // All Humans in a vector
   demo["human_states"] = GetHumanJson();
 
