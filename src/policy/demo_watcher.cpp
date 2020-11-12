@@ -84,6 +84,7 @@ DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
 DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
 
 bool run_ = true;
+bool state_set_ = false;
 
 // Globals for a quick and dirty controller
 SimulatorStateMsg sim_state_;
@@ -137,7 +138,9 @@ void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
 
 void NavStatusCb(const amrl_msgs::NavStatusMsg msg) {
   nav_complete_ = msg.nav_complete;
-  if (state_ != "Halt") {
+  const Vector2f test(msg.local_target.x, msg.local_target.y);
+  const Vector2f diff = pose_ - test;
+  if (state_ != "Halt" && diff.norm() > geometry::kEpsilon) {
       local_target_ = Vector2f(msg.local_target.x, msg.local_target.y);
   }
   vel_ = Vector2f(msg.velocity.x, msg.velocity.y);
@@ -152,6 +155,7 @@ void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
 void SetStateCb(const std_msgs::String msg) {
   last_state_ = state_;
   state_ = msg.data;
+  state_set_ = true;
 }
 
 void SimStateCb(const SimulatorStateMsg msg) {
@@ -339,12 +343,16 @@ void SaveDemo() {
   // demo["desired_vel"] = 2.0;
   // Add the actual state of the door to this when it is implemented.
   demo["door_state"] = MakeEntry("DoorState", 1, {0, 0, 0});
+  // cout << "Local Target: " << local_target_.x() << "," << local_target_.y() << endl;
   demo["target"] = MakeEntry("target",
       ToRobotFrameP(local_target_), {1, 0, 0});
+  // cout << "Transformed: " << demo["target"]["value"][0] << "," << demo["target"]["value"][1] << endl;
+  cout << "Goal: " << goal_pose_.x() << "," << goal_pose_.y() << endl;
   demo["goal"] = MakeEntry("goal",
       ToRobotFrameP(goal_pose_), {1, 0, 0});
-  demo["free_path_length"] = MakeEntry("free_path",
-      StraightFreePathLength(pose_, local_target_), {1, 0, 0});
+  // demo["free_path_length"] = MakeEntry("free_path",
+      // StraightFreePathLength(pose_, local_target_), {1, 0, 0});
+  cout << "Goal Transformed: " << demo["goal"]["value"][0] << "," << demo["goal"]["value"][1] << endl;
 
   // Special Humans
   demo["front_p"] =
@@ -385,7 +393,8 @@ void WriteDemos() {
 }
 
 void Run() {
-  if (have_localization_ && have_dynamics_ && have_nav_stats_) {
+  if (have_localization_ && have_dynamics_ && have_nav_stats_ && state_set_) {
+    cout << state_ << endl;
     GetRelevantHumans();
     SaveDemo();
     last_state_ = state_;
@@ -417,7 +426,6 @@ int main(int argc, char** argv) {
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
-    cout << "SimState: " << sim_state_.sim_state;
     switch (sim_state_.sim_state) {
       case 1 : {
         ros::spinOnce();

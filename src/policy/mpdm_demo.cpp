@@ -102,7 +102,7 @@ bool have_nav_stats_ = false;
 bool have_localization_ = false;
 bool target_locked_ = false;
 bool have_doors_ = false;
-bool local_humans_ = true;
+bool local_humans_ = false;
 int pass_target_;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
