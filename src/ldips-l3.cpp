@@ -21,6 +21,7 @@
 
 DEFINE_string(ex_file, "", "Examples file");
 DEFINE_string(lib_file, "ops/social_test.json", "Operation library file");
+DEFINE_string(out_dir, "ref/dipsl3/", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
@@ -139,5 +140,5 @@ int main(int argc, char* argv[]) {
 
   // Run L3 Synthesis
   ldipsL3(examples, transitions, ops, FLAGS_sketch_depth, FLAGS_min_accuracy,
-      "synthd/dipsl3/");
+      FLAGS_out_dir);
 }
