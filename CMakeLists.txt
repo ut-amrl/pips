@@ -92,49 +92,14 @@ add_library(c++-pips-core ${CXX_PIPS_SRCS})
 target_link_libraries(c++-pips-core Eigen3::Eigen)
 target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
-# target_link_libraries(c++-pips-core gflags::gflags)
 target_link_libraries(c++-pips-core ${libs})
 
 # Add an executable for ldips-l3
 add_executable(ldips-l3 src/ldips-l3.cpp)
 target_link_libraries(ldips-l3 c++-pips-core)
 
-# add_executable(idips src/idips.cpp)
-# target_link_libraries(idips c++-pips-core)
-
 add_executable(srtr src/srtr.cpp)
 target_link_libraries(srtr c++-pips-core)
 
 add_executable(dipr src/dipr.cpp)
 target_link_libraries(dipr c++-pips-core)
-
-# Behaviors (Running Ros)
-rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
-target_link_libraries(mpdm_ref c++-pips-core)
-target_link_libraries(mpdm_ref amrl_shared_lib)
-
-rosbuild_add_executable(mpdm_synth src/policy/mpdm_synth.cpp)
-target_link_libraries(mpdm_synth c++-pips-core)
-target_link_libraries(mpdm_synth amrl_shared_lib)
-
-rosbuild_add_executable(mpdm_demo src/policy/mpdm_demo.cpp)
-target_link_libraries(mpdm_demo c++-pips-core)
-target_link_libraries(mpdm_demo amrl_shared_lib)
-
-rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
-target_link_libraries(demo_watcher c++-pips-core)
-target_link_libraries(demo_watcher amrl_shared_lib)
-
-ROSBUILD_ADD_EXECUTABLE(person_listener
-    src/person_listener.cpp)
-ADD_DEPENDENCIES(person_listener rosbuild_precompile)
-TARGET_LINK_LIBRARIES(person_listener roslib roscpp pthread boost_system
-    ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-    ${BUILD_SPECIFIC_LIBRARIES})
-
-ROSBUILD_ADD_EXECUTABLE(laser_segmentation
-    src/laser_segmentation_main.cc)
-ADD_DEPENDENCIES(laser_segmentation rosbuild_precompile)
-TARGET_LINK_LIBRARIES(laser_segmentation roslib roscpp pthread boost_system
-    ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-    ${BUILD_SPECIFIC_LIBRARIES})
