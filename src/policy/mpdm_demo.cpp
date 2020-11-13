@@ -167,7 +167,6 @@ void CobotDoorCallback(const cobot_msgs::CobotDoorDetectionsMsg msg) {
       control_msg.command = 3;
       door_pub_.publish(control_msg);
     }
-    cout << "Some door shit" << endl;
     door_states_.push_back(door);
   }
 }
@@ -209,20 +208,22 @@ void HumanStateCb(const ut_multirobot_sim::HumanStateArrayMsg msg) {
 
 void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
   door_states_ = msg.door_states;
-  have_doors_ = true;
-  const DoorStateMsg door = door_states_[0];
-  const Vector2f door_pose(door.pose.x, door.pose.y);
-  const float distance = (door_pose - pose_).norm();
-  if (door.doorStatus == 2) {
-  } else if (distance < 2.0 && distance > 0.5) {
-    // Publish Open Message
-    DoorControlMsg control_msg;
-    control_msg.command = 2;
-    door_pub_.publish(control_msg);
-  } else {
-    DoorControlMsg control_msg;
-    control_msg.command = 3;
-    door_pub_.publish(control_msg);
+  if (door_states_.size() > 0) {
+    have_doors_ = true;
+    const DoorStateMsg door = door_states_[0];
+    const Vector2f door_pose(door.pose.x, door.pose.y);
+    const float distance = (door_pose - pose_).norm();
+    if (door.doorStatus == 2) {
+    } else if (distance < 2.0 && distance > 0.5) {
+      // Publish Open Message
+      DoorControlMsg control_msg;
+      control_msg.command = 2;
+      door_pub_.publish(control_msg);
+    } else {
+      DoorControlMsg control_msg;
+      control_msg.command = 3;
+      door_pub_.publish(control_msg);
+    }
   }
 }
 
@@ -291,7 +292,6 @@ void Follow() {
   const Vector2f target_vel(target.translational_velocity.x,
       target.translational_velocity.y);
   NavigationConfigMsg conf_msg;
-  // cout << target_vel.norm() << endl;
   conf_msg.max_vel = target_vel.norm() - .001;
   conf_msg.ang_accel = -1;
   conf_msg.max_accel = -1;
@@ -560,14 +560,11 @@ void SaveDemo() {
     demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose",
         ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
-    const Vector2f pose(door_states_[0].pose.x, door_states_[0].pose.y);
-    cout << "Door Norm: " << ToRobotFrameP(pose).norm() << endl;
   } else {
     demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
-    cout << "Door Norm: " << 9999 << endl;
   }
-  cout << "Door State: " << demo["door_state"] << endl;
+  // // cout << "Door State: " << demo["door_state"] << endl;
   // Special Humans
   if (!local_humans_) {
     demo["front_p"] =
@@ -708,7 +705,6 @@ int main(int argc, char** argv) {
   while (run_ && ros::ok()) {
     switch (sim_state_.sim_state) {
       case 1 : {
-                 cout << "Case 1" << endl;
         ros::spinOnce();
         Run();
         sim_step_ = false;
