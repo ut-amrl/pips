@@ -1,5 +1,5 @@
 project(c++-pips)
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.10.2)
 
 # Tell CMake where it can find our custom .cmake files
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules/")
@@ -46,7 +46,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # Libraries
 # SET(libs roslib roscpp rosbag boost_system pthread)
-SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system lua5.1 gflags
+SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system gflags
     pthread)
 
 include_directories(src/)

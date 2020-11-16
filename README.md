@@ -1,19 +1,27 @@
 # cpp-pips
 
 Physics Informed Program Synthesis
+ 
 
-## Build
+## Make a Docker image (recommended)
+
+1. Install [Docker](https://www.docker.com/get-started)
+2. From this directory, run `git submodule update --init --recursive`. This will download copies of some dependencies.
+2. From this directory, run `docker build . -t cpp-pips`. This will build a new Docker image with PIPS and its dependencies ready to go.
+3. Run `docker run -it cpp-pips /bin/bash`. This will launch the cpp-pips image and put you in a Bash shell.
+
+## Build it for yourself
 
 ### Dependencies
-
-1. Package 1
-2. Package 2
-
+1. [ROS](http://wiki.ros.org/ROS/Installation) (most tested with Melodic, can be made to work on Noetic without too much trouble)
+2. [tf](http://wiki.ros.org/tf) (`apt-get install ros-melodic-tf`)
+3. [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page) (`apt-get install libeigen3-dev`)
+4. [Google Logging Library](https://github.com/google/glog) (`apt-get install libgoogle-glog-dev`)
+5. [GoogleTest](https://github.com/google/googletest/blob/master/googletest/README.md) (the Ubuntu package doesn't distribute binaries, see https://www.eriksmistad.no/getting-started-with-google-test-on-ubuntu/ for build instructions)
+6. [Z3](https://github.com/Z3Prover/z3/releases) (version 4.8.9)
 
 ### Compilation
-```
-make 
-```
+Add the path to cpp-pips to your $ROS_PACKAGE_PATH, then run `make`.
 
 ## Example Usage
 

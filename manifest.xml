@@ -17,11 +17,13 @@
   <depend package="roscpp"/>
   <depend package="rosbag"/>
   <depend package="tf"/>
+  <!--
   <depend package="amrl_msgs"/>
   <depend package="cobot_msgs"/>
   <depend package="ut_multirobot_sim"/>
   <depend package="visualization_msgs"/>
   <depend package="leg_tracker"/>
+  -->
 </package>
 
 
