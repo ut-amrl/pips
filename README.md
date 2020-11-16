@@ -92,7 +92,7 @@ One such object has variables representing the state, as well as two special var
         "type": "STATE",
         "name": "output",
         "value": "GO"
-    }
+    },
     "output": {
         "dim": [0, 0, 0],
         "type": "STATE",
