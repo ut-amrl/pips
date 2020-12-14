@@ -258,7 +258,7 @@ void Halt() {
 void GoAlone() {
   target_locked_ = false;
   NavigationConfigMsg conf_msg;
-  conf_msg.max_vel = 1.0;
+  conf_msg.max_vel = 2.0;
   conf_msg.ang_accel = -1;
   conf_msg.max_accel = -1;
   conf_msg.carrot_dist = -1;

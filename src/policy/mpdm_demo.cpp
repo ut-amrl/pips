@@ -255,7 +255,7 @@ void GoAlone() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = 0.0;
+  conf_msg.clearance_weight = -0.5;
   config_pub_.publish(conf_msg);
   Pose2Df target_message;
   target_message.x = goal_pose_.x();

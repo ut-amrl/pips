@@ -1,5 +1,5 @@
 project(c++-pips)
-cmake_minimum_required(VERSION 3.16.3)
+cmake_minimum_required(VERSION 3.1)
 
 # Tell CMake where it can find our custom .cmake files
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules/")
@@ -35,7 +35,6 @@ SET(ROS_BUILD_SHARED_LIBS false)
 
 # Load required third-party libraries from system
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(GTest REQUIRED)
 # find_package(GFlags REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Z3 REQUIRED)
@@ -125,16 +124,16 @@ rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
 target_link_libraries(demo_watcher c++-pips-core)
 target_link_libraries(demo_watcher amrl_shared_lib)
 
-ROSBUILD_ADD_EXECUTABLE(person_listener
-    src/person_listener.cpp)
-ADD_DEPENDENCIES(person_listener rosbuild_precompile)
-TARGET_LINK_LIBRARIES(person_listener roslib roscpp pthread boost_system
-    ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-    ${BUILD_SPECIFIC_LIBRARIES})
+# ROSBUILD_ADD_EXECUTABLE(person_listener
+    # src/person_listener.cpp)
+# ADD_DEPENDENCIES(person_listener rosbuild_precompile)
+# TARGET_LINK_LIBRARIES(person_listener roslib roscpp pthread boost_system
+    # ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
+    # ${BUILD_SPECIFIC_LIBRARIES})
 
-ROSBUILD_ADD_EXECUTABLE(laser_segmentation
-    src/laser_segmentation_main.cc)
-ADD_DEPENDENCIES(laser_segmentation rosbuild_precompile)
-TARGET_LINK_LIBRARIES(laser_segmentation roslib roscpp pthread boost_system
-    ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-    ${BUILD_SPECIFIC_LIBRARIES})
+# ROSBUILD_ADD_EXECUTABLE(laser_segmentation
+    # src/laser_segmentation_main.cc)
+# ADD_DEPENDENCIES(laser_segmentation rosbuild_precompile)
+# TARGET_LINK_LIBRARIES(laser_segmentation roslib roscpp pthread boost_system
+    # ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
+    # ${BUILD_SPECIFIC_LIBRARIES})
