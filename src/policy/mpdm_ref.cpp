@@ -88,6 +88,7 @@ DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
 // DEFINE_double(x,  8.8, "X-Coordinate of target location.");
 // DEFINE_double(y,  8.7, "Y-Coordinate of target location.");
 DEFINE_double(theta,  0.0, "Theta-Coordinate of target location.");
+DEFINE_string(ast_path,  "synthd/mpdm_1/", "Path to synthesized predicates.");
 
 bool run_ = true;
 
