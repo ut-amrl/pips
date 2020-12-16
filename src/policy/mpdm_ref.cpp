@@ -266,7 +266,7 @@ int FindTarget() {
 }
 
 void Follow() {
-  const float kFollowDist = 0.5;
+  const float kFollowDist = 1.5;
   HumanStateMsg target = front_;
   const Vector2f h_pose(target.pose.x, target.pose.y);
   const Vector2f towards_bot = pose_ - h_pose;
@@ -292,10 +292,10 @@ void Follow() {
 // TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
 float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
-  const float kRobotLength = 0.5;
+  const float kRobotLength = 1.0;
   const float kRearAxleOffset = 0.0;
   const float kObstacleMargin = 0.5;
-  const float kRobotWidth = 0.44;
+  const float kRobotWidth = 1.0;
 
   // How much the robot's body extends in front of its base link frame.
   const float l = 0.5 * kRobotLength - kRearAxleOffset + kObstacleMargin;
