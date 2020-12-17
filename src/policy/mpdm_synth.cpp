@@ -293,7 +293,7 @@ int FindTarget() {
 }
 
 void Follow() {
-  const float kFollowDist = 1.5;
+  const float kFollowDist = 2.0;
   HumanStateMsg target = front_;
   const Vector2f h_pose(target.pose.x, target.pose.y);
   const Vector2f towards_bot = pose_ - h_pose;
@@ -350,7 +350,7 @@ void Pass2() {
   conf_msg.carrot_dist = -1;
   conf_msg.margin = 0.0;
   conf_msg.max_decel = -1;
-  conf_msg.clearance_weight = 1.0;
+  conf_msg.clearance_weight = -0.5;
   config_pub_.publish(conf_msg);
   go_alone_pub_.publish(target_message);
 }
@@ -707,76 +707,104 @@ string Transition() {
   const Example example = MakeDemo();
   // Halts
   if (state_ == "Halt" &&
-      InterpretBool(halt_to_ga, example)) {
-    return "GoAlone";
-  }
-  if (state_ == "Halt" &&
       InterpretBool(halt_to_follow, example)) {
+    cout << "Halt -> Follow" << endl;
+    cout << halt_to_follow << endl;
     return "Follow";
   }
   if (state_ == "Halt" &&
       InterpretBool(halt_to_pass, example)) {
+    cout << "Halt -> Pass" << endl;
+    cout << halt_to_pass << endl;
     return "Pass";
   }
   if (state_ == "Halt" &&
+      InterpretBool(halt_to_ga, example)) {
+    cout << "Halt -> GA" << endl;
+    cout << halt_to_ga << endl;
+    return "GoAlone";
+  }
+  if (state_ == "Halt" &&
       InterpretBool(halt_to_halt, example)) {
+    cout << "Halt -> Halt" << endl;
+    cout << halt_to_halt << endl;
     return "Halt";
   }
   // Follows
   if (state_ == "Follow" &&
       InterpretBool(follow_to_pass, example)) {
+    cout << "Follow -> Pass" << endl;
+    cout << follow_to_pass << endl;
     return "Pass";
   }
   if (state_ == "Follow" &&
       InterpretBool(follow_to_ga, example)) {
+    cout << "Follow -> GA" << endl;
+    cout << follow_to_ga << endl;
     return "GoAlone";
   }
   if (state_ == "Follow" &&
-      InterpretBool(follow_to_halt, example)) {
-    return "Halt";
-  }
-  if (state_ == "Follow" &&
       InterpretBool(follow_to_follow, example)) {
+    cout << "Follow -> Follow" << endl;
+    cout << follow_to_follow << endl;
     return "Follow";
   }
-  // GoAlones
-  cout << "GA>H: " << ga_to_halt << endl;
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_halt, example)) {
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_halt, example)) {
+    cout << "Follow -> Halt" << endl;
+    cout << follow_to_halt << endl;
     return "Halt";
   }
+  // GoAlones
   if (state_ == "GoAlone" &&
       InterpretBool(ga_to_follow, example)) {
+    cout << "GA -> Follow" << endl;
+    cout << ga_to_follow << endl;
     return "Follow";
   }
   if (state_ == "GoAlone" &&
       InterpretBool(ga_to_pass, example)) {
+    cout << "GA -> Pass" << endl;
+    cout << ga_to_pass << endl;
     return "Pass";
   }
   if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_halt, example)) {
+    cout << "GA -> Halt" << endl;
+    cout << ga_to_halt << endl;
+    return "Halt";
+  }
+  if (state_ == "GoAlone" &&
       InterpretBool(ga_to_ga, example)) {
+    cout << "GA -> GA" << endl;
+    cout << ga_to_ga << endl;
     return "GoAlone";
   }
   // Passes
   if (state_ == "Pass" &&
       InterpretBool(pass_to_ga, example)) {
+    cout << "Pass -> GA" << endl;
+    cout << pass_to_ga << endl;
     return "GoAlone";
   }
   if (state_ == "Pass" &&
       InterpretBool(pass_to_follow, example)) {
+    cout << "Pass -> Follow" << endl;
+    cout << pass_to_follow << endl;
     return "Follow";
   }
   if (state_ == "Pass" &&
       InterpretBool(pass_to_pass, example)) {
+    cout << "Pass -> Pass" << endl;
+    cout << pass_to_pass << endl;
     return "Pass";
   }
+  cout << "Nothing Matched" << endl;
   return "Halt";
 }
 
 void Run() {
-  cout << "Run" << endl;
   if (have_localization_ && have_nav_stats_) {
-    cout << "Get Runned" << endl;
     GetRelevantHumans();
     SaveDemo();
     last_state_ = state_;
@@ -790,7 +818,7 @@ void Run() {
     } else {
       Halt();
     }
-    cout << "State: " << state_ << endl;
+    // cout << "State: " << state_ << endl;
   } else {
       GoAlone();
   }
