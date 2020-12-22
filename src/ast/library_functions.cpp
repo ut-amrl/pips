@@ -380,10 +380,10 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
 ast_ptr StraightFreePathLength(ast_ptr v,
     const vector<Vector2f> obstacles) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
-  const float kRobotLength = 0.5;
+  const float kRobotLength = 1.0;
   const float kRearAxleOffset = 0.0;
   const float kObstacleMargin = 0.5;
-  const float kRobotWidth = 0.44;
+  const float kRobotWidth = 1.0;
 
   ASSERT_TYPE(v, Type::VEC);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
@@ -402,6 +402,7 @@ ast_ptr StraightFreePathLength(ast_ptr v,
     Vector2f pose(obst.x(), obst.y());
     // Assuming robot frame, no transform.
     const Vector2f p = rot * pose;
+    // const Vector2f p = pose;
     // If outside width, or behind robot, skip
     if (fabs(p.y()) > w || p.x() < 0.0f) continue;
     // Calculate distance and store if shorter.

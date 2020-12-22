@@ -129,6 +129,7 @@ ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
 ros::Publisher door_pub_;
 ros::Publisher local_pub_;
+ros::Publisher state_pub_;
 
 void SignalHandler(int) {
   if (!run_) {
@@ -566,7 +567,7 @@ void SaveDemo() {
 
 void WriteDemos() {
   ofstream output_file;
-  const string output_name = "mpdm_demo.json";
+  const string output_name = "mpdm_ref.json";
   const json output = demos;
   output_file.open(output_name);
   output_file << std::setw(4) << output << std::endl;
@@ -593,6 +594,7 @@ void Run() {
     last_state_ = state_;
     GetRelevantHumans();
     state_ = Transition();
+    state_pub_.publish(state_);
     SaveDemo();
     cout << "State: " << state_ << endl;
     if (state_ == "GoAlone") {
@@ -638,6 +640,7 @@ int main(int argc, char** argv) {
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
   door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
   local_pub_ = n.advertise<amrl_msgs::Localization2DMsg>("/localization", 1);
+  state_pub_ = n.advertise<std_msgs::String>("robot_state", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {

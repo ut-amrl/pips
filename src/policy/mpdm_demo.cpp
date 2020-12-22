@@ -285,7 +285,7 @@ int FindTarget() {
 }
 
 void Follow() {
-  const float kFollowDist = 0.5;
+  const float kFollowDist = 2.0;
   HumanStateMsg target = front_;
   const Vector2f h_pose(target.pose.x, target.pose.y);
   const Vector2f towards_bot = pose_ - h_pose;
@@ -336,7 +336,7 @@ void Pass2() {
   target_message.y = goal_pose_.y();
   target_message.theta = goal_theta_;
   NavigationConfigMsg conf_msg;
-  conf_msg.max_vel = 6.0;
+  conf_msg.max_vel = 10.0;
   conf_msg.ang_accel = -1;
   conf_msg.max_accel = -1;
   conf_msg.carrot_dist = -1;

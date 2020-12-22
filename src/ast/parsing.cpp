@@ -167,6 +167,7 @@ vector<Example> WindowExamples(const vector<Example>& examples,
     return examples;
   }
   vector<Example> results;
+  int last = 0;
   int start = 0;
   int center = window_size / 2;
   size_t end = window_size;
@@ -177,13 +178,18 @@ vector<Example> WindowExamples(const vector<Example>& examples,
     if (ex.result_.GetString() != ex.start_.GetString()) {
       results.insert(results.end(),
           examples.begin() + start, examples.begin() + end);
+      // results.push_back(examples[last + int((center - last) / 2)]);
+      int middle = last + ((center - last) / 2);
+      results.insert(results.end(),
+          examples.begin() + middle, examples.begin() + middle + window_size);
       // start += window_size;
       // center += window_size;
       // end += window_size;
+      last = center;
     }
-      start++;
-      center++;
-      end++;
+    start++;
+    center++;
+    end++;
   }
   return results;
 }

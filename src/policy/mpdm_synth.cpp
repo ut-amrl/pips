@@ -77,6 +77,7 @@ using std::endl;
 using std::ofstream;
 using geometry_msgs::Pose2D;
 using geometry::Angle;
+using std_msgs::String;
 using math_util::AngleDiff;
 using AST::Example;
 using AST::ast_ptr;
@@ -135,6 +136,7 @@ ros::Publisher config_pub_;
 ros::Publisher viz_pub_;
 ros::Publisher door_pub_;
 ros::Publisher local_pub_;
+ros::Publisher state_pub_;
 
 // Path to the folder containing pieces of the tranisition function.
 // Transition Function ASTs
@@ -185,7 +187,7 @@ void LocalizationCb(const amrl_msgs::Localization2DMsg msg) {
 
 void NavStatusCb(const amrl_msgs::NavStatusMsg msg) {
   nav_complete_ = msg.nav_complete;
-  if (state_ != "Halt") {
+  if (state_ != "Halt" && nav_complete_ == false) {
       cout << "Nav Callback" << endl;
       local_target_ = Vector2f(msg.local_target.x, msg.local_target.y);
       have_nav_stats_ = true;
@@ -707,6 +709,12 @@ string Transition() {
   const Example example = MakeDemo();
   // Halts
   if (state_ == "Halt" &&
+      InterpretBool(halt_to_ga, example)) {
+    cout << "Halt -> GA" << endl;
+    cout << halt_to_ga << endl;
+    return "GoAlone";
+  }
+  if (state_ == "Halt" &&
       InterpretBool(halt_to_follow, example)) {
     cout << "Halt -> Follow" << endl;
     cout << halt_to_follow << endl;
@@ -718,25 +726,16 @@ string Transition() {
     cout << halt_to_pass << endl;
     return "Pass";
   }
-  if (state_ == "Halt" &&
-      InterpretBool(halt_to_ga, example)) {
-    cout << "Halt -> GA" << endl;
-    cout << halt_to_ga << endl;
-    return "GoAlone";
-  }
-  if (state_ == "Halt" &&
-      InterpretBool(halt_to_halt, example)) {
-    cout << "Halt -> Halt" << endl;
-    cout << halt_to_halt << endl;
+  if (state_ == "Halt") {
     return "Halt";
   }
+  // if (state_ == "Halt" &&
+      // InterpretBool(halt_to_halt, example)) {
+    // cout << "Halt -> Halt" << endl;
+    // cout << halt_to_halt << endl;
+    // return "Halt";
+  // }
   // Follows
-  if (state_ == "Follow" &&
-      InterpretBool(follow_to_pass, example)) {
-    cout << "Follow -> Pass" << endl;
-    cout << follow_to_pass << endl;
-    return "Pass";
-  }
   if (state_ == "Follow" &&
       InterpretBool(follow_to_ga, example)) {
     cout << "Follow -> GA" << endl;
@@ -744,18 +743,33 @@ string Transition() {
     return "GoAlone";
   }
   if (state_ == "Follow" &&
-      InterpretBool(follow_to_follow, example)) {
-    cout << "Follow -> Follow" << endl;
-    cout << follow_to_follow << endl;
-    return "Follow";
-  }
-  if (state_ == "Follow" &&
       InterpretBool(follow_to_halt, example)) {
     cout << "Follow -> Halt" << endl;
     cout << follow_to_halt << endl;
     return "Halt";
   }
+  if (state_ == "Follow" &&
+      InterpretBool(follow_to_pass, example)) {
+    cout << "Follow -> Pass" << endl;
+    cout << follow_to_pass << endl;
+    return "Pass";
+  }
+  if (state_ == "Follow") {
+    return "Follow";
+  }
+  // if (state_ == "Follow" &&
+      // InterpretBool(follow_to_follow, example)) {
+    // cout << "Follow -> Follow" << endl;
+    // cout << follow_to_follow << endl;
+    // return "Follow";
+  // }
   // GoAlones
+  if (state_ == "GoAlone" &&
+      InterpretBool(ga_to_halt, example)) {
+    cout << "GA -> Halt" << endl;
+    cout << ga_to_halt << endl;
+    return "Halt";
+  }
   if (state_ == "GoAlone" &&
       InterpretBool(ga_to_follow, example)) {
     cout << "GA -> Follow" << endl;
@@ -768,18 +782,15 @@ string Transition() {
     cout << ga_to_pass << endl;
     return "Pass";
   }
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_halt, example)) {
-    cout << "GA -> Halt" << endl;
-    cout << ga_to_halt << endl;
-    return "Halt";
-  }
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_ga, example)) {
-    cout << "GA -> GA" << endl;
-    cout << ga_to_ga << endl;
+  if (state_ == "GoAlone") {
     return "GoAlone";
   }
+  // if (state_ == "GoAlone" &&
+      // InterpretBool(ga_to_ga, example)) {
+    // cout << "GA -> GA" << endl;
+    // cout << ga_to_ga << endl;
+    // return "GoAlone";
+  // }
   // Passes
   if (state_ == "Pass" &&
       InterpretBool(pass_to_ga, example)) {
@@ -793,12 +804,15 @@ string Transition() {
     cout << pass_to_follow << endl;
     return "Follow";
   }
-  if (state_ == "Pass" &&
-      InterpretBool(pass_to_pass, example)) {
-    cout << "Pass -> Pass" << endl;
-    cout << pass_to_pass << endl;
+  if (state_ == "Pass") {
     return "Pass";
   }
+  // if (state_ == "Pass" &&
+      // InterpretBool(pass_to_pass, example)) {
+    // cout << "Pass -> Pass" << endl;
+    // cout << pass_to_pass << endl;
+    // return "Pass";
+  // }
   cout << "Nothing Matched" << endl;
   return "Halt";
 }
@@ -809,6 +823,7 @@ void Run() {
     SaveDemo();
     last_state_ = state_;
     state_ = Transition();
+    state_pub_.publish(state_);
     if (state_ == "GoAlone") {
       GoAlone();
     } else if (state_ == "Follow") {
@@ -873,6 +888,7 @@ int main(int argc, char** argv) {
   viz_pub_ = n.advertise<visualization_msgs::Marker>("vis_marker", 0);
   door_pub_ = n.advertise<DoorControlMsg>("/door/command", 1);
   local_pub_ = n.advertise<amrl_msgs::Localization2DMsg>("/localization", 1);
+  state_pub_ = n.advertise<std_msgs::String>("robot_state", 1);
 
   ros::Rate loop(30.0);
   while (run_ && ros::ok()) {
