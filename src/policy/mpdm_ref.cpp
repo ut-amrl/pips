@@ -209,7 +209,7 @@ void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
     const Vector2f door_pose(door.pose.x, door.pose.y);
     const float distance = (door_pose - pose_).norm();
     if (door.doorStatus == 2) {
-    } else if (distance < 2.0 && distance > 0.5) {
+    } else if (distance < 3.0 && distance > 1.5) {
       // Publish Open Message
       DoorControlMsg control_msg;
       control_msg.command = 2;

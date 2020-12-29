@@ -1,5 +1,6 @@
 #include "synthesis.hpp"
 
+#include <cmath>
 #include <gflags/gflags.h>
 #include <iomanip>
 #include <fstream>
@@ -525,7 +526,7 @@ void DIPR(const vector<Example>& demos,
       ScorePredicate(best_program, transition, examples, &pos, &neg);
 
     cout << "Initial Score: " << best_score << endl;
-    if (best_score >= min_accuracy) {
+    if (best_score >= min_accuracy || std::isnan(best_score)) {
       cout << "Sufficient Performance, Skipping" << endl;
       cout << endl;
       ofstream output_file;

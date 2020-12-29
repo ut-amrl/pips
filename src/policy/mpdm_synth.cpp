@@ -157,6 +157,19 @@ ast_ptr pass_to_ga;
 ast_ptr pass_to_halt;
 ast_ptr pass_to_follow;
 
+Vector2f ToRobotFrameP(const Vector2f pose) {
+    // Transform the pose to robot reference frame
+    const Vector2f diff = pose - pose_;
+    Eigen::Rotation2Df rot(-theta_);
+    return rot * diff;
+}
+
+Vector2f ToRobotFrameV(const Vector2f vel) {
+    // Transform the pose to robot reference frame
+    const Vector2f diff = vel - vel_;
+    Eigen::Rotation2Df rot(-theta_);
+    return rot * diff;
+}
 
 void SignalHandler(int) {
   if (!run_) {
@@ -235,9 +248,11 @@ void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
     have_doors_ = true;
     const DoorStateMsg door = door_states_[0];
     const Vector2f door_pose(door.pose.x, door.pose.y);
-    const float distance = (door_pose - pose_).norm();
+    const Vector2f local_door =
+        ToRobotFrameP(door_pose);
+    // const float distance = (door_pose - pose_).norm();
     if (door.doorStatus == 2) {
-    } else if (distance < 2.0 && distance > 0.5) {
+    } else if (local_door.x() < 3.0 && local_door.x() > 0.5) {
       // Publish Open Message
       DoorControlMsg control_msg;
       control_msg.command = 2;
@@ -466,19 +481,6 @@ json MakeEntry(const string& name,
   return entry;
 }
 
-Vector2f ToRobotFrameP(const Vector2f pose) {
-    // Transform the pose to robot reference frame
-    const Vector2f diff = pose - pose_;
-    Eigen::Rotation2Df rot(-theta_);
-    return rot * diff;
-}
-
-Vector2f ToRobotFrameV(const Vector2f vel) {
-    // Transform the pose to robot reference frame
-    const Vector2f diff = vel - vel_;
-    Eigen::Rotation2Df rot(-theta_);
-    return rot * diff;
-}
 
 json GetHumanJson() {
     vector<json> humans;
@@ -571,6 +573,10 @@ json GetDemo() {
     demo["door_state"] = MakeEntry("DoorState", door_states_[0].doorStatus, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose",
         ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}), {1, 0, 0});
+    cout << "Door State" << static_cast<int>(door_states_[0].doorStatus) << endl;
+    cout << "Relative Door Pose" << endl;
+    cout << ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}).x() << ", ";
+    cout << ToRobotFrameP({door_states_[0].pose.x, door_states_[0].pose.y}).y() << endl;
   } else {
     demo["door_state"] = MakeEntry("DoorState", 2, {0, 0, 0});
     demo["door_pose"] = MakeEntry("DoorPose", {9999, 9999}, {1, 0, 0});
@@ -833,7 +839,7 @@ void Run() {
     } else {
       Halt();
     }
-    // cout << "State: " << state_ << endl;
+    cout << "State: " << state_ << endl;
   } else {
       GoAlone();
   }

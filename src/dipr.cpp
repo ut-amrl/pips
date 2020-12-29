@@ -78,12 +78,14 @@ int main(int argc, char* argv[]) {
   // and the possible input->output state pairs.
   unordered_set<Var> variables;
   vector<std::pair<string,string>> transitions;
+  vector<std::pair<string,string>> transitions_loaded;
   vector<Example> examples = ReadExamples(FLAGS_ex_file,
       variables,
       &transitions);
 
   std::reverse(transitions.begin(), transitions.end());
-  cout << "Examples Loaded" << endl;
+
+  cout << "Examples Loaded" << endl << endl;
 
   examples = WindowExamples(examples, FLAGS_window_size);
 
@@ -100,6 +102,37 @@ int main(int argc, char* argv[]) {
     cout << node << endl;
   }
   cout << endl;
+
+  const vector<ast_ptr> branch_progs =
+      LoadSketches(FLAGS_sketch_dir, &transitions_loaded);
+
+  vector<ast_ptr> progs_sorted;
+
+  // Sorting the transitions and programs based on the number
+  // of examples
+  cout << "Prog Size: " << branch_progs.size() << endl;
+  for (size_t i = 0; i < transitions.size(); ++i) {
+    const auto trans = transitions[i];
+    const auto it =
+        std::find(transitions_loaded.begin(), transitions_loaded.end(), trans);
+    if (it != transitions_loaded.end()) {
+      const int index = it - transitions_loaded.begin();
+      progs_sorted.push_back(branch_progs[index]);
+    } else {
+      AST::Bool none(false);
+      progs_sorted.push_back(make_shared<AST::Bool>(none));
+    }
+  }
+
+  for (size_t i = 0; i < transitions_loaded.size(); ++i) {
+    const auto trans = transitions_loaded[i];
+    const auto prog = branch_progs[i];
+    if (std::find(transitions.begin(), transitions.end(), trans)
+        == transitions.end()) {
+      transitions.insert(transitions.begin(), trans);
+      progs_sorted.insert(progs_sorted.begin(), prog);
+    }
+  }
 
   cout << "----Transitions----" << endl;
   for (auto& trans : transitions) {
@@ -136,13 +169,11 @@ int main(int argc, char* argv[]) {
   // ops = RelativesOnly(ops);
   // Load the Existing Sketches
   // vector<std::pair<string, string>> branches;
-  const vector<ast_ptr> branch_progs = LoadSketches(FLAGS_sketch_dir, transitions);
   DIPR(examples,
-      branch_progs,
+      progs_sorted,
       transitions,
       ops,
       FLAGS_sketch_depth,
       FLAGS_min_accuracy,
       "synthd/dipr/");
-
 }
