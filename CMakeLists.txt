@@ -124,6 +124,13 @@ rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
 target_link_libraries(demo_watcher c++-pips-core)
 target_link_libraries(demo_watcher amrl_shared_lib)
 
+ROSBUILD_ADD_EXECUTABLE(april_listener
+		src/april_listener.cpp)
+ADD_DEPENDENCIES(april_listener rosbuild_precompile)
+TARGET_LINK_LIBRARIES(april_listener roslib roscpp pthread boost_system
+		${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
+		${BUILD_SPECIFIC_LIBRARIES})
+
 # ROSBUILD_ADD_EXECUTABLE(person_listener
     # src/person_listener.cpp)
 # ADD_DEPENDENCIES(person_listener rosbuild_precompile)

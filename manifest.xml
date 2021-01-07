@@ -21,6 +21,8 @@
   <depend package="cobot_msgs"/>
   <depend package="ut_multirobot_sim"/>
   <depend package="visualization_msgs"/>
+  <depend package="apriltag_ros" />
+  <depend package="apriltag" />
 </package>
 
 
