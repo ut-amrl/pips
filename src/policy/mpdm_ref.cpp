@@ -81,6 +81,7 @@ using math_util::DegToRad;
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_bool(debug, false, "Enable Debug Printing");
+DEFINE_bool(cobot, false, "Switch to Cobot Mode");
 // // Room Above the hallway
 DEFINE_double(x,  14.8, "X-Coordinate of target location.");
 DEFINE_double(y,  14.1, "Y-Coordinate of target location.");
@@ -267,7 +268,7 @@ int FindTarget() {
 }
 
 void Follow() {
-  const float kFollowDist = 1.5;
+  const float kFollowDist = 2.0;
   HumanStateMsg target = front_;
   const Vector2f h_pose(target.pose.x, target.pose.y);
   const Vector2f towards_bot = pose_ - h_pose;
@@ -293,10 +294,17 @@ void Follow() {
 // TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
 float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
-  const float kRobotLength = 1.0;
-  const float kRearAxleOffset = 0.0;
-  const float kObstacleMargin = 0.5;
-  const float kRobotWidth = 1.0;
+  float kRobotLength = 1.0;
+  float kRearAxleOffset = 0.0;
+  float kObstacleMargin = 0.5;
+  float kRobotWidth = 1.0;
+
+  if (FLAGS_cobot) {
+    kRobotLength = 0.4;
+    kRearAxleOffset = 0.0;
+    kObstacleMargin = 0.5;
+    kRobotWidth = 0.4;
+  }
 
   // How much the robot's body extends in front of its base link frame.
   const float l = 0.5 * kRobotLength - kRearAxleOffset + kObstacleMargin;
@@ -617,6 +625,7 @@ int main(int argc, char** argv) {
   // Set target
   goal_pose_ = Vector2f(FLAGS_x, FLAGS_y);
   goal_theta_ = FLAGS_theta;
+  local_humans_ = FLAGS_cobot;
 
   // Subscribers
   ros::Subscriber status_sub =
