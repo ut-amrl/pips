@@ -380,10 +380,17 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
 ast_ptr StraightFreePathLength(ast_ptr v,
     const vector<Vector2f> obstacles) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
-  const float kRobotLength = 1.0;
-  const float kRearAxleOffset = 0.0;
-  const float kObstacleMargin = 0.5;
-  const float kRobotWidth = 1.0;
+  float kRobotLength = 1.0;
+  float kRearAxleOffset = 0.0;
+  float kObstacleMargin = 0.5;
+  float kRobotWidth = 1.0;
+  const bool cobot = true;
+  if (cobot) {
+    kRobotLength = 0.4;
+    kRearAxleOffset = 0.0;
+    kObstacleMargin = 0.5;
+    kRobotWidth = 0.4;
+  }
 
   ASSERT_TYPE(v, Type::VEC);
   vec_ptr v_cast = dynamic_pointer_cast<Vec>(v);
