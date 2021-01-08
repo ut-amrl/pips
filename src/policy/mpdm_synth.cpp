@@ -220,20 +220,20 @@ void CobotDoorCallback(const cobot_msgs::CobotDoorDetectionsMsg msg) {
     have_doors_ = true;
     const Vector2f door_left(msg.doorX1[0], msg.doorY1[0]);
     const Vector2f door_right(msg.doorX2[0], msg.doorY2[0]);
-    const Vector2f door_pose = door_left - door_right;
+    const Vector2f door_pose = (door_left - door_right) / 2;
     door.pose.x = door_pose.x();
     door.pose.y = door_pose.y();
     const float distance = (door_pose - pose_).norm();
     if (msg.doorStatus[0] == 1) {
       door.doorStatus = 2;
     } else if (distance < 2.0 && distance > 0.5) {
-      door.doorStatus = 1;
+      door.doorStatus = 0;
       // Publish Open Message
       DoorControlMsg control_msg;
       control_msg.command = 2;
       door_pub_.publish(control_msg);
     } else {
-      door.doorStatus = 0;
+      door.doorStatus = 1;
       DoorControlMsg control_msg;
       control_msg.command = 3;
       door_pub_.publish(control_msg);
@@ -252,7 +252,7 @@ void DoorStateCb(const ut_multirobot_sim::DoorArrayMsg msg) {
         ToRobotFrameP(door_pose);
     // const float distance = (door_pose - pose_).norm();
     if (door.doorStatus == 2) {
-    } else if (local_door.x() < 3.0 && local_door.x() > 0.5) {
+    } else if (local_door.x() < 2.0 && local_door.x() > 0.8) {
       // Publish Open Message
       DoorControlMsg control_msg;
       control_msg.command = 2;
