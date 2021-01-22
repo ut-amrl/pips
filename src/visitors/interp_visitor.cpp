@@ -72,15 +72,15 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = SqDist(left, right);
     } else if (op == "AngleDist") {
       result = AngleDist(left, right);
-    } else if (op == "And") {
+    } else if (op == "&&" || op == "And") {
       result = And(left, right);
-    } else if (op == "Or") {
+    } else if (op == "||" || op == "Or") {
       result = Or(left, right);
     } else if (op == "Eq") {
       result = Eq(left, right);
-    } else if (op == "Gt") {
+    } else if (op == ">" || op == "Gt") {
       result = Gt(left, right);
-    } else if (op == "Lt") {
+    } else if (op == "<" || op == "Lt") {
       result = Lt(left, right);
     } else if (op == "Gte") {
       result = Gte(left, right);

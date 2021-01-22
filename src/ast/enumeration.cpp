@@ -131,9 +131,9 @@ vector<ast_ptr> EnumerateSketchesHelper(int depth) {
   Param p1("pY" + depth_string, {0,0,0}, NUM);
   Feature f1("fY" + depth_string, {0,0,0}, NUM);
   std::shared_ptr<BinOp> great = make_shared<BinOp>(make_shared<Feature>(f),
-                                 make_shared<Param>(p), "Gt");
+                                 make_shared<Param>(p), ">");
   std::shared_ptr<BinOp> less = make_shared<BinOp>(make_shared<Feature>(f),
-                                make_shared<Param>(p), "Lt");
+                                make_shared<Param>(p), "<");
 
   // Depth > 0
   vector<ast_ptr> rec_sketches = EnumerateSketchesHelper(depth - 1);
@@ -146,10 +146,10 @@ vector<ast_ptr> EnumerateSketchesHelper(int depth) {
 
   for (auto skt : rec_sketches) {
     if (skt->type_ != BOOL) {
-      std::shared_ptr<BinOp> andg = make_shared<BinOp>(great, skt, "And");
-      std::shared_ptr<BinOp> org = make_shared<BinOp>(great, skt, "Or");
-      std::shared_ptr<BinOp> andl = make_shared<BinOp>(less, skt, "And");
-      std::shared_ptr<BinOp> orl = make_shared<BinOp>(less, skt, "Or");
+      std::shared_ptr<BinOp> andg = make_shared<BinOp>(great, skt, "&&");
+      std::shared_ptr<BinOp> org = make_shared<BinOp>(great, skt, "||");
+      std::shared_ptr<BinOp> andl = make_shared<BinOp>(less, skt, "&&");
+      std::shared_ptr<BinOp> orl = make_shared<BinOp>(less, skt, "||");
       sketches.push_back(andg);
       sketches.push_back(org);
       sketches.push_back(andl);

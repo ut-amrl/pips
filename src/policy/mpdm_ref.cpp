@@ -80,8 +80,8 @@ using math_util::DegToRad;
 // These are here because everything dies without them.
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
-DEFINE_bool(debug, false, "Enable Debug Printing");
-DEFINE_bool(cobot, false, "Switch to Cobot Mode");
+DEFINE_bool(debug, true, "Enable Debug Printing");
+DEFINE_bool(cobot, true, "Switch to Cobot Mode");
 // // Room Above the hallway
 DEFINE_double(x,  14.8, "X-Coordinate of target location.");
 DEFINE_double(y,  14.1, "Y-Coordinate of target location.");

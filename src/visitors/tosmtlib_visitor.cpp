@@ -43,15 +43,15 @@ ast_ptr ToSMTLIB::Visit(BinOp* node) {
     binop_smtlib += "(dot ";
   } else if (op == "EuclideanDistanceSq") {
     binop_smtlib += "(euc-dist-sq ";
-  } else if (op == "And") {
+  } else if (op == "&&" || op == "And") {
     binop_smtlib += "(and ";
-  } else if (op == "Or") {
+  } else if (op == "||" || op == "Or") {
     binop_smtlib += "(or ";
   } else if (op == "Eq") {
     binop_smtlib += "(= ";
-  } else if (op == "Gt") {
+  } else if (op == ">" || op == "Gt") {
     binop_smtlib += "(> ";
-  } else if (op == "Lt") {
+  } else if (op == "<" || op == "Lt") {
     binop_smtlib += "(< ";
   } else if (op == "Gte") {
     binop_smtlib += "(>= ";

@@ -16,11 +16,35 @@ ast_ptr Print::Visit(AST* node) { return ast_ptr(node); }
 
 ast_ptr Print::Visit(BinOp* node) {
   depth_++;
-  program_ += node->op_ + "(";
-  node->left_->Accept(this);
-  program_ += ", ";
-  node->right_->Accept(this);
-  program_ += ")";
+  std::string op = node->op_;
+  bool special = false;
+  if (op == "Gt") {
+    op = ">";
+    special = true;
+  }
+  if (op == "Lt") {
+    op = "<";
+    special = true;
+  }
+  if (op == "And") {
+    op = "&&";
+    special = true;
+  }
+  if (op == "Or") {
+    op = "||";
+    special = true;
+  }
+  if (special) {
+    node->left_->Accept(this);
+    program_ += " " + op + " ";
+    node->right_->Accept(this);
+  } else {
+    program_ += op + "(";
+    node->left_->Accept(this);
+    program_ += ", ";
+    node->right_->Accept(this);
+    program_ += ")";
+  }
   return make_shared<BinOp>(*node);
 }
 
@@ -31,11 +55,11 @@ ast_ptr Print::Visit(Bool* node) {
 }
 
 ast_ptr Print::Visit(Feature* node) {
-  program_ += node->name_;
+  // program_ += node->name_;
   if (node->current_value_ != nullptr) {
-    program_ += "=[";
+    // program_ += "=[";
     node->current_value_->Accept(this);
-    program_ += "]";
+    // program_ += "]";
   }
   depth_++;
   return make_shared<Feature>(*node);
@@ -53,11 +77,11 @@ ast_ptr Print::Visit(Num* node) {
 }
 
 ast_ptr Print::Visit(Param* node) {
-  program_ += node->name_;
+  // program_ += node->name_;
   if (node->current_value_ != nullptr) {
-    program_ += "=[";
+    // program_ += "=[";
     node->current_value_->Accept(this);
-    program_ += "]";
+    // program_ += "]";
   }
   depth_++;
   return make_shared<Param>(*node);

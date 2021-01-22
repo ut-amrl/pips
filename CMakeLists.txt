@@ -107,6 +107,9 @@ target_link_libraries(srtr c++-pips-core)
 add_executable(dipr src/dipr.cpp)
 target_link_libraries(dipr c++-pips-core)
 
+add_executable(print src/pretty_print.cpp)
+target_link_libraries(print c++-pips-core)
+
 # Behaviors (Running Ros)
 rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
 target_link_libraries(mpdm_ref c++-pips-core)
