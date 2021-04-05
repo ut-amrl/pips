@@ -1,3 +1,6 @@
+// Copyright (c) Jarrett Holtz. All rights reserved.
+// Licensed under the MIT License.
+
 #pragma once
 
 #include <z3++.h>

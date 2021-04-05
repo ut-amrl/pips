@@ -1,3 +1,6 @@
+// Copyright (c) Jarrett Holtz. All rights reserved.
+// Licensed under the MIT License.
+
 #include <eigen3/Eigen/Core>
 #include <map>
 #include <memory>
