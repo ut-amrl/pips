@@ -166,3 +166,7 @@ Not bad! Maybe with a few more examples we could get exactly the results we're l
 
 ## Extended Examples
 Try some real world social navigation scenarios! A library for this purpose (`ops/social_test.json`) and some recorded demonstrations (`examples/del_N.json`) are included in this repository.
+
+## License
+
+This project is released under the MIT License. Please review the [License file](LICENSE) for more details.
