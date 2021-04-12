@@ -41,7 +41,10 @@ jobs:
       - name: Install ROS
         uses: ros-tooling/setup-ros@0.1.4
         with:
-          required-ros-distributions: "melodic"
+          required-ros-distributions: noetic
+
+      - name: Install other dependencies
+        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev ros-noetic-dev
 
       - name: Build
         run: make
