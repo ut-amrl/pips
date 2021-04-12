@@ -38,6 +38,8 @@ jobs:
 
       - name: Install ROS
         uses: ros-tooling/setup-ros@0.1.4
+        with:
+          required-ros-distributions: "melodic"
 
       - name: Build
         run: make
