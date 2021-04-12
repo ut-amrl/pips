@@ -1,57 +1,24 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
-
-# Controls when the action will run. 
-on:
-  # Triggers the workflow on push or pull request events but only for the master branch
-  push:
-    branches: [ simon-working ]
-  pull_request:
-    branches: [ simon-working ]
-
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    runs-on: ubuntu-focal
     steps:
-
       - uses: actions/checkout@v2
         with:
           submodules: recursive
-
       - name: Install Z3
         uses: pavpanchekha/setup-z3@1.2.2
         with:
           version: 4.8.9
-
       - name: Install GTest
         uses: MarkusJx/googletest-installer@v1.1
-
       - name: Install ROS
         uses: ros-tooling/setup-ros@0.1.4
         with:
           required-ros-distributions: noetic
-
       - name: Install other dependencies
-        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev ros-noetic-tf
-
+        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev
       - name: Build
         run: make
-
-      # Runs a single command using the runners shell
-      # - name: Run a one-line script
-      #   run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      # - name: Run a multi-line script
-      #  run: |
-      #    echo Add other actions to build,
-      #    echo test, and deploy your project.
+      - name: Run unit tests
+        run: ./bin/unit-tests
