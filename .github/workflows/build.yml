@@ -30,15 +30,24 @@ jobs:
         with:
           version: 4.8.9
 
-      - name: Setup ROS environment
+      - name: Install GTest
+        uses: MarkusJx/googletest-installer@v1.1
+
+      - name: Install ROS
         uses: ros-tooling/setup-ros@0.1.4
 
+      - name: Install other dependencies
+        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev ros-melodic-tf
+
+      - name: Build
+        run: make
+
       # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      # - name: Run a one-line script
+      #   run: echo Hello, world!
 
       # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
-        run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+      # - name: Run a multi-line script
+      #  run: |
+      #    echo Add other actions to build,
+      #    echo test, and deploy your project.
