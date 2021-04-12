@@ -2,7 +2,7 @@
 
 #include <memory>
 
-#include "../ast.hpp"
+#include "../ast/ast.hpp"
 #include "deepcopy_visitor.hpp"
 
 using AST::ast_ptr;

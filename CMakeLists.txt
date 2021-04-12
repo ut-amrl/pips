@@ -2,7 +2,7 @@ project(c++-pips)
 cmake_minimum_required(VERSION 3.10.2)
 
 # Tell CMake where it can find our custom .cmake files
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules/")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules")
 
 # Use C++11
 set(CMAKE_CXX_STANDARD 11)
@@ -10,35 +10,37 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
 # Set some useful compile flags
-set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fPIC -fopenmp")
-if(${CXX} MATCHES "g++")
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
-endif()
+#set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fPIC -fopenmp")
+#if(${CXX} MATCHES "g++")
+#  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
+#endif()
 
 # TinyDir stuff
 ################################
 # Add definitions
 
-if(MSVC)
-	add_definitions(-W4 -WX -wd"4996")
-else()
-	add_definitions(-fsigned-char -Wall -W -Wpointer-arith -Wcast-qual -Winline)
-	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
-endif()
+#if(MSVC)
+#	add_definitions(-W4 -WX -wd"4996")
+#else()
+#	add_definitions(-fsigned-char -Wall -W -Wpointer-arith -Wcast-qual -Winline)
+#	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wstrict-prototypes")
+#	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
+#endif()
 
 # ros setup stuff
-INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-ROSBUILD_INIT()
-SET(ROS_BUILD_STATIC_LIBS true)
-SET(ROS_BUILD_SHARED_LIBS false)
+#INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+#ROSBUILD_INIT()
+#SET(ROS_BUILD_STATIC_LIBS true)
+#SET(ROS_BUILD_SHARED_LIBS false)
 
 # Load required third-party libraries from system
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 find_package(GTest REQUIRED)
-# find_package(GFlags REQUIRED)
+#find_package(GFlags REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Z3 REQUIRED)
+#set(gflags_DIR "${CMAKE_SOURCE_DIR}/submodules/gflags")
+#find_package(GFlags REQUIRED)
 
 # Set final locations for binaries
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -46,8 +48,9 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # Libraries
 # SET(libs roslib roscpp rosbag boost_system pthread)
-SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system gflags
-    pthread)
+# SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system gflags
+#    pthread)
+SET(libs glog amrl_shared_lib boost_system gflags::gflags)
 
 include_directories(src/)
 # Load amrl_shared_lib from submodule
@@ -56,6 +59,7 @@ include_directories(submodules/amrl_shared_lib/)
 include_directories(submodules/)
 
 # Load Gflags from submodule
+set(GFLAGS_BUILD_TESTING OFF)
 add_subdirectory(submodules/gflags)
 
 # Load Niels Lohmann's JSON library from submodule
@@ -94,12 +98,26 @@ target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
 target_link_libraries(c++-pips-core ${libs})
 
+add_executable(unit-tests
+  src/ast/library_functions_tests.cpp
+  src/utils/nd_bool_array_tests.cpp
+  src/visitors/deepcopy_visitor_tests.cpp)
+target_link_libraries(unit-tests c++-pips-core)
+target_link_libraries(unit-tests gtest gtest_main)
+target_link_libraries(unit-tests gflags::gflags)
+
 # Add an executable for ldips-l3
 add_executable(ldips-l3 src/ldips-l3.cpp)
 target_link_libraries(ldips-l3 c++-pips-core)
 
-add_executable(srtr src/srtr.cpp)
-target_link_libraries(srtr c++-pips-core)
+#add_executable(srtr src/srtr.cpp)
+#target_link_libraries(srtr c++-pips-core)
 
-add_executable(dipr src/dipr.cpp)
-target_link_libraries(dipr c++-pips-core)
+#add_executable(dipr src/dipr.cpp)
+#target_link_libraries(dipr c++-pips-core)
+
+add_executable(pipslint src/pipslint.cpp)
+target_link_libraries(pipslint)
+target_link_libraries(pipslint c++-pips-core)
+target_link_libraries(pipslint gflags::gflags)
+target_link_libraries(pipslint nlohmann_json::nlohmann_json)

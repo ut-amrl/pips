@@ -21,7 +21,8 @@ DEFINE_string(ex_file, "examples/simple_atk.json", "Examples file");
 DEFINE_string(lib_file, "ops/simple_atk.json", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
-DEFINE_uint32(window_size, 5, "Size of sliding window to subsample demonstrations with.");
+DEFINE_uint32(window_size, 5,
+              "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
@@ -51,11 +52,11 @@ using AST::VEC;
 using Eigen::Vector2f;
 using std::cout;
 using std::endl;
+using std::ifstream;
 using std::invalid_argument;
 using std::make_shared;
 using std::map;
 using std::ofstream;
-using std::ifstream;
 using std::string;
 using std::unordered_map;
 using std::unordered_set;
@@ -76,10 +77,9 @@ int main(int argc, char* argv[]) {
   // Also obtains variables that can be used (roots for synthesis)
   // and the possible input->output state pairs.
   unordered_set<Var> variables;
-  unordered_set<std::pair<string,string>, pair_hash> transitions;
-  vector<Example> examples = ReadExamples(FLAGS_ex_file,
-      variables,
-      &transitions);
+  unordered_set<std::pair<string, string>, pair_hash> transitions;
+  vector<Example> examples =
+      ReadExamples(FLAGS_ex_file, variables, &transitions);
 
   examples = WindowExamples(examples, FLAGS_window_size);
 
@@ -116,11 +116,11 @@ int main(int argc, char* argv[]) {
                                           FLAGS_feat_depth, &signatures);
 
   if (FLAGS_debug) {
-      cout << "---- Features Synthesized ----" << endl;
-      for (auto& feat : ops) {
-          cout << feat << endl;
-      }
-      cout << endl;
+    cout << "---- Features Synthesized ----" << endl;
+    for (auto& feat : ops) {
+      cout << feat << endl;
+    }
+    cout << endl;
   }
 
   cout << "---- Number of Features Enumerated ----" << endl;
@@ -135,25 +135,24 @@ int main(int argc, char* argv[]) {
     for (const auto& sketch : sketches) {
       cout << sketch << endl;
       bool solved = false;
-      ast_ptr solution =
-          SolvePredicate(examples,
-                  ops, sketch, transition, FLAGS_min_accuracy, &solved);
+      ast_ptr solution = SolvePredicate(examples, ops, sketch, transition,
+                                        FLAGS_min_accuracy, &solved);
       if (solved) {
-          // cout << "Solution: " << solution << endl;
-          // Test writing ast as json to file
-          // ofstream output_file;
-          // output_file.open("synthd/mpdm_1/GoAlone_GoAlone.json");
-          // const json output = solution->ToJson();
-          // output_file << std::setw(4) << output << std::endl;
-          // output_file.close();
+        // cout << "Solution: " << solution << endl;
+        // Test writing ast as json to file
+        // ofstream output_file;
+        // output_file.open("synthd/mpdm_1/GoAlone_GoAlone.json");
+        // const json output = solution->ToJson();
+        // output_file << std::setw(4) << output << std::endl;
+        // output_file.close();
 
-          // Test reading it back in again
-          ifstream input_file;
-          input_file.open("synthd/mpdm_1/GoAlone_GoAlone.json");
-          json loaded;
-          input_file >> loaded;
-          ast_ptr recovered = AST::AstFromJson(loaded);
-          cout << "Recovered: " << recovered << endl;
+        // Test reading it back in again
+        ifstream input_file;
+        input_file.open("synthd/mpdm_1/GoAlone_GoAlone.json");
+        json loaded;
+        input_file >> loaded;
+        ast_ptr recovered = AST::AstFromJson(loaded);
+        cout << "Recovered: " << recovered << endl;
       }
     }
     cout << endl;

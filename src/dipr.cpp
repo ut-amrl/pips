@@ -13,17 +13,19 @@
 #include "ast/enumeration.hpp"
 #include "ast/library_functions.hpp"
 #include "ast/parsing.hpp"
+#include "ast/synthesis.hpp"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
-#include "ast/synthesis.hpp"
 // #include "sketches/sketches.hpp"
 
 DEFINE_string(ex_file, "merged.json", "Examples file");
 DEFINE_string(lib_file, "ops/social_ref.json", "Operation library file");
-DEFINE_string(sketch_dir, "synthd/dips-window/", "Directory containing components of sketch.");
+DEFINE_string(sketch_dir, "synthd/dips-window/",
+              "Directory containing components of sketch.");
 DEFINE_uint32(feat_depth, 2, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
-DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
+DEFINE_uint32(window_size, 3,
+              "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
@@ -43,13 +45,13 @@ using AST::Model;
 using AST::Num;
 using AST::NUM;
 using AST::Param;
+using AST::PredicateL2;
 using AST::Signature;
 using AST::Sketch;
 using AST::SymEntry;
 using AST::Type;
 using AST::Var;
 using AST::VEC;
-using AST::PredicateL2;
 using Eigen::Vector2f;
 using std::cout;
 using std::endl;
@@ -77,10 +79,9 @@ int main(int argc, char* argv[]) {
   // Also obtains variables that can be used (roots for synthesis)
   // and the possible input->output state pairs.
   unordered_set<Var> variables;
-  vector<std::pair<string,string>> transitions;
-  vector<Example> examples = ReadExamples(FLAGS_ex_file,
-      variables,
-      &transitions);
+  vector<std::pair<string, string>> transitions;
+  vector<Example> examples =
+      ReadExamples(FLAGS_ex_file, variables, &transitions);
 
   std::reverse(transitions.begin(), transitions.end());
   cout << "Examples Loaded" << endl;
@@ -122,11 +123,11 @@ int main(int argc, char* argv[]) {
                                           FLAGS_feat_depth, &signatures);
 
   if (FLAGS_debug) {
-      cout << "---- Features Synthesized ----" << endl;
-      for (auto& feat : ops) {
-          cout << feat << endl;
-      }
-      cout << endl;
+    cout << "---- Features Synthesized ----" << endl;
+    for (auto& feat : ops) {
+      cout << feat << endl;
+    }
+    cout << endl;
   }
 
   cout << "---- Number of Features Enumerated ----" << endl;
@@ -136,13 +137,8 @@ int main(int argc, char* argv[]) {
   // ops = RelativesOnly(ops);
   // Load the Existing Sketches
   // vector<std::pair<string, string>> branches;
-  const vector<ast_ptr> branch_progs = LoadSketches(FLAGS_sketch_dir, transitions);
-  DIPR(examples,
-      branch_progs,
-      transitions,
-      ops,
-      FLAGS_sketch_depth,
-      FLAGS_min_accuracy,
-      "synthd/dipr/");
-
+  const vector<ast_ptr> branch_progs =
+      LoadSketches(FLAGS_sketch_dir, transitions);
+  DIPR(examples, branch_progs, transitions, ops, FLAGS_sketch_depth,
+       FLAGS_min_accuracy, "synthd/dipr/");
 }

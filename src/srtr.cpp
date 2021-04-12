@@ -10,19 +10,21 @@
 #include <unordered_set>
 
 #include "ast/ast.hpp"
-#include "ast/synthesis.hpp"
 #include "ast/enumeration.hpp"
 #include "ast/library_functions.hpp"
 #include "ast/parsing.hpp"
+#include "ast/synthesis.hpp"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 // #include "sketches/sketches.hpp"
 
 DEFINE_string(ex_file, "examples/merged.json", "Examples file");
-DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
+DEFINE_uint32(window_size, 3,
+              "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
-DEFINE_string(sketch_dir, "synthd/dips-window/", "Directory containing components of sketch.");
+DEFINE_string(sketch_dir, "synthd/dips-window/",
+              "Directory containing components of sketch.");
 DEFINE_bool(debug, false, "Enable Debug Printing");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
@@ -40,11 +42,11 @@ using AST::NUM;
 using AST::Param;
 using AST::Signature;
 using AST::Sketch;
+using AST::SRTR;
 using AST::SymEntry;
 using AST::Type;
 using AST::Var;
 using AST::VEC;
-using AST::SRTR;
 using Eigen::Vector2f;
 using std::cout;
 using std::endl;
@@ -72,10 +74,9 @@ int main(int argc, char* argv[]) {
   // Also obtains variables that can be used (roots for synthesis)
   // and the possible input->output state pairs.
   unordered_set<Var> variables;
-  vector<std::pair<string,string>> transitions;
-  vector<Example> examples = ReadExamples(FLAGS_ex_file,
-      variables,
-      &transitions);
+  vector<std::pair<string, string>> transitions;
+  vector<Example> examples =
+      ReadExamples(FLAGS_ex_file, variables, &transitions);
 
   examples = WindowExamples(examples, FLAGS_window_size);
 
@@ -87,9 +88,7 @@ int main(int argc, char* argv[]) {
 
   // Load the Existing Sketches
   vector<std::pair<string, string>> branches;
-  const vector<ast_ptr> branch_progs = LoadSketches(FLAGS_sketch_dir, &branches);
-  SRTR(examples,
-      branch_progs,
-      branches,
-      "synthd/srtr/");
+  const vector<ast_ptr> branch_progs =
+      LoadSketches(FLAGS_sketch_dir, &branches);
+  SRTR(examples, branch_progs, branches, "synthd/srtr/");
 }

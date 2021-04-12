@@ -1,35 +1,36 @@
 #include "synthesis.hpp"
 
 #include <gflags/gflags.h>
-#include <iomanip>
+
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <queue>
 #include <stdexcept>
 #include <unordered_set>
-#include <queue>
 
+#include "../submodules/amrl_shared_lib/util/timer.h"
 #include "enumeration.hpp"
 #include "gflags/gflags_declare.h"
 #include "parsing.hpp"
+#include "utils/nd_bool_array.hpp"
 #include "visitors/deepcopy_visitor.hpp"
 #include "visitors/fillhole_visitor.hpp"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 #include "visitors/tosmtlib_visitor.hpp"
-#include "../submodules/amrl_shared_lib/util/timer.h"
-#include "utils/nd_bool_array.hpp"
 
-using std::vector;
-using std::pair;
-using std::string;
+using AST::CheckModelAccuracy;
+using nlohmann::json;
 using std::cout;
 using std::endl;
+using std::make_shared;
 using std::ofstream;
+using std::pair;
+using std::string;
 using std::unordered_map;
 using std::unordered_set;
-using std::make_shared;
-using nlohmann::json;
-using AST::CheckModelAccuracy;
+using std::vector;
 
 DECLARE_uint32(sketch_depth);
 DECLARE_double(min_accuracy);
@@ -102,7 +103,7 @@ class index_iterator {
 // Helper Function for scoring a candidate predicate given only a set
 // of examples and the desired transition
 float ScorePredicate(ast_ptr pred, const pair<string, string>& transition,
-    const vector<Example>& examples, float* pos, float* neg) {
+                     const vector<Example>& examples, float* pos, float* neg) {
   // Checking Initial accuracy
   const SymEntry out(transition.second);
   const SymEntry in(transition.first);
@@ -155,8 +156,7 @@ Model SolveSMTLIBProblem(const string& problem) {
 CumulativeFunctionTimer make_smtlib("MakeSMTLIBProblem");
 string MakeSMTLIBProblem(const unordered_set<Example>& yes,
                          const unordered_set<Example>& no,
-                         const ast_ptr program,
-                         const bool srtr) {
+                         const ast_ptr program, const bool srtr) {
   CumulativeFunctionTimer::Invocation invoke(&make_smtlib);
 
   // Create empty sets to hold data needed for program generation. The params
@@ -236,14 +236,14 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   }
 
   if (srtr) {
-  for (const string& param : params) {
-    // minimize the absolute value of these constants. Closer to 0 is better
-    // in the SRTR case, and ignoreable the rest of the time (because of
-    // lexicographic optimization)
-    const string absolute =
-      "(ite (> 0 " + param + ") (- 0 " + param + ") " + param + ")";
-    problem += "(minimize " + absolute + ")\n" ;
-  }
+    for (const string& param : params) {
+      // minimize the absolute value of these constants. Closer to 0 is better
+      // in the SRTR case, and ignoreable the rest of the time (because of
+      // lexicographic optimization)
+      const string absolute =
+          "(ite (> 0 " + param + ") (- 0 " + param + ") " + param + ")";
+      problem += "(minimize " + absolute + ")\n";
+    }
   }
 
   // Now that the problem string has been completely generated, return it.
@@ -257,7 +257,7 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
 // parameter holes that satisfies a subset of examples. Returns the
 // percentage of examples satisfied.
 double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
-    const unordered_set<Example>& neg, const bool srtr) {
+                   const unordered_set<Example>& neg, const bool srtr) {
   const string problem = MakeSMTLIBProblem(pos, neg, sketch, srtr);
   try {
     const Model solution = SolveSMTLIBProblem(problem);
@@ -273,14 +273,14 @@ double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
 }
 
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
-    const vector<ast_ptr>& ops) {
+                         const vector<ast_ptr>& ops) {
   Model m;
 
   // Get a list of the names of all the feature holes in the conditional,
   // then store them in a vector because being able to access them in a
   // consistent order and by index is important for something we do later.
   const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
-    MapFeatureHoles(sketch);
+      MapFeatureHoles(sketch);
   vector<string> feature_holes;
   for (const auto& p : feature_hole_map) {
     feature_holes.push_back(p.first);
@@ -292,7 +292,7 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
     // Get the name of a feature hole to fill and a possible value for it.
     const string& feature_hole = feature_holes[i];
     const pair<Type, Dimension> feature_hole_info =
-      feature_hole_map.at(feature_hole);
+        feature_hole_map.at(feature_hole);
     const Type feature_hole_type = feature_hole_info.first;
     const Dimension feature_hole_dims = feature_hole_info.second;
     const size_t index = indicies[i];
@@ -323,10 +323,9 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
 }
 
 CumulativeFunctionTimer pred_l2("PredicateL2");
-ast_ptr PredicateL2(
-    const vector<Example>& examples, const vector<ast_ptr>& ops,
-    ast_ptr sketch, const pair<string,string>& transition,
-    const double min_accuracy, float* solved) {
+ast_ptr PredicateL2(const vector<Example>& examples, const vector<ast_ptr>& ops,
+                    ast_ptr sketch, const pair<string, string>& transition,
+                    const double min_accuracy, float* solved) {
   CumulativeFunctionTimer::Invocation invoke(&pred_l2);
 
   const SymEntry out(transition.second);
@@ -357,18 +356,18 @@ ast_ptr PredicateL2(
   // Start iterating through possible models. index_iterator is explained
   // seperately.
   ast_ptr solution_cond = sketch;
-  float current_best =  0.0;
+  float current_best = 0.0;
   if (feature_hole_count > 0) {
     index_iterator c(ops.size(), feature_hole_count);
     solution_cond = nullptr;
     bool keep_searching = true;
     int count = 0.0;
-    #pragma omp parallel
+#pragma omp parallel
     while (keep_searching) {
       // Use the indices given to us by the iterator to select ops for filling
       // our feature holes and create a model.
       vector<size_t> op_indicies;
-      #pragma omp critical
+#pragma omp critical
       {
         if (c.has_next()) {
           op_indicies = c.next();
@@ -382,7 +381,7 @@ ast_ptr PredicateL2(
       ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
       if (filled != nullptr) {
         const double sat_ratio = PredicateL1(filled, yes, no, false);
-        #pragma omp critical
+#pragma omp critical
         {
           if (keep_searching && sat_ratio >= min_accuracy) {
             keep_searching = false;
@@ -401,7 +400,7 @@ ast_ptr PredicateL2(
     // condition.
     ast_ptr cond_copy = DeepCopyAST(sketch);
     const double sat_ratio = PredicateL1(cond_copy, yes, no, false);
-    #pragma omp critical
+#pragma omp critical
     {
       if (sat_ratio >= current_best) {
         solution_cond = cond_copy;
@@ -417,19 +416,15 @@ ast_ptr PredicateL2(
   return solution_cond;
 }
 
-ast_ptr ldipsL2(ast_ptr candidate,
-    const vector<Example>& examples,
-    const vector<ast_ptr>& ops,
-    const pair<string, string>& transition,
-    const float min_accuracy,
-    ast_ptr best_program,
-    float* best_score) {
-
+ast_ptr ldipsL2(ast_ptr candidate, const vector<Example>& examples,
+                const vector<ast_ptr>& ops,
+                const pair<string, string>& transition,
+                const float min_accuracy, ast_ptr best_program,
+                float* best_score) {
   // Find best performing completion of current sketch
   float solved = 0.0;
   ast_ptr solution =
-    PredicateL2(examples,
-        ops, candidate, transition, min_accuracy, &solved);
+      PredicateL2(examples, ops, candidate, transition, min_accuracy, &solved);
 
   // Keep if beats best performing solution.
   if (solved > *best_score) {
@@ -442,12 +437,9 @@ ast_ptr ldipsL2(ast_ptr candidate,
 
 // TODO(currently writes to file, may want a call that doesn't do this).
 void ldipsL3(const vector<Example>& demos,
-      const vector<pair<string, string>>& transitions,
-      const vector<ast_ptr> lib,
-      const int sketch_depth,
-      const float min_accuracy,
-      const string& output_path) {
-
+             const vector<pair<string, string>>& transitions,
+             const vector<ast_ptr> lib, const int sketch_depth,
+             const float min_accuracy, const string& output_path) {
   vector<Example> examples = demos;
   // Enumerate possible sketches
   const auto sketches = EnumerateSketches(sketch_depth);
@@ -457,22 +449,21 @@ void ldipsL3(const vector<Example>& demos,
     // Skipping already synthesized conditions, allows for very basic
     // checkpointing.
     const string output_name =
-      output_path + transition.first + "_" + transition.second + ".json";
+        output_path + transition.first + "_" + transition.second + ".json";
     if (ExistsFile(output_name)) {
       continue;
     }
     // if (transition.first != "GoAlone" || transition.second != "Pass") {
-      // continue;
+    // continue;
     // }
     cout << "----- " << transition.first << "->";
     cout << transition.second << " -----" << endl;
     float current_best = 0.0;
     ast_ptr current_solution = nullptr;
     for (const auto& sketch : sketches) {
-
       // Attempt L2 Synthesis with current sketch.
       current_solution = ldipsL2(sketch, examples, lib, transition,
-          min_accuracy, current_solution, &current_best);
+                                 min_accuracy, current_solution, &current_best);
       if (current_best >= min_accuracy) break;
       if (FLAGS_debug) {
         cout << "Score: " << current_best << endl;
@@ -496,14 +487,10 @@ void ldipsL3(const vector<Example>& demos,
   }
 }
 
-void DIPR(const vector<Example>& demos,
-      const vector<ast_ptr>& programs,
-      const vector<pair<string, string>>& transitions,
-      const vector<ast_ptr> lib,
-      const int sketch_depth,
-      const float min_accuracy,
-      const string& output_path) {
-
+void DIPR(const vector<Example>& demos, const vector<ast_ptr>& programs,
+          const vector<pair<string, string>>& transitions,
+          const vector<ast_ptr> lib, const int sketch_depth,
+          const float min_accuracy, const string& output_path) {
   vector<Example> examples = demos;
   // Enumerate possible sketches
   const auto sketches = EnumerateSketches(sketch_depth);
@@ -522,7 +509,7 @@ void DIPR(const vector<Example>& demos,
     float pos = 0;
     float neg = 0;
     float best_score =
-      ScorePredicate(best_program, transition, examples, &pos, &neg);
+        ScorePredicate(best_program, transition, examples, &pos, &neg);
 
     cout << "Initial Score: " << best_score << endl;
     if (best_score >= min_accuracy) {
@@ -530,7 +517,7 @@ void DIPR(const vector<Example>& demos,
       cout << endl;
       ofstream output_file;
       const string output_name =
-        output_path + transition.first + "_" + transition.second + ".json";
+          output_path + transition.first + "_" + transition.second + ".json";
       output_file.open(output_name);
       const json output = best_program->ToJson();
       output_file << std::setw(4) << output << std::endl;
@@ -548,8 +535,8 @@ void DIPR(const vector<Example>& demos,
       ast_ptr candidate = ExtendPred(programs[i], sketch, sketch, pos, neg);
 
       // Attempt L2 Synthesis with the extended sketch.
-      best_program = ldipsL2(candidate, examples, lib, transition,
-          min_accuracy, best_program, &best_score);
+      best_program = ldipsL2(candidate, examples, lib, transition, min_accuracy,
+                             best_program, &best_score);
       Z3_reset_memory();
 
       if (best_score >= min_accuracy) break;
@@ -559,7 +546,7 @@ void DIPR(const vector<Example>& demos,
     cout << "Final Score: " << best_score << endl;
     ofstream output_file;
     const string output_name =
-      output_path + transition.first + "_" + transition.second + ".json";
+        output_path + transition.first + "_" + transition.second + ".json";
     output_file.open(output_name);
     const json output = best_program->ToJson();
     output_file << std::setw(4) << output << std::endl;
@@ -571,10 +558,9 @@ void DIPR(const vector<Example>& demos,
   }
 }
 
-void SRTR(const vector<Example>& demos,
-      const vector<ast_ptr>& programs,
-      const vector<pair<string, string>>& transitions,
-      const string& output_path) {
+void SRTR(const vector<Example>& demos, const vector<ast_ptr>& programs,
+          const vector<pair<string, string>>& transitions,
+          const string& output_path) {
   // For each branch in the existing sketch
   for (size_t i = 0; i < programs.size(); ++i) {
     ast_ptr sketch = programs[i];
@@ -610,7 +596,7 @@ void SRTR(const vector<Example>& demos,
       // Write the solution out to a file.
       ofstream output_file;
       const string output_name =
-        output_path + transition.first + "_" + transition.second + ".json";
+          output_path + transition.first + "_" + transition.second + ".json";
       output_file.open(output_name);
       const json output = sketch->ToJson();
       output_file << std::setw(4) << output << std::endl;

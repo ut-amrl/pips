@@ -7,23 +7,23 @@
 #include <unordered_set>
 
 #include "ast/ast.hpp"
-#include "visitors/interp_visitor.hpp"
-#include "visitors/tosmtlib_visitor.hpp"
 #include "ast/library_functions.hpp"
 #include "deepcopy_visitor.hpp"
+#include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
+#include "visitors/tosmtlib_visitor.hpp"
 
 using AST::Dimension;
 using std::cout;
 using std::endl;
 using std::make_pair;
 using std::make_shared;
+using std::ostream;
 using std::pair;
 using std::string;
 using std::to_string;
 using std::unordered_map;
 using std::unordered_set;
-using std::ostream;
 
 namespace AST {
 
@@ -34,13 +34,13 @@ unordered_map<string, pair<Type, Dimension>> MapFeatureHoles(
   return mapper.GetFeatureHoles();
 }
 
-ast_ptr Srtrize(ast_ptr &ast) {
+ast_ptr Srtrize(ast_ptr& ast) {
   MapHoles mapper;
   mapper.srtrize_ = true;
   return ast->Accept(&mapper);
 }
 
-bool IsRelative(ast_ptr &ast) {
+bool IsRelative(ast_ptr& ast) {
   MapHoles mapper;
   ast->Accept(&mapper);
   return mapper.IsRelative();
@@ -81,9 +81,8 @@ ast_ptr FillHoles(const ast_ptr& ast, const Model& model) {
   return copy;
 }
 
-MapHoles::MapHoles(): reset_params_(false),
-  srtrize_(false), is_relative_(false) {
-}
+MapHoles::MapHoles()
+    : reset_params_(false), srtrize_(false), is_relative_(false) {}
 
 string PrintAst(ast_ptr ast) {
   Print printer;
@@ -127,7 +126,8 @@ ast_ptr MapHoles::Visit(Param* node) {
   }
   if (srtrize_ && node->current_value_ != nullptr) {
     Param srtr_param(node->name_ + "A", node->dims_, node->type_);
-    BinOp mod(make_shared<Param>(*node), make_shared<Param>(srtr_param), "Plus");
+    BinOp mod(make_shared<Param>(*node), make_shared<Param>(srtr_param),
+              "Plus");
     return make_shared<BinOp>(mod);
   }
   parameters_.insert(hole_name);
@@ -157,9 +157,7 @@ unordered_set<string> MapHoles::GetParameterHoles() const {
   return parameters_;
 }
 
-bool MapHoles::IsRelative() const {
-  return (depth_ > 1 || is_relative_);
-}
+bool MapHoles::IsRelative() const { return (depth_ > 1 || is_relative_); }
 
 void MapHoles::Reset() {
   features_.clear();

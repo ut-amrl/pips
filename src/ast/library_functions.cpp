@@ -1,16 +1,17 @@
 #include "library_functions.hpp"
 
 #include <Eigen/src/Core/Matrix.h>
+#include <math.h>
+
 #include <cmath>
 #include <eigen3/Eigen/Core>
-#include "eigen3/Eigen/Geometry"
 #include <iostream>
-#include <math.h>
 #include <vector>
+
 #include "amrl_shared_lib/math/geometry.h"
 #include "amrl_shared_lib/math/math_util.h"
-
 #include "ast.hpp"
+#include "eigen3/Eigen/Geometry"
 
 using AST::ast_ptr;
 using AST::Bool;
@@ -22,6 +23,8 @@ using AST::Vec;
 using AST::vec_ptr;
 using Eigen::Vector2f;
 using Eigen::Vector3i;
+using geometry::Angle;
+using math_util::AngleDist;
 using std::abs;
 using std::array;
 using std::cos;
@@ -30,13 +33,11 @@ using std::dynamic_pointer_cast;
 using std::endl;
 using std::invalid_argument;
 using std::make_shared;
+using std::max;
+using std::min;
 using std::pow;
 using std::sin;
-using std::min;
-using std::max;
 using std::vector;
-using geometry::Angle;
-using math_util::AngleDist;
 
 #define ASSERT_DIM(expression, dimensionality)                  \
   {                                                             \
@@ -377,9 +378,8 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
   return make_shared<Bool>(result);
 }
 
-ast_ptr StraightFreePathLength(ast_ptr v,
-    const vector<Vector2f> obstacles) {
-  //TODO(jaholtz) need to set these to sane defaults (copy from sim)
+ast_ptr StraightFreePathLength(ast_ptr v, const vector<Vector2f> obstacles) {
+  // TODO(jaholtz) need to set these to sane defaults (copy from sim)
   const float kRobotLength = 0.5;
   const float kRearAxleOffset = 0.0;
   const float kObstacleMargin = 0.5;
@@ -398,7 +398,7 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   const float angle = Angle(end);
   const Eigen::Rotation2Df rot(-angle);
 
-  for (const Vector2f& obst :obstacles) {
+  for (const Vector2f& obst : obstacles) {
     Vector2f pose(obst.x(), obst.y());
     // Assuming robot frame, no transform.
     const Vector2f p = rot * pose;

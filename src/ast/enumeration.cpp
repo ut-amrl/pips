@@ -2,6 +2,7 @@
 
 #include <gflags/gflags.h>
 #include <z3++.h>
+#include <z3_api.h>
 
 #include <eigen3/Eigen/Core>
 #include <iostream>
@@ -13,7 +14,6 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <z3_api.h>
 
 #include "../submodules/amrl_shared_lib/util/terminal_colors.h"
 #include "../submodules/amrl_shared_lib/util/timer.h"
@@ -126,14 +126,14 @@ vector<ast_ptr> EnumerateSketchesHelper(int depth) {
 
   // TODO(jaholtz) make sure we can fill in any dimension of feature here.
   const string depth_string = std::to_string(depth);
-  Param p("pX" + depth_string, {0,0,0}, NUM);
-  Feature f("fX" + depth_string, {0,0,0}, NUM);
-  Param p1("pY" + depth_string, {0,0,0}, NUM);
-  Feature f1("fY" + depth_string, {0,0,0}, NUM);
-  std::shared_ptr<BinOp> great = make_shared<BinOp>(make_shared<Feature>(f),
-                                 make_shared<Param>(p), "Gt");
-  std::shared_ptr<BinOp> less = make_shared<BinOp>(make_shared<Feature>(f),
-                                make_shared<Param>(p), "Lt");
+  Param p("pX" + depth_string, {0, 0, 0}, NUM);
+  Feature f("fX" + depth_string, {0, 0, 0}, NUM);
+  Param p1("pY" + depth_string, {0, 0, 0}, NUM);
+  Feature f1("fY" + depth_string, {0, 0, 0}, NUM);
+  std::shared_ptr<BinOp> great =
+      make_shared<BinOp>(make_shared<Feature>(f), make_shared<Param>(p), "Gt");
+  std::shared_ptr<BinOp> less =
+      make_shared<BinOp>(make_shared<Feature>(f), make_shared<Param>(p), "Lt");
 
   // Depth > 0
   vector<ast_ptr> rec_sketches = EnumerateSketchesHelper(depth - 1);
@@ -175,7 +175,7 @@ vector<ast_ptr> EnumerateSketches(int depth) {
 // Extends a predicate to match new examples, based on
 // the performance of the existing examples, and the sketches.
 ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
-    const float& pos, const float& neg) {
+                   const float& pos, const float& neg) {
   // If we have both positive and negative examples
   // b'' && b || b'' && b'
   if (pos > 0 && neg > 0) {
@@ -327,8 +327,7 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
 CumulativeFunctionTimer check_accuracy("CheckModelAccuracy");
 double CheckModelAccuracy(const ast_ptr& cond,
                           const unordered_set<Example>& yes,
-                          const unordered_set<Example>& no,
-                          float* pos,
+                          const unordered_set<Example>& no, float* pos,
                           float* neg) {
   CumulativeFunctionTimer::Invocation invoke(&check_accuracy);
   // Create a variable for keeping track of the number of examples where we get
@@ -356,9 +355,11 @@ double CheckModelAccuracy(const ast_ptr& cond,
     } else {
       // cout << "StartState: " << example.start_.GetString() << endl;
       // cout << "OutputState: " << example.result_.GetString() << endl;
-      // cout << "Target Norm: " << example.symbol_table_.at("target").GetVector().x() << endl;
-      // cout << "DoorState: " << example.symbol_table_.at("DoorState") << endl;
-      // cout << "DoorPose: " << example.symbol_table_.at("DoorPose").GetVector().norm() << endl;
+      // cout << "Target Norm: " <<
+      // example.symbol_table_.at("target").GetVector().x() << endl; cout <<
+      // "DoorState: " << example.symbol_table_.at("DoorState") << endl; cout <<
+      // "DoorPose: " << example.symbol_table_.at("DoorPose").GetVector().norm()
+      // << endl;
       *neg += 1;
     }
   }
@@ -399,8 +400,8 @@ double CheckModelAccuracy(const ast_ptr& cond,
 }
 
 void SplitExamples(const vector<Example>& examples,
-    pair<string, string> transition,
-    unordered_set<Example>* yes, unordered_set<Example>* no) {
+                   pair<string, string> transition, unordered_set<Example>* yes,
+                   unordered_set<Example>* no) {
   // Split up all the examples into a "yes" set or a "no" set based on
   // whether the result for the example matches the current example's
   // behavior.
@@ -416,14 +417,14 @@ void SplitExamples(const vector<Example>& examples,
 }
 
 vector<Example> FilterExamples(const vector<Example>& examples,
-    pair<string, string> transition) {
+                               pair<string, string> transition) {
   unordered_set<Example> yes;
   unordered_set<Example> no;
   SplitExamples(examples, transition, &yes, &no);
   vector<Example> copy = examples;
   for (const Example& example : yes) {
     vector<Example>::iterator pos =
-      std::find(copy.begin(), copy.end(), example);
+        std::find(copy.begin(), copy.end(), example);
     if (pos != copy.end()) {
       copy.erase(pos);
     }
@@ -440,6 +441,5 @@ vector<ast_ptr> RelativesOnly(const vector<ast_ptr>& ops) {
   }
   return output;
 }
-
 
 }  // namespace AST

@@ -95,10 +95,10 @@ bool SymEntry::operator==(const SymEntry& other) const {
       return bool_value_ == other.bool_value_;
     case NUM:
       return float_value_ == other.float_value_;
-    case VEC:
-      return vec_value_ == other.vec_value_;
     case STATE:
       return string_value_ == other.string_value_;
+    case VEC:
+      return vec_value_ == other.vec_value_;
     default:
       throw invalid_argument("Invalid SymEntry");
   }
@@ -111,6 +111,9 @@ ostream& operator<<(ostream& stream, const SymEntry& symentry) {
       break;
     case NUM:
       stream << symentry.GetFloat();
+      break;
+    case STATE:
+      stream << symentry.GetString();
       break;
     case VEC:
       stream << symentry.GetVector();
@@ -137,13 +140,11 @@ std::ostream& operator<<(std::ostream& stream, const Example& example) {
 }
 
 // Constructors
-AST::AST(const Dimension& dims, const Type& type) :
-  dims_(dims), type_(type), symbolic_(false) {
-}
+AST::AST(const Dimension& dims, const Type& type)
+    : dims_(dims), type_(type), symbolic_(false) {}
 
-AST::AST(const Dimension& dims, const Type& type, const bool& symbolic) :
-  dims_(dims), type_(type), symbolic_(symbolic) {
-}
+AST::AST(const Dimension& dims, const Type& type, const bool& symbolic)
+    : dims_(dims), type_(type), symbolic_(symbolic) {}
 
 AST::~AST(){};
 
@@ -395,7 +396,6 @@ ast_ptr Num::FromJson(const json& input) {
   return make_shared<Num>(output);
 }
 // ToJson Calls
-
 
 bool Var::operator==(const Var& other) const {
   return type_ == other.type_ && dims_ == other.dims_ && name_ == other.name_;
