@@ -24,6 +24,8 @@ jobs:
     steps:
 
       - uses: actions/checkout@v2
+        with:
+          submodules: recursive
 
       - name: Install Z3
         uses: pavpanchekha/setup-z3@1.2.2
