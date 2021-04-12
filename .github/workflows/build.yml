@@ -35,9 +35,6 @@ jobs:
       - name: Install GTest
         uses: MarkusJx/googletest-installer@v1.1
 
-      - name: Install other dependencies
-        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev
-
       - name: Install ROS
         uses: ros-tooling/setup-ros@0.1.4
         with:
