@@ -41,7 +41,7 @@ jobs:
           required-ros-distributions: noetic
 
       - name: Install other dependencies
-        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev ros-noetic-dev
+        run: sudo apt-get install -yq libeigen3-dev libgoogle-glog-dev ros-noetic-tf
 
       - name: Build
         run: make
