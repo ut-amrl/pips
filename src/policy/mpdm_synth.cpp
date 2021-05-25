@@ -276,7 +276,7 @@ void Halt() {
 void GoAlone() {
   target_locked_ = false;
   NavigationConfigMsg conf_msg;
-  conf_msg.max_vel = 2.0;
+  conf_msg.max_vel = 1.5;
   conf_msg.ang_accel = -1;
   conf_msg.max_accel = -1;
   conf_msg.carrot_dist = -1;
@@ -837,7 +837,7 @@ void Run() {
     SaveDemo();
     last_state_ = state_;
     state_ = Transition();
-    state_pub_.publish(state_);
+    // state_pub_.publish(state_);
     if (state_ == "GoAlone") {
       GoAlone();
     } else if (state_ == "Follow") {

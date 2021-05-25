@@ -35,7 +35,6 @@
 #include "amrl_msgs/NavigationConfigMsg.h"
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
 #include "cobot_msgs/CobotLocalizationMsg.h"
 #include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "eigen3/Eigen/Dense"
@@ -602,7 +601,7 @@ void Run() {
     last_state_ = state_;
     GetRelevantHumans();
     state_ = Transition();
-    state_pub_.publish(state_);
+    // state_pub_.publish(state_);
     SaveDemo();
     cout << "State: " << state_ << endl;
     if (state_ == "GoAlone") {

@@ -384,7 +384,7 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   float kRearAxleOffset = 0.0;
   float kObstacleMargin = 0.5;
   float kRobotWidth = 1.0;
-  const bool cobot = true;
+  const bool cobot = false;
   if (cobot) {
     kRobotLength = 0.4;
     kRearAxleOffset = 0.0;

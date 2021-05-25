@@ -8,11 +8,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules/")
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
 # Set some useful compile flags
 set(CMAKE_CXX_FLAGS "-march=native -Wall -ggdb -O2 -fPIC -fopenmp")
 if(${CXX} MATCHES "g++")
-  set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
+	set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -rdynamic")
 endif()
 
 # TinyDir stuff
@@ -27,15 +26,11 @@ else()
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 endif()
 
-# ros setup stuff
-INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-ROSBUILD_INIT()
-SET(ROS_BUILD_STATIC_LIBS true)
-SET(ROS_BUILD_SHARED_LIBS false)
+OPTION(BUILD_WITH_ROS "Builds the ros-based infra for interpreting social_nav
+behaviors." FALSE)
 
 # Load required third-party libraries from system
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-# find_package(GFlags REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Z3 REQUIRED)
 
@@ -43,10 +38,6 @@ find_package(Z3 REQUIRED)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-# Libraries
-# SET(libs roslib roscpp rosbag boost_system pthread)
-SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system lua5.1 gflags
-    pthread)
 
 include_directories(src/)
 # Load amrl_shared_lib from submodule
@@ -61,37 +52,40 @@ add_subdirectory(submodules/gflags)
 set(JSON_BuildTests OFF CACHE INTERNAL "")
 add_subdirectory(submodules/json)
 
+# Libraries
+SET(libs glog amrl_shared_lib boost_system lua5.1 gflags
+	pthread)
+
 # Build the core of C++ PIPS as a static library, which the executables can
 # link to. This enables shorter compile times since these files only need to be
 # built once.
 set(CXX_PIPS_SRCS
-    src/utils/nd_bool_array.cpp
-    src/visitors/deepcopy_visitor.cpp
-    src/visitors/deepcopy_visitor.hpp
-    src/visitors/fillhole_visitor.cpp
-    src/visitors/fillhole_visitor.hpp
-    src/visitors/interp_visitor.cpp
-    src/visitors/interp_visitor.hpp
-    src/visitors/print_visitor.cpp
-    src/visitors/print_visitor.hpp
-    src/visitors/tosmtlib_visitor.cpp
-    src/visitors/tosmtlib_visitor.hpp
-    src/ast/ast.cpp
-    src/ast/ast.hpp
-    src/ast/enumeration.cpp
-    src/ast/enumeration.hpp
-    src/ast/library_functions.cpp
-    src/ast/library_functions.hpp
-    src/ast/parsing.cpp
-    src/ast/parsing.hpp
-    src/ast/synthesis.cpp
-    src/ast/synthesis.hpp)
+	src/utils/nd_bool_array.cpp
+	src/visitors/deepcopy_visitor.cpp
+	src/visitors/deepcopy_visitor.hpp
+	src/visitors/fillhole_visitor.cpp
+	src/visitors/fillhole_visitor.hpp
+	src/visitors/interp_visitor.cpp
+	src/visitors/interp_visitor.hpp
+	src/visitors/print_visitor.cpp
+	src/visitors/print_visitor.hpp
+	src/visitors/tosmtlib_visitor.cpp
+	src/visitors/tosmtlib_visitor.hpp
+	src/ast/ast.cpp
+	src/ast/ast.hpp
+	src/ast/enumeration.cpp
+	src/ast/enumeration.hpp
+	src/ast/library_functions.cpp
+	src/ast/library_functions.hpp
+	src/ast/parsing.cpp
+	src/ast/parsing.hpp
+	src/ast/synthesis.cpp
+	src/ast/synthesis.hpp)
 add_library(c++-pips-core ${CXX_PIPS_SRCS})
-# target_link_libraries(c++-pips-core amrl_shared_lib)
+
 target_link_libraries(c++-pips-core Eigen3::Eigen)
 target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
-# target_link_libraries(c++-pips-core gflags::gflags)
 target_link_libraries(c++-pips-core ${libs})
 
 # Add an executable for ldips-l3
@@ -111,39 +105,24 @@ add_executable(print src/pretty_print.cpp)
 target_link_libraries(print c++-pips-core)
 
 # Behaviors (Running Ros)
-rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
-target_link_libraries(mpdm_ref c++-pips-core)
-target_link_libraries(mpdm_ref amrl_shared_lib)
+IF(BUILD_WITH_ROS)
+	# ros setup stuff
+	SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system lua5.1 gflags
+		pthread)
+	INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+	ROSBUILD_INIT()
+	SET(ROS_BUILD_STATIC_LIBS true)
+	SET(ROS_BUILD_SHARED_LIBS false)
+	rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
+	target_link_libraries(mpdm_ref c++-pips-core)
+	target_link_libraries(mpdm_ref ${libs})
 
-rosbuild_add_executable(mpdm_synth src/policy/mpdm_synth.cpp)
-target_link_libraries(mpdm_synth c++-pips-core)
-target_link_libraries(mpdm_synth amrl_shared_lib)
+	rosbuild_add_executable(mpdm_synth src/policy/mpdm_synth.cpp)
+	target_link_libraries(mpdm_synth c++-pips-core)
 
-rosbuild_add_executable(mpdm_demo src/policy/mpdm_demo.cpp)
-target_link_libraries(mpdm_demo c++-pips-core)
-target_link_libraries(mpdm_demo amrl_shared_lib)
+	rosbuild_add_executable(mpdm_demo src/policy/mpdm_demo.cpp)
+	target_link_libraries(mpdm_demo c++-pips-core)
 
-rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
-target_link_libraries(demo_watcher c++-pips-core)
-target_link_libraries(demo_watcher amrl_shared_lib)
-
-ROSBUILD_ADD_EXECUTABLE(april_listener
-		src/april_listener.cpp)
-ADD_DEPENDENCIES(april_listener rosbuild_precompile)
-TARGET_LINK_LIBRARIES(april_listener roslib roscpp pthread boost_system
-		${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-		${BUILD_SPECIFIC_LIBRARIES})
-
-# ROSBUILD_ADD_EXECUTABLE(person_listener
-    # src/person_listener.cpp)
-# ADD_DEPENDENCIES(person_listener rosbuild_precompile)
-# TARGET_LINK_LIBRARIES(person_listener roslib roscpp pthread boost_system
-    # ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-    # ${BUILD_SPECIFIC_LIBRARIES})
-
-# ROSBUILD_ADD_EXECUTABLE(laser_segmentation
-    # src/laser_segmentation_main.cc)
-# ADD_DEPENDENCIES(laser_segmentation rosbuild_precompile)
-# TARGET_LINK_LIBRARIES(laser_segmentation roslib roscpp pthread boost_system
-    # ${LUA_LIBRARIES} rt glog rosbag amrl_shared_lib gflags
-    # ${BUILD_SPECIFIC_LIBRARIES})
+	rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
+	target_link_libraries(demo_watcher c++-pips-core)
+ENDIF()

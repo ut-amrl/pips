@@ -462,9 +462,6 @@ void ldipsL3(const vector<Example>& demos,
     if (ExistsFile(output_name)) {
       continue;
     }
-    // if (transition.first != "GoAlone" || transition.second != "Pass") {
-      // continue;
-    // }
     cout << "----- " << transition.first << "->";
     cout << transition.second << " -----" << endl;
     float current_best = 0.0;
@@ -510,6 +507,8 @@ void DIPR(const vector<Example>& demos,
   const auto sketches = EnumerateSketches(sketch_depth);
 
   // For each input/output pair
+  int total_sat = 0;
+  int total_ex = examples.size();
   for (size_t i = 0; i < programs.size(); ++i) {
     // TODO(jaholtz) make sure programs and transitions are in the same
     // order.
@@ -526,6 +525,9 @@ void DIPR(const vector<Example>& demos,
       ScorePredicate(best_program, transition, examples, &pos, &neg);
 
     cout << "Initial Score: " << best_score << endl;
+    total_sat += best_score;
+    // Filter out Examples used by this transition
+    examples = FilterExamples(examples, transition);
     if (best_score >= min_accuracy || std::isnan(best_score)) {
       cout << "Sufficient Performance, Skipping" << endl;
       cout << endl;
@@ -570,6 +572,8 @@ void DIPR(const vector<Example>& demos,
     examples = FilterExamples(examples, transition);
     cout << endl;
   }
+  cout << "Sat: " << total_sat << "Total: " << total_ex << endl;
+  cout << "Score: " << (double)total_sat / (double)total_ex << endl;
 }
 
 void SRTR(const vector<Example>& demos,
