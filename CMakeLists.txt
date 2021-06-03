@@ -38,7 +38,6 @@ find_package(Z3 REQUIRED)
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-
 include_directories(src/)
 # Load amrl_shared_lib from submodule
 add_subdirectory(submodules/amrl_shared_lib/)
@@ -113,6 +112,9 @@ IF(BUILD_WITH_ROS)
 	ROSBUILD_INIT()
 	SET(ROS_BUILD_STATIC_LIBS true)
 	SET(ROS_BUILD_SHARED_LIBS false)
+	# Set final locations for binaries
+	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
+	set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 	rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
 	target_link_libraries(mpdm_ref c++-pips-core)
 	target_link_libraries(mpdm_ref ${libs})
@@ -125,4 +127,7 @@ IF(BUILD_WITH_ROS)
 
 	rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
 	target_link_libraries(demo_watcher c++-pips-core)
+
+	rosbuild_add_executable(social_interp src/policy/social_interp.cpp)
+	target_link_libraries(social_interp c++-pips-core)
 ENDIF()
