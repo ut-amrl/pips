@@ -97,7 +97,7 @@ bool run_ = true;
 // bool have_localization_ = false;
 bool target_locked_ = false;
 bool have_doors_ = false;
-bool local_humans_ = false;
+bool local_humans_ = true;
 // int target_  = 0;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -107,6 +107,7 @@ Vector2f local_target_(0, 0);
 Vector2f vel_(0, 0);
 Vector2f goal_pose_(3.98, 8.855);
 vector<HumanStateMsg> human_states_ = {};
+vector<Pose2Df> human_poses_;
 HumanStateMsg front_;
 HumanStateMsg front_left_;
 HumanStateMsg front_right_;
@@ -124,24 +125,6 @@ ros::Publisher door_pub_;
 ros::Publisher local_pub_;
 ros::Publisher state_pub_;
 
-// Path to the folder containing pieces of the tranisition function.
-// Transition Function ASTs
-ast_ptr ga_to_ga;
-ast_ptr ga_to_follow;
-ast_ptr ga_to_halt;
-ast_ptr ga_to_pass;
-ast_ptr follow_to_ga;
-ast_ptr follow_to_follow;
-ast_ptr follow_to_halt;
-ast_ptr follow_to_pass;
-ast_ptr halt_to_ga;
-ast_ptr halt_to_follow;
-ast_ptr halt_to_halt;
-ast_ptr halt_to_pass;
-ast_ptr pass_to_pass;
-ast_ptr pass_to_ga;
-ast_ptr pass_to_halt;
-ast_ptr pass_to_follow;
 
 Vector2f ToRobotFrameP(const Vector2f pose) {
     // Transform the pose to robot reference frame
@@ -214,6 +197,7 @@ json GetHumanJson() {
 
 json GetHumanJson(const SocialPipsSrv::Request& req) {
     vector<json> humans;
+    human_poses_ = req.human_poses;
     for (const amrl_msgs::Pose2Df& human : req.human_poses) {
         const Vector2f pose(human.x, human.y);
         json h_json;
@@ -315,114 +299,93 @@ void WriteDemos() {
   output_file.close();
 }
 
-string Transition(const Example& example) {
-  // Halts
-  if (state_ == "Halt" &&
-      InterpretBool(halt_to_ga, example)) {
-    cout << "Halt -> GA" << endl;
-    cout << halt_to_ga << endl;
-    return "GoAlone";
+// TODO(jaholtz) Is StraightFreePath Length sufficient, or do we need arcs?
+float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
+  //TODO(jaholtz) need to set these to sane defaults (copy from sim)
+  float kRobotLength = 1.0;
+  float kRearAxleOffset = 0.0;
+  float kObstacleMargin = 0.5;
+  float kRobotWidth = 0.8;
+
+  if (false) {
+    kRobotLength = 0.4;
+    kRearAxleOffset = 0.0;
+    kObstacleMargin = 0.5;
+    kRobotWidth = 0.4;
   }
-  if (state_ == "Halt" &&
-      InterpretBool(halt_to_follow, example)) {
-    cout << "Halt -> Follow" << endl;
-    cout << halt_to_follow << endl;
+
+  // How much the robot's body extends in front of its base link frame.
+  const float l = 0.5 * kRobotLength - kRearAxleOffset + kObstacleMargin;
+  // const float l = 0;
+  // The robot's half-width.
+  const float w = 0.5 * kRobotWidth + kObstacleMargin;
+
+  const Vector2f path = end;
+  const float angle = Angle(path);
+  const Eigen::Rotation2Df rot(-angle);
+  float free_path_length = path.norm();
+
+  for (const amrl_msgs::Pose2Df& human : human_poses_) {
+      const Vector2f pose(human.x, human.y);
+    // Transform pose to start reference frame;
+    Vector2f p = rot * (pose - start);
+    if (local_humans_) {
+      p = pose;
+    }
+    // If outside width, or behind robot, skip
+    //
+    if (fabs(p.y()) > w || p.x() <= 0.0f) continue;
+    // cout << "Start: " << start << endl;
+    // cout << "End: " << end << endl;
+    // cout << "Angle: " << angle << endl;
+    // cout << "w: " << w << endl;
+    // cout << "l: " << l << endl;
+    // cout << "py: " << p.y() << endl;
+    // cout << "px: " << p.x() << endl;
+
+    // Calculate distance and store if shorter.
+    free_path_length = min(free_path_length, p.x() - l);
+  }
+  if (free_path_length == path.norm()) {
+      free_path_length = 9999;
+  }
+  if (free_path_length < 0.0) {
+    free_path_length = 0;
+  }
+  // free_path_length = max(0.0f, free_path_length);
+  return free_path_length;
+}
+
+bool ShouldGoAlone() {
+  // Check if Path blocked by unmapped obstacle (humans for now)
+  if (StraightFreePathLength(pose_, local_target_) < 9999) {
+    return false;
+  }
+  return true;
+}
+
+bool ShouldFollow() {
+  // If the closest robot is moving in the right direction, follow it.
+  HumanStateMsg target = front_;
+  const Vector2f closest_vel(target.translational_velocity.x,
+      target.translational_velocity.y);
+  const Vector2f path = local_target_ - pose_;
+  const Vector2f target_pose(target.pose.x, target.pose.y);
+  const Vector2f distance = target_pose - pose_;
+  const float goal_angle = Angle(path);
+  const float closest_angle = Angle(closest_vel);
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.8 && distance.norm() > 1.9) {
+    return true;
+  }
+  return false;
+}
+
+string Transition() {
+  if (ShouldGoAlone()) {
+    return "GoAlone";
+  } else if (ShouldFollow()) {
     return "Follow";
   }
-  if (state_ == "Halt" &&
-      InterpretBool(halt_to_pass, example)) {
-    cout << "Halt -> Pass" << endl;
-    cout << halt_to_pass << endl;
-    return "Pass";
-  }
-  if (state_ == "Halt") {
-    return "Halt";
-  }
-  // if (state_ == "Halt" &&
-      // InterpretBool(halt_to_halt, example)) {
-    // cout << "Halt -> Halt" << endl;
-    // cout << halt_to_halt << endl;
-    // return "Halt";
-  // }
-  // Follows
-  if (state_ == "Follow" &&
-      InterpretBool(follow_to_ga, example)) {
-    cout << "Follow -> GA" << endl;
-    cout << follow_to_ga << endl;
-    return "GoAlone";
-  }
-  if (state_ == "Follow" &&
-      InterpretBool(follow_to_halt, example)) {
-    cout << "Follow -> Halt" << endl;
-    cout << follow_to_halt << endl;
-    return "Halt";
-  }
-  if (state_ == "Follow" &&
-      InterpretBool(follow_to_pass, example)) {
-    cout << "Follow -> Pass" << endl;
-    cout << follow_to_pass << endl;
-    return "Pass";
-  }
-  if (state_ == "Follow") {
-    return "Follow";
-  }
-  // if (state_ == "Follow" &&
-      // InterpretBool(follow_to_follow, example)) {
-    // cout << "Follow -> Follow" << endl;
-    // cout << follow_to_follow << endl;
-    // return "Follow";
-  // }
-  // GoAlones
-  cout << "GA -> Halt" << endl;
-  cout << ga_to_halt << endl;
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_halt, example)) {
-    return "Halt";
-  }
-  cout << "GA -> Follow" << endl;
-  cout << ga_to_follow << endl;
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_follow, example)) {
-    return "Follow";
-  }
-  if (state_ == "GoAlone" &&
-      InterpretBool(ga_to_pass, example)) {
-    cout << "GA -> Pass" << endl;
-    cout << ga_to_pass << endl;
-    return "Pass";
-  }
-  if (state_ == "GoAlone") {
-    return "GoAlone";
-  }
-  // if (state_ == "GoAlone" &&
-      // InterpretBool(ga_to_ga, example)) {
-    // cout << "GA -> GA" << endl;
-    // cout << ga_to_ga << endl;
-    // return "GoAlone";
-  // }
-  // Passes
-  cout << "Pass -> GA" << endl;
-  cout << pass_to_ga << endl;
-  if (state_ == "Pass" &&
-      InterpretBool(pass_to_ga, example)) {
-    return "GoAlone";
-  }
-  cout << "Pass -> Follow" << endl;
-  cout << pass_to_follow << endl;
-  if (state_ == "Pass" &&
-      InterpretBool(pass_to_follow, example)) {
-    return "Follow";
-  }
-  if (state_ == "Pass") {
-    return "Pass";
-  }
-  // if (state_ == "Pass" &&
-      // InterpretBool(pass_to_pass, example)) {
-    // cout << "Pass -> Pass" << endl;
-    // cout << pass_to_pass << endl;
-    // return "Pass";
-  // }
-  cout << "Nothing Matched" << endl;
   return "Halt";
 }
 
@@ -447,7 +410,6 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
 
   local_target_ = VecFromMsg(req.local_target);
   cout << "Robot Pose: " << pose_.x() << ", " << pose_.y() << endl;
-  cout << "Target: " << local_target_.x() << ", " << local_target_.y() << endl;
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
   // cout << "Local Target: " << ToRobotFrameP(local_target_).x() << "," << ToRobotFrameP(local_target_).y() << endl;
@@ -481,7 +443,7 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
 
   // All Humans in a vector
   demo["human_states"] = GetHumanJson(req);
-
+  demos.push_back(demo);
   return demo;
 }
 
@@ -503,9 +465,9 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   // Convert the req to the appropriate form of a demo
   const Example example = MakeDemo(req);
   // Transition based on the demo
-  state_ = Transition(example);
+  state_ = Transition();
   int state = 0;
-  cout << "state_: " << state_ << endl;
+  cout << "Action: " << state_ << endl;
   if (state_ == "Halt") {
     state = 1;
   } else if (state_ == "Follow") {
@@ -515,7 +477,6 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   }
 
   res.action = state;
-  // res.follow_target = follow_target if follow / pass
   return true;
 }
 
@@ -523,28 +484,13 @@ int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   signal(SIGINT, SignalHandler);
   // Initialize ROS.
-  ros::init(argc, argv, "social_interp", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "social_ref", ros::init_options::NoSigintHandler);
   ros::NodeHandle n;
-  ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
-  ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
-  ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");
-  ga_to_pass = LoadJson(FLAGS_ast_path + "GoAlone_Pass.json");
-  follow_to_ga = LoadJson(FLAGS_ast_path + "Follow_GoAlone.json");
-  follow_to_follow = LoadJson(FLAGS_ast_path + "Follow_Follow.json");
-  follow_to_halt = LoadJson(FLAGS_ast_path + "Follow_Halt.json");
-  follow_to_pass = LoadJson(FLAGS_ast_path + "Follow_Pass.json");
-  halt_to_ga = LoadJson(FLAGS_ast_path + "Halt_GoAlone.json");
-  halt_to_follow = LoadJson(FLAGS_ast_path + "Halt_Follow.json");
-  halt_to_halt = LoadJson(FLAGS_ast_path + "Halt_Halt.json");
-  halt_to_pass = LoadJson(FLAGS_ast_path + "Halt_Pass.json");
-  pass_to_ga = LoadJson(FLAGS_ast_path + "Pass_GoAlone.json");
-  pass_to_follow = LoadJson(FLAGS_ast_path + "Pass_Follow.json");
-  pass_to_pass = LoadJson(FLAGS_ast_path + "Pass_Pass.json");
-  pass_to_halt = LoadJson(FLAGS_ast_path + "Pass_Halt.json");
 
   ros::ServiceServer utmrsActionRequest =
     n.advertiseService("SocialPipsSrv", ActionRequestCb);
 
   ros::spin();
+  WriteDemos();
   return 0;
 }

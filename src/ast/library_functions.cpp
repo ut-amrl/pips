@@ -383,7 +383,7 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   float kRobotLength = 1.0;
   float kRearAxleOffset = 0.0;
   float kObstacleMargin = 0.5;
-  float kRobotWidth = 1.0;
+  float kRobotWidth = 0.86;
   const bool cobot = false;
   if (cobot) {
     kRobotLength = 0.4;
@@ -404,19 +404,17 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   float free_path_length = end.norm();
   const float angle = Angle(end);
   const Eigen::Rotation2Df rot(-angle);
-
   for (const Vector2f& obst :obstacles) {
     Vector2f pose(obst.x(), obst.y());
     // Assuming robot frame, no transform.
-    const Vector2f p = rot * pose;
-    // const Vector2f p = pose;
+    // const Vector2f p = rot * pose;
+    const Vector2f p = pose;
     // If outside width, or behind robot, skip
-    if (fabs(p.y()) > w || p.x() < 0.0f) continue;
+    if (fabs(p.y()) > w || p.x() <= 0.0f) continue;
     // Calculate distance and store if shorter.
+    const float distance = p.x() - l;
     free_path_length = min(free_path_length, p.x() - l);
   }
-  // cout << "Free Length: " << free_path_length << endl;
-  // cout << "End Norm: " << end.norm() << endl;
   if (fabs(free_path_length - end.norm()) < geometry::kEpsilon) {
     free_path_length = 9999;
   }

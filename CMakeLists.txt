@@ -130,4 +130,7 @@ IF(BUILD_WITH_ROS)
 
 	rosbuild_add_executable(social_interp src/policy/social_interp.cpp)
 	target_link_libraries(social_interp c++-pips-core)
+
+	rosbuild_add_executable(social_ref src/policy/social_ref.cpp)
+	target_link_libraries(social_ref c++-pips-core)
 ENDIF()
