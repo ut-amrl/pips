@@ -412,7 +412,6 @@ ast_ptr StraightFreePathLength(ast_ptr v,
     // If outside width, or behind robot, skip
     if (fabs(p.y()) > w || p.x() <= 0.0f) continue;
     // Calculate distance and store if shorter.
-    const float distance = p.x() - l;
     free_path_length = min(free_path_length, p.x() - l);
   }
   if (fabs(free_path_length - end.norm()) < geometry::kEpsilon) {

@@ -97,7 +97,6 @@ bool run_ = true;
 // bool have_localization_ = false;
 bool target_locked_ = false;
 bool have_doors_ = false;
-bool local_humans_ = true;
 // int target_  = 0;
 string state_ = "GoAlone";
 string last_state_ = "GoAlone";
@@ -262,10 +261,8 @@ void GetRelevantHumans(SocialPipsSrv::Request &req) {
     human.translational_velocity.z = 0;
     human.rotational_velocity = vel.theta;
     const Vector2f h_pose(pose.x, pose.y);
-    const Vector2f diff = h_pose - pose_;
-    Eigen::Rotation2Df rot(-theta_);
-    const Vector2f transformed = rot * diff;
-    const float angle = math_util::AngleMod(Angle(diff) - theta_);
+    const Vector2f transformed = h_pose;
+    const float angle = math_util::AngleMod(Angle(transformed) - theta_);
     if (transformed.x() > kRobotLength) {
       if (angle < kLowerLeft && angle > kUpperLeft) {
         front_left.push_back(human);
@@ -326,12 +323,9 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   float free_path_length = path.norm();
 
   for (const amrl_msgs::Pose2Df& human : human_poses_) {
-      const Vector2f pose(human.x, human.y);
+       const Vector2f pose(human.x, human.y);
     // Transform pose to start reference frame;
-    Vector2f p = rot * (pose - start);
-    if (local_humans_) {
-      p = pose;
-    }
+    const Vector2f p = pose;
     // If outside width, or behind robot, skip
     //
     if (fabs(p.y()) > w || p.x() <= 0.0f) continue;
@@ -366,15 +360,15 @@ bool ShouldGoAlone() {
 
 bool ShouldFollow() {
   // If the closest robot is moving in the right direction, follow it.
-  HumanStateMsg target = front_;
+  const HumanStateMsg target = front_;
   const Vector2f closest_vel(target.translational_velocity.x,
-      target.translational_velocity.y);
-  const Vector2f path = local_target_ - pose_;
+                             target.translational_velocity.y);
+  const Vector2f path = local_target_;
   const Vector2f target_pose(target.pose.x, target.pose.y);
-  const Vector2f distance = target_pose - pose_;
+  const Vector2f distance = target_pose;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.8 && distance.norm() > 1.9) {
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.5 && distance.norm() > 0.5) {
     return true;
   }
   return false;
@@ -409,7 +403,6 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
       ToRobotFrameP({req.door_pose.x, req.door_pose.y}), {1, 0, 0});
 
   local_target_ = VecFromMsg(req.local_target);
-  cout << "Robot Pose: " << pose_.x() << ", " << pose_.y() << endl;
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
   // cout << "Local Target: " << ToRobotFrameP(local_target_).x() << "," << ToRobotFrameP(local_target_).y() << endl;
