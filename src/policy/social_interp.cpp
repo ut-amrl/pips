@@ -1,5 +1,4 @@
-//========================================================================
-//  This software is free: you can redistribute it and/or modify
+//======================================================================== This software is free: you can redistribute it and/or modify
 //  it under the terms of the GNU Lesser General Public License Version 3,
 //  as published by the Free Software Foundation.
 //
@@ -113,6 +112,7 @@ HumanStateMsg front_right_;
 HumanStateMsg left_;
 HumanStateMsg right_;
 vector<json> demos = {};
+vector<std::pair<string, string>> trans_list_;
 
 // Publishers
 ros::Publisher halt_pub_;
@@ -218,12 +218,9 @@ json GetHumanJson(const SocialPipsSrv::Request& req) {
         const Vector2f pose(human.x, human.y);
         json h_json;
         h_json["pose"] = {pose.x(), pose.y()};
-        // if (pose.norm() > geometry::kEpsilon) {
-          // const Vector2f transformed = ToRobotFrameP(pose);
-          // h_json["pose"] = {transformed.x(), transformed.y()};
-          // cout << ", T*Pose: " << transformed.x() << ", " << transformed.y();
-        // }
-        // cout << endl;
+        if (pose.norm() < geometry::kEpsilon) {
+          continue;
+        }
         humans.push_back(h_json);
     }
     json output = humans;
@@ -316,6 +313,44 @@ void WriteDemos() {
 }
 
 string Transition(const Example& example) {
+  for (const std::pair<string, string>& trans : trans_list_) {
+    if (state_ == trans.first) {
+      // Find the appropriate predicate to match the list
+      AST::ast_ptr pred;
+      if (trans.first == "Halt" && trans.second == "GA") {
+        pred = halt_to_ga;
+      } else if (trans.first == "Halt" && trans.second == "Follow") {
+        pred = halt_to_follow;
+      } else if (trans.first == "Halt" && trans.second == "Follow") {
+        pred = halt_to_follow;
+      } else if (trans.first == "Halt" && trans.second == "Pass") {
+        pred = halt_to_pass;
+      } else if (trans.first == "Follow" && trans.second == "Halt") {
+        pred = follow_to_halt;
+      } else if (trans.first == "Follow" && trans.second == "GA") {
+        pred = follow_to_ga;
+      } else if (trans.first == "Follow" && trans.second == "Pass") {
+        pred = follow_to_pass;
+      } else if (trans.first == "GA" && trans.second == "Pass") {
+        pred = ga_to_pass;
+      } else if (trans.first == "GA" && trans.second == "Follow") {
+        pred = ga_to_follow;
+      } else if (trans.first == "GA" && trans.second == "Halt") {
+        pred = ga_to_halt;
+      } else if (trans.first == "Pass" && trans.second == "Halt") {
+        pred = pass_to_halt;
+      } else if (trans.first == "Pass" && trans.second == "GA") {
+        pred = pass_to_ga;
+      } else if (trans.first == "Pass" && trans.second == "Follow") {
+        pred = pass_to_follow;
+      }
+
+      if (InterpretBool(pred, example)) {
+        return trans.second;
+      }
+    }
+    return last_state_;
+  }
   // Halts
   if (state_ == "Halt" &&
       InterpretBool(halt_to_ga, example)) {
@@ -438,19 +473,17 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   } else if (req.robot_state == 3) {
     state = "Pass";
   }
-  demo["start"] = MakeEntry("start", state);
+  demo["start"] = MakeEntry("start", last_state_);
   demo["output"] = MakeEntry("output", state);
+  last_state_ = state;
 
   demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});
   demo["door_pose"] = MakeEntry("DoorPose",
-      ToRobotFrameP({req.door_pose.x, req.door_pose.y}), {1, 0, 0});
+      {req.door_pose.x, req.door_pose.y}, {1, 0, 0});
 
   local_target_ = VecFromMsg(req.local_target);
-  cout << "Robot Pose: " << pose_.x() << ", " << pose_.y() << endl;
-  cout << "Target: " << local_target_.x() << ", " << local_target_.y() << endl;
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
-  // cout << "Local Target: " << ToRobotFrameP(local_target_).x() << "," << ToRobotFrameP(local_target_).y() << endl;
 
   goal_pose_ = VecFromMsg(req.goal_pose);
   demo["goal"] = MakeEntry("goal",
@@ -483,6 +516,15 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   demo["human_states"] = GetHumanJson(req);
 
   return demo;
+}
+
+void LoadTransitionList(const string& path) {
+  std::ifstream infile("path");
+  string start, output;
+  while(infile >> start >> output) {
+    const std::pair<string, string> trans(start, output);
+    trans_list_.push_back(trans);
+  }
 }
 
 Example MakeDemo(const SocialPipsSrv::Request& req) {
@@ -525,6 +567,7 @@ int main(int argc, char** argv) {
   // Initialize ROS.
   ros::init(argc, argv, "social_interp", ros::init_options::NoSigintHandler);
   ros::NodeHandle n;
+  LoadTransitionList(FLAGS_ast_path + "transitions.txt");
   ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
   ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
   ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");

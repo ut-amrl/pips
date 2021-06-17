@@ -352,6 +352,7 @@ ast_ptr PredicateL2(
   SplitExamples(examples, transition, &yes, &no);
 
   if (FLAGS_debug) {
+    cout << "PosE: " << yes.size() << " NegE: " <<  no.size() << endl;;
     cout << "Current Sketch: " << sketch << endl;
   }
 
@@ -459,7 +460,7 @@ void ldipsL3(const vector<Example>& demos,
     // checkpointing.
     const string output_name =
       output_path + transition.first + "_" + transition.second + ".json";
-    if (ExistsFile(output_name)) {
+    if (ExistsFile(output_name) || transition.first == transition.second) {
       continue;
     }
     cout << "----- " << transition.first << "->";
@@ -467,7 +468,6 @@ void ldipsL3(const vector<Example>& demos,
     float current_best = 0.0;
     ast_ptr current_solution = nullptr;
     for (const auto& sketch : sketches) {
-
       // Attempt L2 Synthesis with current sketch.
       current_solution = ldipsL2(sketch, examples, lib, transition,
           min_accuracy, current_solution, &current_best);

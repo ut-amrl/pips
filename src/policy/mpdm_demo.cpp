@@ -199,13 +199,10 @@ json GetHumanJson(const utmrsStepperResponse& req) {
         const Vector2f pose(human.x, human.y);
         json h_json;
         h_json["pose"] = {pose.x(), pose.y()};
-        // if (pose.norm() > geometry::kEpsilon) {
-          // const Vector2f transformed = ToRobotFrameP(pose);
-          // h_json["pose"] = {transformed.x(), transformed.y()};
-          // cout << ", T*Pose: " << transformed.x() << ", " << transformed.y();
-        // }
-        // cout << endl;
-        humans.push_back(h_json);
+        // 0 Pose is used for an empty human in training data
+        if (pose.norm() >= geometry::kEpsilon) {
+          humans.push_back(h_json);
+        }
     }
     json output = humans;
     return output;
@@ -223,12 +220,13 @@ json DemoFromRequest(const utmrsStepperResponse& req) {
   } else if (req.robot_state == 3) {
     state = "Pass";
   }
-  demo["start"] = MakeEntry("start", state);
+  demo["start"] = MakeEntry("start", last_state_);
   demo["output"] = MakeEntry("output", state);
+  last_state_ = state;
 
   demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});
   demo["door_pose"] = MakeEntry("DoorPose",
-      ToRobotFrameP({req.door_pose.x, req.door_pose.y}), {1, 0, 0});
+      {req.door_pose.x, req.door_pose.y}, {1, 0, 0});
 
   local_target_ = VecFromMsg(req.local_target);
   cout << "Robot Pose: " << pose_.x() << ", " << pose_.y() << endl;
@@ -389,7 +387,7 @@ int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   signal(SIGINT, SignalHandler);
   // Initialize ROS.
-  ros::init(argc, argv, "social_demo", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "social_demo");
   ros::NodeHandle n;
 
   // Subscribers
@@ -405,7 +403,7 @@ int main(int argc, char** argv) {
   step_client_.waitForExistence();
   cout << "Services Acquired" << endl;
 
-  ros::Rate loop(30.0);
+  ros::Rate loop(60.0);
   while (run_ && ros::ok()) {
     switch (sim_state_.sim_state) {
       case SimulatorStateMsg::SIM_RUNNING : {

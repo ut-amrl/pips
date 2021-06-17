@@ -201,13 +201,10 @@ json GetHumanJson(const SocialPipsSrv::Request& req) {
         const Vector2f pose(human.x, human.y);
         json h_json;
         h_json["pose"] = {pose.x(), pose.y()};
-        // if (pose.norm() > geometry::kEpsilon) {
-          // const Vector2f transformed = ToRobotFrameP(pose);
-          // h_json["pose"] = {transformed.x(), transformed.y()};
-          // cout << ", T*Pose: " << transformed.x() << ", " << transformed.y();
-        // }
-        // cout << endl;
-        humans.push_back(h_json);
+        // 0 Pose is used for an empty human in training data
+        if (pose.norm() >= geometry::kEpsilon) {
+          humans.push_back(h_json);
+        }
     }
     json output = humans;
     return output;
@@ -236,8 +233,7 @@ void GetRelevantHumans(SocialPipsSrv::Request &req) {
   // Order is front_left, front, front_right
   vector<HumanStateMsg> left;
   vector<HumanStateMsg> front_left;
-  vector<HumanStateMsg> front;
-  vector<HumanStateMsg> front_right;
+  vector<HumanStateMsg> front; vector<HumanStateMsg> front_right;
   vector<HumanStateMsg> right;
   // todo(jaholtz) Consider if we need to shrink or grow this margin.
   const float kRobotLength = 0.5;
@@ -289,7 +285,7 @@ void GetRelevantHumans(SocialPipsSrv::Request &req) {
 
 void WriteDemos() {
   ofstream output_file;
-  const string output_name = "mpdm_synth_demo.json";
+  const string output_name = "social_ref.json";
   const json output = demos;
   output_file.open(output_name);
   output_file << std::setw(4) << output << std::endl;
@@ -329,13 +325,6 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
     // If outside width, or behind robot, skip
     //
     if (fabs(p.y()) > w || p.x() <= 0.0f) continue;
-    // cout << "Start: " << start << endl;
-    // cout << "End: " << end << endl;
-    // cout << "Angle: " << angle << endl;
-    // cout << "w: " << w << endl;
-    // cout << "l: " << l << endl;
-    // cout << "py: " << p.y() << endl;
-    // cout << "px: " << p.x() << endl;
 
     // Calculate distance and store if shorter.
     free_path_length = min(free_path_length, p.x() - l);
@@ -395,12 +384,13 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   } else if (req.robot_state == 3) {
     state = "Pass";
   }
-  demo["start"] = MakeEntry("start", state);
+  demo["start"] = MakeEntry("start", last_state_);
   demo["output"] = MakeEntry("output", state);
+  last_state_ = state;
 
   demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});
   demo["door_pose"] = MakeEntry("DoorPose",
-      ToRobotFrameP({req.door_pose.x, req.door_pose.y}), {1, 0, 0});
+     {req.door_pose.x, req.door_pose.y}, {1, 0, 0});
 
   local_target_ = VecFromMsg(req.local_target);
   demo["target"] = MakeEntry("target",
@@ -475,9 +465,9 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
 
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
-  signal(SIGINT, SignalHandler);
+  // signal(SIGINT, SignalHandler);
   // Initialize ROS.
-  ros::init(argc, argv, "social_ref", ros::init_options::NoSigintHandler);
+  ros::init(argc, argv, "social_ref");
   ros::NodeHandle n;
 
   ros::ServiceServer utmrsActionRequest =
