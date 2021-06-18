@@ -297,8 +297,8 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   float kRobotLength = 1.0;
   float kRearAxleOffset = 0.0;
-  float kObstacleMargin = 0.5;
-  float kRobotWidth = 0.8;
+  float kObstacleMargin = 0.2;
+  float kRobotWidth = 0.44;
 
   if (false) {
     kRobotLength = 0.4;
@@ -341,7 +341,7 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
 
 bool ShouldGoAlone() {
   // Check if Path blocked by unmapped obstacle (humans for now)
-  if (StraightFreePathLength(pose_, local_target_) < 9999) {
+  if (StraightFreePathLength({0,0}, local_target_) < 9999) {
     return false;
   }
   return true;
@@ -357,7 +357,11 @@ bool ShouldFollow() {
   const Vector2f distance = target_pose;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.5 && distance.norm() > 0.5) {
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.0 && distance.norm() > 0.1
+      && closest_vel.norm() > 0.1) {
+    cout << "Goal Angle: " << goal_angle << ", Human Angle: " << closest_angle << endl;
+    cout << "Target: " << local_target_.x() << local_target_.y() << endl;
+    cout << "Vel: " << closest_vel.x() << closest_vel.y() << endl;
     return true;
   }
   return false;
