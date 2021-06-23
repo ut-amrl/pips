@@ -343,7 +343,7 @@ ast_ptr Lt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ - y_cast->value_ < 0.0);
+  Bool result((x_cast->value_ - y_cast->value_) < -geometry::kEpsilon);
   return make_shared<Bool>(result);
 }
 
@@ -353,7 +353,7 @@ ast_ptr Gt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ - y_cast->value_ > 0);
+  Bool result(x_cast->value_ - y_cast->value_ > geometry::kEpsilon);
   return make_shared<Bool>(result);
 }
 
@@ -402,8 +402,6 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   const float w = 0.5 * kRobotWidth + kObstacleMargin;
 
   float free_path_length = end.norm();
-  const float angle = Angle(end);
-  const Eigen::Rotation2Df rot(-angle);
   for (const Vector2f& obst :obstacles) {
     Vector2f pose(obst.x(), obst.y());
     // Assuming robot frame, no transform.
@@ -414,8 +412,8 @@ ast_ptr StraightFreePathLength(ast_ptr v,
     // Calculate distance and store if shorter.
     free_path_length = min(free_path_length, p.x() - l);
   }
-  if (fabs(free_path_length - end.norm()) < geometry::kEpsilon) {
-    free_path_length = 9999;
+  if (free_path_length == end.norm()) {
+      free_path_length = 9999;
   }
   if (free_path_length < 0.0) {
     free_path_length = 0;

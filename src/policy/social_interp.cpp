@@ -236,7 +236,7 @@ HumanStateMsg GetClosest(const vector<HumanStateMsg> humans) {
   best_human.translational_velocity.y = 0.0;
   for (HumanStateMsg human : humans) {
     const Vector2f h_pose(human.pose.x, human.pose.y);
-    const Vector2f diff = h_pose - pose_;
+    const Vector2f diff = h_pose;
     const float dist = diff.norm();
     if (dist < best_dist) {
       best_dist = dist;
@@ -275,9 +275,9 @@ void GetRelevantHumans(SocialPipsSrv::Request &req) {
     human.translational_velocity.z = 0;
     human.rotational_velocity = vel.theta;
     const Vector2f h_pose(pose.x, pose.y);
-    const Vector2f diff = h_pose - pose_;
-    Eigen::Rotation2Df rot(-theta_);
-    const Vector2f transformed = rot * diff;
+    const Vector2f diff = h_pose;
+    const Vector2f transformed = diff;
+    if (diff.norm() < geometry::kEpsilon) continue;
     const float angle = math_util::AngleMod(Angle(diff) - theta_);
     if (transformed.x() > kRobotLength) {
       if (angle < kLowerLeft && angle > kUpperLeft) {
@@ -473,8 +473,8 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   } else if (req.robot_state == 3) {
     state = "Pass";
   }
-  demo["start"] = MakeEntry("start", last_state_);
-  demo["output"] = MakeEntry("output", state);
+  demo["start"] = MakeEntry("start", state);
+  demo["output"] = MakeEntry("output", state_);
   last_state_ = state;
 
   demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});

@@ -32,7 +32,7 @@
                         0,
                         0
                     ],
-                    "name": "front_p",
+                    "name": "fRight_p",
                     "node": "Var",
                     "symbolic": false,
                     "type": 3
@@ -64,7 +64,7 @@
                 "node": "Num",
                 "symbolic": false,
                 "type": 2,
-                "value": 1.493775486946106
+                "value": 1.5000065565109253
             }
         },
         "symbolic": false,
@@ -91,39 +91,28 @@
             "value": {
                 "dim": [
                     1,
-                    0,
+                    -1,
                     0
                 ],
-                "left": {
+                "input": {
                     "dim": [
                         1,
-                        0,
+                        -1,
                         0
                     ],
-                    "name": "target",
+                    "name": "front_v",
                     "node": "Var",
                     "symbolic": false,
                     "type": 3
                 },
-                "node": "BinOp",
-                "op": "SqDist",
-                "right": {
-                    "dim": [
-                        1,
-                        0,
-                        0
-                    ],
-                    "name": "front_p",
-                    "node": "Var",
-                    "symbolic": false,
-                    "type": 3
-                },
+                "node": "UnOp",
+                "op": "VecX",
                 "symbolic": false,
                 "type": 4
             }
         },
         "node": "BinOp",
-        "op": ">",
+        "op": "<",
         "right": {
             "dim": [
                 0,
@@ -143,7 +132,7 @@
                 "node": "Num",
                 "symbolic": false,
                 "type": 2,
-                "value": 0.3387424945831299
+                "value": 0.2127709984779358
             }
         },
         "symbolic": false,

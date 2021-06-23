@@ -112,7 +112,7 @@ HumanStateMsg front_left_;
 HumanStateMsg front_right_;
 HumanStateMsg left_;
 HumanStateMsg right_;
-vector<json> demos = {};
+vector<json> demos_ = {};
 
 // Publishers
 ros::Publisher halt_pub_;
@@ -185,6 +185,9 @@ json GetHumanJson() {
     vector<json> humans;
     for (HumanStateMsg human : human_states_) {
         const Vector2f pose(human.pose.x, human.pose.y);
+        if (pose.norm() < geometry::kEpsilon) {
+          continue;
+        }
         json h_json;
         const Vector2f transformed = ToRobotFrameP(pose);
         h_json["pose"] = {transformed.x(), transformed.y()};
@@ -219,7 +222,7 @@ HumanStateMsg GetClosest(const vector<HumanStateMsg> humans) {
   best_human.translational_velocity.y = 0.0;
   for (HumanStateMsg human : humans) {
     const Vector2f h_pose(human.pose.x, human.pose.y);
-    const Vector2f diff = h_pose - pose_;
+    const Vector2f diff = h_pose;
     const float dist = diff.norm();
     if (dist < best_dist) {
       best_dist = dist;
@@ -258,6 +261,7 @@ void GetRelevantHumans(SocialPipsSrv::Request &req) {
     human.rotational_velocity = vel.theta;
     const Vector2f h_pose(pose.x, pose.y);
     const Vector2f transformed = h_pose;
+    if (transformed.norm() < geometry::kEpsilon) continue;
     const float angle = math_util::AngleMod(Angle(transformed) - theta_);
     if (transformed.x() > kRobotLength) {
       if (angle < kLowerLeft && angle > kUpperLeft) {
@@ -286,7 +290,7 @@ void GetRelevantHumans(SocialPipsSrv::Request &req) {
 void WriteDemos() {
   ofstream output_file;
   const string output_name = "social_ref.json";
-  const json output = demos;
+  const json output = demos_;
   output_file.open(output_name);
   output_file << std::setw(4) << output << std::endl;
   output_file.close();
@@ -314,8 +318,6 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   const float w = 0.5 * kRobotWidth + kObstacleMargin;
 
   const Vector2f path = end;
-  const float angle = Angle(path);
-  const Eigen::Rotation2Df rot(-angle);
   float free_path_length = path.norm();
 
   for (const amrl_msgs::Pose2Df& human : human_poses_) {
@@ -357,7 +359,7 @@ bool ShouldFollow() {
   const Vector2f distance = target_pose;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=1.0 && distance.norm() > 0.1
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.5 && distance.norm() > 0.1
       && closest_vel.norm() > 0.1) {
     cout << "Goal Angle: " << goal_angle << ", Human Angle: " << closest_angle << endl;
     cout << "Target: " << local_target_.x() << local_target_.y() << endl;
@@ -388,8 +390,8 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   } else if (req.robot_state == 3) {
     state = "Pass";
   }
-  demo["start"] = MakeEntry("start", last_state_);
-  demo["output"] = MakeEntry("output", state);
+  demo["start"] = MakeEntry("start", state);
+  demo["output"] = MakeEntry("output", state_);
   last_state_ = state;
 
   demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});
@@ -430,14 +432,13 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
 
   // All Humans in a vector
   demo["human_states"] = GetHumanJson(req);
-  demos.push_back(demo);
   return demo;
 }
 
-Example MakeDemo(const SocialPipsSrv::Request& req) {
+json MakeDemo(const SocialPipsSrv::Request& req) {
   Example example;
   json demo = DemoFromRequest(req);
-  return JsonToExample(demo);
+  return demo;
 }
 
 bool ActionRequestCb(SocialPipsSrv::Request &req,
@@ -450,8 +451,8 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   GetRelevantHumans(req);
 
   // Convert the req to the appropriate form of a demo
-  const Example example = MakeDemo(req);
   // Transition based on the demo
+  json example = MakeDemo(req);
   state_ = Transition();
   int state = 0;
   cout << "Action: " << state_ << endl;
@@ -462,7 +463,8 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   } else if (state_ == "Pass") {
     state = 3;
   }
-
+  example = MakeDemo(req);
+  demos_.push_back(example);
   res.action = state;
   return true;
 }
