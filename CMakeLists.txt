@@ -115,21 +115,19 @@ IF(BUILD_WITH_ROS)
 	# Set final locations for binaries
 	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 	set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-	rosbuild_add_executable(mpdm_ref src/policy/mpdm_ref.cpp)
-	target_link_libraries(mpdm_ref c++-pips-core)
-	target_link_libraries(mpdm_ref ${libs})
-
-	rosbuild_add_executable(mpdm_synth src/policy/mpdm_synth.cpp)
-	target_link_libraries(mpdm_synth c++-pips-core)
 
 	rosbuild_add_executable(mpdm_demo src/policy/mpdm_demo.cpp)
 	target_link_libraries(mpdm_demo c++-pips-core)
 
-	rosbuild_add_executable(demo_watcher src/policy/demo_watcher.cpp)
-	target_link_libraries(demo_watcher c++-pips-core)
-
-	rosbuild_add_executable(social_interp src/policy/social_interp.cpp)
+	rosbuild_add_executable(social_interp
+													src/policy/social_interp.cpp
+													src/policy/social_lib.cpp)
 	target_link_libraries(social_interp c++-pips-core)
+
+	rosbuild_add_executable(social_demo
+													src/policy/social_demo.cpp
+													src/policy/social_lib.cpp)
+	target_link_libraries(social_demo c++-pips-core)
 
 	rosbuild_add_executable(social_ref src/policy/social_ref.cpp)
 	target_link_libraries(social_ref c++-pips-core)
