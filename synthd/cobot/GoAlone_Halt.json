@@ -16,35 +16,101 @@
                 0,
                 0
             ],
-            "name": "fX2",
-            "node": "Feature",
-            "symbolic": false,
-            "type": 2,
-            "value": {
+            "left": {
                 "dim": [
-                    1,
+                    0,
                     0,
                     0
                 ],
-                "input": {
+                "name": "fX2",
+                "node": "Feature",
+                "symbolic": false,
+                "type": 2,
+                "value": {
                     "dim": [
-                        1,
+                        0,
                         0,
                         0
                     ],
-                    "name": "fRight_p",
-                    "node": "Var",
+                    "input": {
+                        "dim": [
+                            1,
+                            0,
+                            0
+                        ],
+                        "name": "fRight_p",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "UnOp",
+                    "op": "StraightFreePathLength",
                     "symbolic": false,
-                    "type": 3
+                    "type": 4
+                }
+            },
+            "node": "BinOp",
+            "op": "<",
+            "right": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "left": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "name": "pX2",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": 1.5000065565109253
+                    }
                 },
-                "node": "UnOp",
-                "op": "StraightFreePathLength",
+                "node": "BinOp",
+                "op": "Plus",
+                "right": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "name": "pX2A",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": 0.0
+                    }
+                },
                 "symbolic": false,
                 "type": 4
-            }
+            },
+            "symbolic": false,
+            "type": 4
         },
         "node": "BinOp",
-        "op": "<",
+        "op": "&&",
         "right": {
             "dim": [
                 0,
@@ -57,9 +123,9 @@
                     0,
                     0
                 ],
-                "name": "pX2",
-                "node": "Param",
-                "symbolic": true,
+                "name": "fX1",
+                "node": "Feature",
+                "symbolic": false,
                 "type": 2,
                 "value": {
                     "dim": [
@@ -67,35 +133,79 @@
                         0,
                         0
                     ],
-                    "node": "Num",
+                    "input": {
+                        "dim": [
+                            1,
+                            -1,
+                            0
+                        ],
+                        "name": "front_v",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "UnOp",
+                    "op": "VecX",
                     "symbolic": false,
-                    "type": 2,
-                    "value": 1.5000065565109253
+                    "type": 4
                 }
             },
             "node": "BinOp",
-            "op": "Plus",
+            "op": "<",
             "right": {
                 "dim": [
                     0,
                     0,
                     0
                 ],
-                "name": "pX2A",
-                "node": "Param",
-                "symbolic": true,
-                "type": 2,
-                "value": {
+                "left": {
                     "dim": [
                         0,
                         0,
                         0
                     ],
-                    "node": "Num",
-                    "symbolic": false,
+                    "name": "pX1",
+                    "node": "Param",
+                    "symbolic": true,
                     "type": 2,
-                    "value": 0.0
-                }
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": 0.2127709984779358
+                    }
+                },
+                "node": "BinOp",
+                "op": "Plus",
+                "right": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "name": "pX1A",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": -0.7336859703063965
+                    }
+                },
+                "symbolic": false,
+                "type": 4
             },
             "symbolic": false,
             "type": 4
@@ -104,7 +214,7 @@
         "type": 4
     },
     "node": "BinOp",
-    "op": "&&",
+    "op": "Or",
     "right": {
         "dim": [
             0,
@@ -124,16 +234,16 @@
             "value": {
                 "dim": [
                     1,
-                    -1,
+                    0,
                     0
                 ],
                 "input": {
                     "dim": [
                         1,
-                        -1,
+                        0,
                         0
                     ],
-                    "name": "front_v",
+                    "name": "target",
                     "node": "Var",
                     "symbolic": false,
                     "type": 3
@@ -145,61 +255,28 @@
             }
         },
         "node": "BinOp",
-        "op": "<",
+        "op": ">",
         "right": {
             "dim": [
                 0,
                 0,
                 0
             ],
-            "left": {
+            "name": "pX1",
+            "node": "Param",
+            "symbolic": true,
+            "type": 2,
+            "value": {
                 "dim": [
                     0,
                     0,
                     0
                 ],
-                "name": "pX1",
-                "node": "Param",
-                "symbolic": true,
+                "node": "Num",
+                "symbolic": false,
                 "type": 2,
-                "value": {
-                    "dim": [
-                        0,
-                        0,
-                        0
-                    ],
-                    "node": "Num",
-                    "symbolic": false,
-                    "type": 2,
-                    "value": 0.2127709984779358
-                }
-            },
-            "node": "BinOp",
-            "op": "Plus",
-            "right": {
-                "dim": [
-                    0,
-                    0,
-                    0
-                ],
-                "name": "pX1A",
-                "node": "Param",
-                "symbolic": true,
-                "type": 2,
-                "value": {
-                    "dim": [
-                        0,
-                        0,
-                        0
-                    ],
-                    "node": "Num",
-                    "symbolic": false,
-                    "type": 2,
-                    "value": -0.22184400260448456
-                }
-            },
-            "symbolic": false,
-            "type": 4
+                "value": 1.5000020265579224
+            }
         },
         "symbolic": false,
         "type": 4
