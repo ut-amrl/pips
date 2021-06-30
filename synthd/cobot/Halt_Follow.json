@@ -16,11 +16,75 @@
                 0,
                 0
             ],
-            "name": "fX2",
-            "node": "Feature",
-            "symbolic": false,
-            "type": 2,
-            "value": {
+            "left": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "fX2",
+                "node": "Feature",
+                "symbolic": false,
+                "type": 2,
+                "value": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "left": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "input": {
+                            "dim": [
+                                1,
+                                0,
+                                0
+                            ],
+                            "name": "target",
+                            "node": "Var",
+                            "symbolic": false,
+                            "type": 3
+                        },
+                        "node": "UnOp",
+                        "op": "Angle",
+                        "symbolic": false,
+                        "type": 4
+                    },
+                    "node": "BinOp",
+                    "op": "AngleDist",
+                    "right": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "input": {
+                            "dim": [
+                                1,
+                                -1,
+                                0
+                            ],
+                            "name": "front_v",
+                            "node": "Var",
+                            "symbolic": false,
+                            "type": 3
+                        },
+                        "node": "UnOp",
+                        "op": "Angle",
+                        "symbolic": false,
+                        "type": 4
+                    },
+                    "symbolic": false,
+                    "type": 4
+                }
+            },
+            "node": "BinOp",
+            "op": "<",
+            "right": {
                 "dim": [
                     0,
                     0,
@@ -32,25 +96,71 @@
                         0,
                         0
                     ],
-                    "input": {
+                    "name": "pX2",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
                         "dim": [
-                            1,
+                            0,
                             0,
                             0
                         ],
-                        "name": "target",
-                        "node": "Var",
+                        "node": "Num",
                         "symbolic": false,
-                        "type": 3
-                    },
-                    "node": "UnOp",
-                    "op": "Angle",
-                    "symbolic": false,
-                    "type": 4
+                        "type": 2,
+                        "value": 0.4995175004005432
+                    }
                 },
                 "node": "BinOp",
-                "op": "AngleDist",
+                "op": "Plus",
                 "right": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "name": "pX2A",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": 0.0
+                    }
+                },
+                "symbolic": false,
+                "type": 4
+            },
+            "symbolic": false,
+            "type": 4
+        },
+        "node": "BinOp",
+        "op": "&&",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "left": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "name": "fX1",
+                "node": "Feature",
+                "symbolic": false,
+                "type": 2,
+                "value": {
                     "dim": [
                         0,
                         0,
@@ -59,52 +169,85 @@
                     "input": {
                         "dim": [
                             1,
-                            -1,
+                            0,
                             0
                         ],
-                        "name": "front_v",
+                        "name": "front_p",
                         "node": "Var",
                         "symbolic": false,
                         "type": 3
                     },
                     "node": "UnOp",
-                    "op": "Angle",
+                    "op": "StraightFreePathLength",
                     "symbolic": false,
                     "type": 4
-                },
-                "symbolic": false,
-                "type": 4
-            }
-        },
-        "node": "BinOp",
-        "op": "<",
-        "right": {
-            "dim": [
-                0,
-                0,
-                0
-            ],
-            "name": "pX2",
-            "node": "Param",
-            "symbolic": true,
-            "type": 2,
-            "value": {
+                }
+            },
+            "node": "BinOp",
+            "op": "<",
+            "right": {
                 "dim": [
                     0,
                     0,
                     0
                 ],
-                "node": "Num",
+                "left": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "name": "pX1",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": 1.4985250234603882
+                    }
+                },
+                "node": "BinOp",
+                "op": "Plus",
+                "right": {
+                    "dim": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "name": "pX1A",
+                    "node": "Param",
+                    "symbolic": true,
+                    "type": 2,
+                    "value": {
+                        "dim": [
+                            0,
+                            0,
+                            0
+                        ],
+                        "node": "Num",
+                        "symbolic": false,
+                        "type": 2,
+                        "value": -0.3469749987125397
+                    }
+                },
                 "symbolic": false,
-                "type": 2,
-                "value": 0.4995175004005432
-            }
+                "type": 4
+            },
+            "symbolic": false,
+            "type": 4
         },
         "symbolic": false,
         "type": 4
     },
     "node": "BinOp",
-    "op": "&&",
+    "op": "Or",
     "right": {
         "dim": [
             0,
@@ -133,7 +276,7 @@
                         0,
                         0
                     ],
-                    "name": "front_p",
+                    "name": "target",
                     "node": "Var",
                     "symbolic": false,
                     "type": 3
@@ -145,7 +288,7 @@
             }
         },
         "node": "BinOp",
-        "op": "<",
+        "op": ">",
         "right": {
             "dim": [
                 0,
@@ -165,7 +308,7 @@
                 "node": "Num",
                 "symbolic": false,
                 "type": 2,
-                "value": 1.4985250234603882
+                "value": 1.493880033493042
             }
         },
         "symbolic": false,

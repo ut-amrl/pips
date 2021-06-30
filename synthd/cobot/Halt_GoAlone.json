@@ -45,21 +45,54 @@
             0,
             0
         ],
-        "name": "pX1",
-        "node": "Param",
-        "symbolic": true,
-        "type": 2,
-        "value": {
+        "left": {
             "dim": [
                 0,
                 0,
                 0
             ],
-            "node": "Num",
-            "symbolic": false,
+            "name": "pX1",
+            "node": "Param",
+            "symbolic": true,
             "type": 2,
-            "value": 1.4998619556427002
-        }
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "node": "Num",
+                "symbolic": false,
+                "type": 2,
+                "value": 1.4998619556427002
+            }
+        },
+        "node": "BinOp",
+        "op": "Plus",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "pX1A",
+            "node": "Param",
+            "symbolic": true,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "node": "Num",
+                "symbolic": false,
+                "type": 2,
+                "value": 0.018578000366687775
+            }
+        },
+        "symbolic": false,
+        "type": 4
     },
     "symbolic": false,
     "type": 4
