@@ -352,13 +352,17 @@ bool ShouldGoAlone() {
 bool ShouldFollow() {
   // If the closest robot is moving in the right direction, follow it.
   const HumanStateMsg target = front_;
-  const Vector2f closest_vel(target.translational_velocity.x,
-                             target.translational_velocity.y);
+  Vector2f closest_vel(target.translational_velocity.x,
+                       target.translational_velocity.y);
+  // Simply add the magnitude to relative velocity (may want to follow a
+  // human moving slowly towards the goal).
+  closest_vel = closest_vel + vel_;
   const Vector2f path = local_target_;
   const Vector2f target_pose(target.pose.x, target.pose.y);
   const Vector2f distance = target_pose;
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
+
   if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.5 && distance.norm() > 0.1
       && closest_vel.norm() > 0.1) {
     cout << "Goal Angle: " << goal_angle << ", Human Angle: " << closest_angle << endl;
