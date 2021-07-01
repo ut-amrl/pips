@@ -116,9 +116,6 @@ IF(BUILD_WITH_ROS)
 	set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 	set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-	rosbuild_add_executable(mpdm_demo src/policy/mpdm_demo.cpp)
-	target_link_libraries(mpdm_demo c++-pips-core)
-
 	rosbuild_add_executable(social_interp
 													src/policy/social_interp.cpp
 													src/policy/social_lib.cpp)

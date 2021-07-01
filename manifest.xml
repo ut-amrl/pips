@@ -19,7 +19,6 @@
   <depend package="tf"/>
   <depend package="amrl_msgs"/>
   <depend package="cobot_msgs"/>
-  <depend package="ut_multirobot_sim"/>
   <depend package="visualization_msgs"/>
 </package>
 

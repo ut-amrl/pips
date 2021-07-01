@@ -87,12 +87,10 @@ string Transition(const Example& example) {
         pred = halt_to_ga;
       } else if (trans.first == "Halt" && trans.second == "Follow") {
         pred = halt_to_follow;
-	cout << "HtoF: " << pred << endl;
       } else if (trans.first == "Halt" && trans.second == "Pass") {
         pred = halt_to_pass;
       } else if (trans.first == "Follow" && trans.second == "Halt") {
         pred = follow_to_halt;
-	cout << "FtoH: " << pred << endl;
       } else if (trans.first == "Follow" && trans.second == "GoAlone") {
         pred = follow_to_ga;
       } else if (trans.first == "Follow" && trans.second == "Pass") {
@@ -101,7 +99,6 @@ string Transition(const Example& example) {
         pred = ga_to_pass;
       } else if (trans.first == "GoAlone" && trans.second == "Follow") {
         pred = ga_to_follow;
-	cout << "GtoF: " << pred << endl;
       } else if (trans.first == "GoAlone" && trans.second == "Halt") {
         pred = ga_to_halt;
       } else if (trans.first == "Pass" && trans.second == "Halt") {
@@ -134,7 +131,6 @@ Example MakeDemo(const json& demo) {
 
 bool ActionRequestCb(SocialPipsSrv::Request &req,
                      SocialPipsSrv::Response &res) {
-
   if (req.robot_poses.size() < 1) {
     res.action = 0;
     return true;
@@ -143,8 +139,20 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   // Convert the req to the appropriate form of a demo
   const json demo = social_lib::DemoFromRequest(req, state_);
   const Example example = MakeDemo(demo);
-  // Transition based on the demo
-  state_ = Transition(example);
+  // This check is to guarantee running default behavior if no humans
+  // are visible.
+  if (req.human_poses.size() > 0) {
+    // Transition based on the demo
+    state_ = Transition(example);
+  } else {
+    state_ = "GoAlone";
+    if (state_ != last_state_) {
+      cout << "Action: " << "No Humans -> Using Default Nav" << endl;
+    }
+  }
+  if (state_ != last_state_) {
+    cout << "Action: " << state_ << endl;
+  }
   last_state_ = state_;
 
   // Convert State to Number
@@ -188,7 +196,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle n;
 
   ros::ServiceServer utmrsActionRequest =
-    n.advertiseService("SocialPipsSrv", ActionRequestCb);
+      n.advertiseService("SocialPipsSrv", ActionRequestCb);
 
   ros::spin();
   return 0;
