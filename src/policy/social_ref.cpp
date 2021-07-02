@@ -364,9 +364,6 @@ bool ShouldFollow() {
 
   if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.5 && distance.norm() > 0.1
       && closest_vel.norm() > 0.1) {
-    cout << "Goal Angle: " << goal_angle << ", Human Angle: " << closest_angle << endl;
-    cout << "Target: " << local_target_.x() << local_target_.y() << endl;
-    cout << "Vel: " << closest_vel.x() << closest_vel.y() << endl;
     return true;
   }
   return false;
@@ -404,7 +401,6 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   local_target_ = VecFromMsg(req.local_target);
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
-  // cout << "Local Target: " << ToRobotFrameP(local_target_).x() << "," << ToRobotFrameP(local_target_).y() << endl;
 
   goal_pose_ = VecFromMsg(req.goal_pose);
   demo["goal"] = MakeEntry("goal",
@@ -458,7 +454,6 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   json example = MakeDemo(req);
   state_ = Transition();
   int state = 0;
-  cout << "Action: " << state_ << endl;
   if (state_ == "Halt") {
     state = 1;
   } else if (state_ == "Follow") {
