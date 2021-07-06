@@ -401,6 +401,7 @@ json DemoFromRequest(const SocialPipsSrv::Request& req) {
   local_target_ = VecFromMsg(req.local_target);
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
+  demo["robot_vel"] = MakeEntry("robot_vel", vel_, {1, -1, 0});
 
   goal_pose_ = VecFromMsg(req.goal_pose);
   demo["goal"] = MakeEntry("goal",
@@ -448,6 +449,8 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   }
   // Get Relevant Humans
   GetRelevantHumans(req);
+  const auto robot_vel = req.robot_vels[0];
+  vel_ = Vector2f(robot_vel.x, robot_vel.y);
 
   // Convert the req to the appropriate form of a demo
   // Transition based on the demo
