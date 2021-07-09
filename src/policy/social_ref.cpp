@@ -338,12 +338,6 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   const auto robot_vel = req.robot_vels[0];
   vel_ = Vector2f(robot_vel.x, robot_vel.y);
   GetHumanJson(req);
-  const json demo = social_lib::DemoFromRequest(req, state_);
-  const Example example = MakeDemo(demo);
-  demos_.push_back(demo);
-
-  local_target_ = VecFromMsg(req.local_target);
-  goal_pose_ = VecFromMsg(req.goal_pose);
   // This check is to guarantee running default behavior if no humans
   // are visible.
   if (req.human_poses.size() > 0) {
@@ -358,6 +352,12 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   if (state_ != last_state_) {
     cout << "Action: " << state_ << endl;
   }
+  const json demo = social_lib::DemoFromRequest(req, state_);
+  const Example example = MakeDemo(demo);
+  demos_.push_back(demo);
+
+  local_target_ = VecFromMsg(req.local_target);
+  goal_pose_ = VecFromMsg(req.goal_pose);
   last_state_ = state_;
 
   // Convert State to Number
