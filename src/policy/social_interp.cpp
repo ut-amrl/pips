@@ -108,9 +108,12 @@ string Transition(const Example& example) {
       } else if (trans.first == "Pass" && trans.second == "Follow") {
         pred = pass_to_follow;
       }
+      cout << pred << endl;
       if (InterpretBool(pred, example)) {
+        // cout << "True" << endl;
         return trans.second;
       }
+      // cout << "False" << endl;
     }
   }
   return last_state_;

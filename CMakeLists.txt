@@ -126,6 +126,11 @@ IF(BUILD_WITH_ROS)
 													src/policy/social_lib.cpp)
 	target_link_libraries(social_demo c++-pips-core)
 
-	rosbuild_add_executable(social_ref src/policy/social_ref.cpp)
+	rosbuild_add_executable(mpdm_demo
+													src/policy/mpdm_demo.cpp)
+	target_link_libraries(mpdm_demo c++-pips-core)
+
+	rosbuild_add_executable(social_ref src/policy/social_ref.cpp
+													src/policy/social_lib.cpp)
 	target_link_libraries(social_ref c++-pips-core)
 ENDIF()

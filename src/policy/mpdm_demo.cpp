@@ -17,6 +17,7 @@
 */
 //========================================================================
 
+#include "policy/social_lib.h"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 #include <Eigen/src/Core/Matrix.h>
@@ -43,7 +44,7 @@
 #include "ros/publisher.h"
 #include "cobot_msgs/CobotLocalizationMsg.h"
 #include "cobot_msgs/CobotDoorDetectionsMsg.h"
-#include "ut_multirobot_sim/HumanStateArrayMsg.h"
+#include "amrl_msgs/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
 #include "ut_multirobot_sim/SimulatorStateMsg.h"
 #include "ut_multirobot_sim/DoorArrayMsg.h"
@@ -221,8 +222,8 @@ json DemoFromRequest(const utmrsStepperResponse& req) {
     state = "Pass";
   }
   demo["start"] = MakeEntry("start", last_state_);
-  demo["output"] = MakeEntry("output", state);
-  last_state_ = state;
+  demo["output"] = MakeEntry("output", state_);
+  last_state_ = state_;
 
   demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});
   demo["door_pose"] = MakeEntry("DoorPose",
@@ -232,6 +233,7 @@ json DemoFromRequest(const utmrsStepperResponse& req) {
   cout << "Robot Pose: " << pose_.x() << ", " << pose_.y() << endl;
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
+  demo["robot_vel"] = MakeEntry("robot_vel", vel_, {1, -1, 0});
   // cout << "Local Target: " << ToRobotFrameP(local_target_).x() << "," << ToRobotFrameP(local_target_).y() << endl;
 
   goal_pose_ = VecFromMsg(req.goal_pose);
@@ -239,27 +241,32 @@ json DemoFromRequest(const utmrsStepperResponse& req) {
       ToRobotFrameP(goal_pose_), {1, 0, 0});
 
   // Special Humans
-  demo["front_p"] =
-      MakeEntry("front_p",
+  demo["humanA_p"] =
+      MakeEntry("humanA_p",
           {front_.pose.x, front_.pose.y}, {1, 0, 0});
-  demo["front_v"] = MakeEntry("front_v",
+  demo["humanA_v"] = MakeEntry("humanA_v",
       {front_.translational_velocity.x,
       front_.translational_velocity.y},
       {1, -1, 0});
-  demo["fLeft_p"] =
-      MakeEntry("fLeft_p",
+  demo["humanB_p"] =
+      MakeEntry("humanB_p",
           {front_left_.pose.x, front_left_.pose.y}, {1, 0, 0});
-  demo["fLeft_v"] = MakeEntry("fLeft_v",
+  demo["humanB_v"] = MakeEntry("humanB_v",
       {front_left_.translational_velocity.x,
       front_left_.translational_velocity.y},
       {1, -1, 0});
-  demo["fRight_p"] =
-      MakeEntry("fRight_p",
+  demo["humanC_p"] =
+      MakeEntry("humanC_p",
           {front_right_.pose.x, front_right_.pose.y}, {1, 0, 0});
-  demo["fRight_v"] = MakeEntry("fRight_v",
+  demo["humanC_v"] = MakeEntry("humanC_v",
       {front_right_.translational_velocity.x,
       front_right_.translational_velocity.y},
       {1, -1, 0});
+  cout << demo["humanA_v"] << endl;
+  cout << demo["humanA_p"] << endl;
+  cout << demo["humanB_v"] << endl;
+  cout << demo["humanB_p"] << endl;
+  // cout << demo["humanC_p"] << endl;
 
   // All Humans in a vector
   demo["human_states"] = GetHumanJson(req);
@@ -273,8 +280,10 @@ Example MakeDemo(const utmrsStepperResponse& req) {
   return JsonToExample(demo);
 }
 
-HumanStateMsg GetClosest(const vector<HumanStateMsg> humans) {
+HumanStateMsg GetClosest(const vector<HumanStateMsg> humans, int& index) {
   float best_dist = 9999;
+  index = -1;
+  int count = 0;
   HumanStateMsg best_human;
   best_human.pose.x = 9999;
   best_human.pose.y = 9999;
@@ -282,29 +291,24 @@ HumanStateMsg GetClosest(const vector<HumanStateMsg> humans) {
   best_human.translational_velocity.y = 0.0;
   for (HumanStateMsg human : humans) {
     const Vector2f h_pose(human.pose.x, human.pose.y);
-    const Vector2f diff = h_pose - pose_;
+    const Vector2f diff = h_pose;
     const float dist = diff.norm();
     if (dist < best_dist) {
       best_dist = dist;
       best_human = human;
+      index = count;
     }
+    count++;
   }
   return best_human;
 }
 
 void GetRelevantHumans(utmrsStepperResponse& req) {
   // Order is front_left, front, front_right
-  vector<HumanStateMsg> left;
-  vector<HumanStateMsg> front_left;
   vector<HumanStateMsg> front;
-  vector<HumanStateMsg> front_right;
-  vector<HumanStateMsg> right;
   // todo(jaholtz) Consider if we need to shrink or grow this margin.
-  const float kRobotLength = 0.5;
-  const float kLowerLeft = DegToRad(90.0);
-  const float kUpperLeft = DegToRad(15.0);
-  const float kLowerRight = DegToRad(270.0);
-  const float kUpperRight = DegToRad(345.0);
+  const float kLowerAngle = DegToRad(60.0);
+  const float kUpperAngle = DegToRad(300.0);
 
   // Assuming 1 robot
   pose_ = VecFromMsg(req.robot_poses[0]);
@@ -321,32 +325,26 @@ void GetRelevantHumans(utmrsStepperResponse& req) {
     human.translational_velocity.z = 0;
     human.rotational_velocity = vel.theta;
     const Vector2f h_pose(pose.x, pose.y);
-    const Vector2f diff = h_pose - pose_;
-    Eigen::Rotation2Df rot(-theta_);
-    const Vector2f transformed = rot * diff;
-    const float angle = math_util::AngleMod(Angle(diff) - theta_);
-    if (transformed.x() > kRobotLength) {
-      if (angle < kLowerLeft && angle > kUpperLeft) {
-        front_left.push_back(human);
-      } else if (angle > kLowerRight && angle < kUpperRight) {
-        front_right.push_back(human);
-      } else if (angle < kUpperLeft || angle > kUpperRight) {
+    if (h_pose.norm() < geometry::kEpsilon) continue;
+    const float angle = fabs(Angle(h_pose));
+    cout << "Angle: " << angle << endl;
+    if (h_pose.x() > 0) {
+      if (angle < kLowerAngle || angle > kUpperAngle) {
         front.push_back(human);
-      }
-    } else if (transformed.x() > 0) {
-      if (angle < kLowerLeft && angle > kUpperLeft) {
-        left.push_back(human);
-      } else if (angle > kLowerRight && angle < kUpperRight) {
-        right.push_back(human);
       }
     }
   }
 
-  front_left_ = GetClosest(front_left);
-  front_ = GetClosest(front);
-  front_right_ = GetClosest(front_right);
-  left_ = GetClosest(left);
-  right_ = GetClosest(right);
+  int index = -1;
+  front_ = GetClosest(front, index);
+  if (index > -1) {
+    front.erase(front.begin() + index);
+  }
+  front_left_ = GetClosest(front, index);
+  if (index > -1) {
+    front.erase(front.begin() + index);
+  }
+  front_right_ = GetClosest(front, index);
 }
 
 void Run() {
@@ -369,9 +367,11 @@ void Run() {
 
     // Turn Observation into a demonstration
     GetRelevantHumans(res);
+    const auto robot_vel = res.robot_vels[0];
+    vel_ = Vector2f(robot_vel.x, robot_vel.y);
+
     // Convert the req to the appropriate form of a demo
     const Example example = MakeDemo(res);
-
 }
 
 void WriteDemos() {

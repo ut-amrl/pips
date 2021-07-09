@@ -106,7 +106,9 @@ json GetHumanJson(const SocialPipsSrv::Request& req) {
     return humans;
 }
 
-HumanStateMsg GetClosest(const vector<HumanStateMsg>& humans) {
+HumanStateMsg GetClosest(const vector<HumanStateMsg>& humans, int& index) {
+  index = -1;
+  int counter = 0;
   float best_dist = 9999;
   HumanStateMsg best_human;
   best_human.pose.x = 9999;
@@ -120,26 +122,22 @@ HumanStateMsg GetClosest(const vector<HumanStateMsg>& humans) {
     if (dist < best_dist) {
       best_dist = dist;
       best_human = human;
+      index = counter;
     }
   }
+  counter++;
   return best_human;
 }
 
 void GetRelevantHumans(const SocialPipsSrv::Request& req,
-                       HumanStateMsg* front_human,
-                       HumanStateMsg* front_l,
-                       HumanStateMsg* front_r) {
-  // Order is front_left, front, front_right
-  vector<HumanStateMsg> left;
-  vector<HumanStateMsg> front_left;
-  vector<HumanStateMsg> front; vector<HumanStateMsg> front_right;
-  vector<HumanStateMsg> right;
+                       HumanStateMsg* human_a,
+                       HumanStateMsg* human_b,
+                       HumanStateMsg* human_c) {
 
-  const float kRobotLength = 0.5;
-  const float kLowerLeft = DegToRad(90.0);
-  const float kUpperLeft = DegToRad(15.0);
-  const float kLowerRight = DegToRad(270.0);
-  const float kUpperRight = DegToRad(345.0);
+  vector<HumanStateMsg> front;
+
+  const float kLowerAngle = DegToRad(60.0);
+  const float kUpperAngle = DegToRad(300.0);
 
   // Assuming 1 robot
   for (size_t i = 0; i < req.human_poses.size(); ++i) {
@@ -154,29 +152,25 @@ void GetRelevantHumans(const SocialPipsSrv::Request& req,
     human.translational_velocity.y = vel.y;
     human.translational_velocity.z = 0;
     human.rotational_velocity = vel.theta;
-    const Vector2f h_pose(pose.x, pose.y);
+    Vector2f h_pose(pose.x, pose.y);
     if (h_pose.norm() < geometry::kEpsilon) continue;
     const float angle = Angle(h_pose);
-    if (h_pose.x() > kRobotLength) {
-      if (angle < kLowerLeft && angle > kUpperLeft) {
-        front_left.push_back(human);
-      } else if (angle > kLowerRight && angle < kUpperRight) {
-        front_right.push_back(human);
-      } else if (angle < kUpperLeft || angle > kUpperRight) {
+    if (h_pose.x() > 0) {
+      if (angle < kLowerAngle || angle > kUpperAngle) {
         front.push_back(human);
-      }
-    } else if (h_pose.x() > 0) {
-      if (angle < kLowerLeft && angle > kUpperLeft) {
-        left.push_back(human);
-      } else if (angle > kLowerRight && angle < kUpperRight) {
-        right.push_back(human);
       }
     }
   }
-
-  *front_l = GetClosest(front_left);
-  *front_human = GetClosest(front);
-  *front_r = GetClosest(front_right);
+  int index = -1;
+  *human_a = GetClosest(front, index);
+  if (index > -1) {
+    front.erase(front.begin() + index);
+  }
+  *human_b = GetClosest(front, index);
+  if (index > -1) {
+    front.erase(front.begin() + index);
+  }
+  *human_c = GetClosest(front, index);
 }
 
 void WriteDemos(const vector<json>& demos, const string& output_name) {
@@ -263,31 +257,38 @@ json DemoFromRequest(const SocialPipsSrv::Request& req,
   const Vector2f robot_pose = VecFromMsg(req.robot_poses[0]);
   demo["goal"] = MakeEntry("goal",
       ToRobotFrameP(goal_pose, robot_pose, robot_theta), {1, 0, 0});
+  const auto robot_vel = req.robot_vels[0];
+  const Vector2f vel = Vector2f(robot_vel.x, robot_vel.y);
+  demo["robot_vel"] = MakeEntry("robot_vel", vel, {1, -1, 0});
 
   // Special Humans
-  HumanStateMsg front, left, right;
-  GetRelevantHumans(req, &front, &left, &right);
-  demo["front_p"] =
-      MakeEntry("front_p",
-          {front.pose.x, front.pose.y}, {1, 0, 0});
-  demo["front_v"] = MakeEntry("front_v",
-      {front.translational_velocity.x,
-      front.translational_velocity.y},
+  HumanStateMsg a, b, c;
+  GetRelevantHumans(req, &a, &b, &c);
+  demo["humanA_p"] =
+      MakeEntry("humanA_p",
+          {a.pose.x, a.pose.y}, {1, 0, 0});
+  demo["humanA_v"] = MakeEntry("humanA_v",
+      {a.translational_velocity.x,
+       a.translational_velocity.y},
       {1, -1, 0});
-  demo["fLeft_p"] =
-      MakeEntry("fLeft_p",
-          {left.pose.x, left.pose.y}, {1, 0, 0});
-  demo["fLeft_v"] = MakeEntry("fLeft_v",
-      {left.translational_velocity.x,
-       left.translational_velocity.y},
+  demo["humanB_p"] =
+      MakeEntry("humanB_p",
+          {b.pose.x, b.pose.y}, {1, 0, 0});
+  demo["humanB_v"] = MakeEntry("humanB_v",
+      {b.translational_velocity.x,
+       b.translational_velocity.y},
       {1, -1, 0});
-  demo["fRight_p"] =
-      MakeEntry("fRight_p",
-          {right.pose.x, right.pose.y}, {1, 0, 0});
-  demo["fRight_v"] = MakeEntry("fRight_v",
-      {right.translational_velocity.x,
-       right.translational_velocity.y},
+  demo["humanC_p"] =
+      MakeEntry("humanC_p",
+          {c.pose.x, c.pose.y}, {1, 0, 0});
+  demo["humanC_v"] = MakeEntry("humanC_v",
+      {c.translational_velocity.x,
+       c.translational_velocity.y},
       {1, -1, 0});
+  // cout << demo["humanA_v"] << endl;
+  cout << demo["humanA_p"] << endl;
+  cout << demo["humanB_p"] << endl;
+  cout << demo["humanC_p"] << endl;
 
   // All Humans in a vector
   demo["human_states"] = GetHumanJson(req);

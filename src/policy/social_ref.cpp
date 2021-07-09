@@ -30,6 +30,7 @@
 #include <iomanip>
 #include <iostream>
 
+#include "social_lib.h"
 #include "ast/ast.hpp"
 #include "ast/parsing.hpp"
 #include "amrl_msgs/Pose2Df.h"
@@ -106,11 +107,9 @@ Vector2f vel_(0, 0);
 Vector2f goal_pose_(3.98, 8.855);
 vector<HumanStateMsg> human_states_ = {};
 vector<Pose2Df> human_poses_;
-HumanStateMsg front_;
-HumanStateMsg front_left_;
-HumanStateMsg front_right_;
-HumanStateMsg left_;
-HumanStateMsg right_;
+HumanStateMsg human_a_;
+HumanStateMsg human_b_;
+HumanStateMsg human_c_;
 vector<json> demos_ = {};
 
 // Publishers
@@ -231,61 +230,6 @@ HumanStateMsg GetClosest(const vector<HumanStateMsg> humans) {
   return best_human;
 }
 
-void GetRelevantHumans(SocialPipsSrv::Request &req) {
-  // Order is front_left, front, front_right
-  vector<HumanStateMsg> left;
-  vector<HumanStateMsg> front_left;
-  vector<HumanStateMsg> front; vector<HumanStateMsg> front_right;
-  vector<HumanStateMsg> right;
-  // todo(jaholtz) Consider if we need to shrink or grow this margin.
-  const float kRobotLength = 0.5;
-  const float kLowerLeft = DegToRad(90.0);
-  const float kUpperLeft = DegToRad(15.0);
-  const float kLowerRight = DegToRad(270.0);
-  const float kUpperRight = DegToRad(345.0);
-
-  // Assuming 1 robot
-  pose_ = VecFromMsg(req.robot_poses[0]);
-  for (size_t i = 0; i < req.human_poses.size(); ++i) {
-    const amrl_msgs::Pose2Df pose = req.human_poses[i];
-    const amrl_msgs::Pose2Df vel = req.human_vels[i];
-    HumanStateMsg human;
-    human.id = i;
-    human.pose.x = pose.x;
-    human.pose.y = pose.y;
-    human.pose.theta = pose.theta;
-    human.translational_velocity.x = vel.x;
-    human.translational_velocity.y = vel.y;
-    human.translational_velocity.z = 0;
-    human.rotational_velocity = vel.theta;
-    const Vector2f h_pose(pose.x, pose.y);
-    const Vector2f transformed = h_pose;
-    if (transformed.norm() < geometry::kEpsilon) continue;
-    const float angle = math_util::AngleMod(Angle(transformed) - theta_);
-    if (transformed.x() > kRobotLength) {
-      if (angle < kLowerLeft && angle > kUpperLeft) {
-        front_left.push_back(human);
-      } else if (angle > kLowerRight && angle < kUpperRight) {
-        front_right.push_back(human);
-      } else if (angle < kUpperLeft || angle > kUpperRight) {
-        front.push_back(human);
-      }
-    } else if (transformed.x() > 0) {
-      if (angle < kLowerLeft && angle > kUpperLeft) {
-        left.push_back(human);
-      } else if (angle > kLowerRight && angle < kUpperRight) {
-        right.push_back(human);
-      }
-    }
-  }
-
-  front_left_ = GetClosest(front_left);
-  front_ = GetClosest(front);
-  front_right_ = GetClosest(front_right);
-  left_ = GetClosest(left);
-  right_ = GetClosest(right);
-}
-
 void WriteDemos() {
   ofstream output_file;
   const string output_name = "social_ref.json";
@@ -350,7 +294,7 @@ bool ShouldGoAlone() {
 
 bool ShouldFollow() {
   // If the closest robot is moving in the right direction, follow it.
-  const HumanStateMsg target = front_;
+  const HumanStateMsg target = human_a_;
   Vector2f closest_vel(target.translational_velocity.x,
                        target.translational_velocity.y);
   // Simply add the magnitude to relative velocity (may want to follow a
@@ -378,67 +322,8 @@ string Transition() {
   return "Halt";
 }
 
-json DemoFromRequest(const SocialPipsSrv::Request& req) {
-  json demo;
-
-  // Input and output states
-  string state = "GoAlone";
-  if (req.robot_state == 1) {
-    state = "Halt";
-  } else if (req.robot_state == 2) {
-    state = "Follow";
-  } else if (req.robot_state == 3) {
-    state = "Pass";
-  }
-  demo["start"] = MakeEntry("start", state);
-  demo["output"] = MakeEntry("output", state_);
-  last_state_ = state;
-
-  demo["door_state"] = MakeEntry("DoorState", req.door_state, {0, 0, 0});
-  demo["door_pose"] = MakeEntry("DoorPose",
-     {req.door_pose.x, req.door_pose.y}, {1, 0, 0});
-
-  local_target_ = VecFromMsg(req.local_target);
-  demo["target"] = MakeEntry("target",
-      local_target_, {1, 0, 0});
-  demo["robot_vel"] = MakeEntry("robot_vel", vel_, {1, -1, 0});
-
-  goal_pose_ = VecFromMsg(req.goal_pose);
-  demo["goal"] = MakeEntry("goal",
-      ToRobotFrameP(goal_pose_), {1, 0, 0});
-
-  // Special Humans
-  demo["front_p"] =
-      MakeEntry("front_p",
-          {front_.pose.x, front_.pose.y}, {1, 0, 0});
-  demo["front_v"] = MakeEntry("front_v",
-      {front_.translational_velocity.x,
-      front_.translational_velocity.y},
-      {1, -1, 0});
-  demo["fLeft_p"] =
-      MakeEntry("fLeft_p",
-          {front_left_.pose.x, front_left_.pose.y}, {1, 0, 0});
-  demo["fLeft_v"] = MakeEntry("fLeft_v",
-      {front_left_.translational_velocity.x,
-      front_left_.translational_velocity.y},
-      {1, -1, 0});
-  demo["fRight_p"] =
-      MakeEntry("fRight_p",
-          {front_right_.pose.x, front_right_.pose.y}, {1, 0, 0});
-  demo["fRight_v"] = MakeEntry("fRight_v",
-      {front_right_.translational_velocity.x,
-      front_right_.translational_velocity.y},
-      {1, -1, 0});
-
-  // All Humans in a vector
-  demo["human_states"] = GetHumanJson(req);
-  return demo;
-}
-
-json MakeDemo(const SocialPipsSrv::Request& req) {
-  Example example;
-  json demo = DemoFromRequest(req);
-  return demo;
+Example MakeDemo(const json& demo) {
+  return JsonToExample(demo);
 }
 
 bool ActionRequestCb(SocialPipsSrv::Request &req,
@@ -447,15 +332,35 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
     res.action = 0;
     return true;
   }
-  // Get Relevant Humans
-  GetRelevantHumans(req);
-  const auto robot_vel = req.robot_vels[0];
-  vel_ = Vector2f(robot_vel.x, robot_vel.y);
 
   // Convert the req to the appropriate form of a demo
-  // Transition based on the demo
-  json example = MakeDemo(req);
-  state_ = Transition();
+  social_lib::GetRelevantHumans(req, &human_a_, &human_b_, &human_c_);
+  const auto robot_vel = req.robot_vels[0];
+  vel_ = Vector2f(robot_vel.x, robot_vel.y);
+  GetHumanJson(req);
+  const json demo = social_lib::DemoFromRequest(req, state_);
+  const Example example = MakeDemo(demo);
+  demos_.push_back(demo);
+
+  local_target_ = VecFromMsg(req.local_target);
+  goal_pose_ = VecFromMsg(req.goal_pose);
+  // This check is to guarantee running default behavior if no humans
+  // are visible.
+  if (req.human_poses.size() > 0) {
+    // Transition based on the demo
+    state_ = Transition();
+  } else {
+    state_ = "GoAlone";
+    if (state_ != last_state_) {
+      cout << "Action: " << "No Humans -> Using Default Nav" << endl;
+    }
+  }
+  if (state_ != last_state_) {
+    cout << "Action: " << state_ << endl;
+  }
+  last_state_ = state_;
+
+  // Convert State to Number
   int state = 0;
   if (state_ == "Halt") {
     state = 1;
@@ -464,8 +369,7 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   } else if (state_ == "Pass") {
     state = 3;
   }
-  example = MakeDemo(req);
-  demos_.push_back(example);
+
   res.action = state;
   return true;
 }

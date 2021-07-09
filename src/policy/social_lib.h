@@ -19,6 +19,7 @@
 //========================================================================
 //
 #include <dlfcn.h>
+#include <nlohmann/json.hpp>
 #include <string.h>
 #include <stdlib.h>
 #include <vector>
@@ -35,8 +36,6 @@
 #include "amrl_shared_lib/math/math_util.h"
 
 #include "eigen3/Eigen/Dense"
-
-#include <nlohmann/json.hpp>
 
 
 #ifndef SOCIAL_NAVIGATION_H
@@ -61,9 +60,9 @@ amrl_msgs::HumanStateMsg GetClosest(
       const std::vector<amrl_msgs::HumanStateMsg>& humans);
 
 void GetRelevantHumans(const amrl_msgs::SocialPipsSrv::Request& req,
-                       amrl_msgs::HumanStateMsg* front_human,
-                       amrl_msgs::HumanStateMsg* front_l,
-                       amrl_msgs::HumanStateMsg* front_r);
+                       amrl_msgs::HumanStateMsg* human_a,
+                       amrl_msgs::HumanStateMsg* human_b,
+                       amrl_msgs::HumanStateMsg* human_c);
 
 void WriteDemos(const std::vector<nlohmann::json>& demos,
                 const std::string& output_name);

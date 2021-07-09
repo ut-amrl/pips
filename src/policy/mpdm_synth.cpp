@@ -540,9 +540,9 @@ vector<HumanStateMsg> GetRelevantHumans() {
   for (HumanStateMsg human : human_states_) {
     const Vector2f h_pose(human.pose.x, human.pose.y);
     // Transform the pose to robot reference frame
-    const Vector2f diff = h_pose - pose_;
+    const Vector2f diff = h_pose;
     Eigen::Rotation2Df rot(-theta_);
-    const Vector2f transformed = rot * diff;
+    const Vector2f transformed = diff;
     const float angle = math_util::AngleMod(Angle(diff) - theta_);
     if (transformed.x() > kRobotLength) {
       if (angle < kLowerLeft && angle > kUpperLeft) {
