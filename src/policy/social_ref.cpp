@@ -244,7 +244,7 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   float kRobotLength = 1.0;
   float kRearAxleOffset = 0.0;
-  float kObstacleMargin = 0.2;
+  float kObstacleMargin = 0.4;
   float kRobotWidth = 0.44;
 
   if (false) {

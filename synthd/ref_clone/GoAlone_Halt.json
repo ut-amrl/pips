@@ -23,28 +23,50 @@
             "value": {
                 "dim": [
                     1,
-                    0,
+                    -1,
                     0
                 ],
                 "input": {
                     "dim": [
                         1,
-                        0,
+                        -1,
                         0
                     ],
-                    "name": "fRight_p",
-                    "node": "Var",
+                    "left": {
+                        "dim": [
+                            1,
+                            -1,
+                            0
+                        ],
+                        "name": "humanA_v",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
+                    "node": "BinOp",
+                    "op": "Plus",
+                    "right": {
+                        "dim": [
+                            1,
+                            -1,
+                            0
+                        ],
+                        "name": "humanA_v",
+                        "node": "Var",
+                        "symbolic": false,
+                        "type": 3
+                    },
                     "symbolic": false,
-                    "type": 3
+                    "type": 4
                 },
                 "node": "UnOp",
-                "op": "StraightFreePathLength",
+                "op": "Norm",
                 "symbolic": false,
                 "type": 4
             }
         },
         "node": "BinOp",
-        "op": "<",
+        "op": ">",
         "right": {
             "dim": [
                 0,
@@ -64,7 +86,7 @@
                 "node": "Num",
                 "symbolic": false,
                 "type": 2,
-                "value": 1.5000065565109253
+                "value": 2.935476541519165
             }
         },
         "symbolic": false,
@@ -91,22 +113,22 @@
             "value": {
                 "dim": [
                     1,
-                    -1,
+                    0,
                     0
                 ],
                 "input": {
                     "dim": [
                         1,
-                        -1,
+                        0,
                         0
                     ],
-                    "name": "front_v",
+                    "name": "target",
                     "node": "Var",
                     "symbolic": false,
                     "type": 3
                 },
                 "node": "UnOp",
-                "op": "VecX",
+                "op": "StraightFreePathLength",
                 "symbolic": false,
                 "type": 4
             }
@@ -132,7 +154,7 @@
                 "node": "Num",
                 "symbolic": false,
                 "type": 2,
-                "value": 0.2127709984779358
+                "value": 1.5136204957962036
             }
         },
         "symbolic": false,

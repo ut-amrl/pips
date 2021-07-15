@@ -22,6 +22,74 @@
             "type": 2,
             "value": {
                 "dim": [
+                    1,
+                    -1,
+                    0
+                ],
+                "input": {
+                    "dim": [
+                        1,
+                        -1,
+                        0
+                    ],
+                    "name": "humanA_v",
+                    "node": "Var",
+                    "symbolic": false,
+                    "type": 3
+                },
+                "node": "UnOp",
+                "op": "Norm",
+                "symbolic": false,
+                "type": 4
+            }
+        },
+        "node": "BinOp",
+        "op": ">",
+        "right": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "pX2",
+            "node": "Param",
+            "symbolic": true,
+            "type": 2,
+            "value": {
+                "dim": [
+                    0,
+                    0,
+                    0
+                ],
+                "node": "Num",
+                "symbolic": false,
+                "type": 2,
+                "value": 0.008578499779105186
+            }
+        },
+        "symbolic": false,
+        "type": 4
+    },
+    "node": "BinOp",
+    "op": "&&",
+    "right": {
+        "dim": [
+            0,
+            0,
+            0
+        ],
+        "left": {
+            "dim": [
+                0,
+                0,
+                0
+            ],
+            "name": "fX1",
+            "node": "Feature",
+            "symbolic": false,
+            "type": 2,
+            "value": {
+                "dim": [
                     0,
                     0,
                     0
@@ -62,7 +130,7 @@
                             -1,
                             0
                         ],
-                        "name": "front_v",
+                        "name": "humanA_v",
                         "node": "Var",
                         "symbolic": false,
                         "type": 3
@@ -72,74 +140,6 @@
                     "symbolic": false,
                     "type": 4
                 },
-                "symbolic": false,
-                "type": 4
-            }
-        },
-        "node": "BinOp",
-        "op": "<",
-        "right": {
-            "dim": [
-                0,
-                0,
-                0
-            ],
-            "name": "pX2",
-            "node": "Param",
-            "symbolic": true,
-            "type": 2,
-            "value": {
-                "dim": [
-                    0,
-                    0,
-                    0
-                ],
-                "node": "Num",
-                "symbolic": false,
-                "type": 2,
-                "value": 0.4995175004005432
-            }
-        },
-        "symbolic": false,
-        "type": 4
-    },
-    "node": "BinOp",
-    "op": "&&",
-    "right": {
-        "dim": [
-            0,
-            0,
-            0
-        ],
-        "left": {
-            "dim": [
-                0,
-                0,
-                0
-            ],
-            "name": "fX1",
-            "node": "Feature",
-            "symbolic": false,
-            "type": 2,
-            "value": {
-                "dim": [
-                    1,
-                    0,
-                    0
-                ],
-                "input": {
-                    "dim": [
-                        1,
-                        0,
-                        0
-                    ],
-                    "name": "front_p",
-                    "node": "Var",
-                    "symbolic": false,
-                    "type": 3
-                },
-                "node": "UnOp",
-                "op": "StraightFreePathLength",
                 "symbolic": false,
                 "type": 4
             }
@@ -165,7 +165,7 @@
                 "node": "Num",
                 "symbolic": false,
                 "type": 2,
-                "value": 1.4985250234603882
+                "value": 0.4982064962387085
             }
         },
         "symbolic": false,

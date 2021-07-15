@@ -188,7 +188,7 @@ float StraightFreePathLength(const Vector2f& start,
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   float kRobotLength = 1.0;
   float kRearAxleOffset = 0.0;
-  float kObstacleMargin = 0.2;
+  float kObstacleMargin = 0.4;
   float kRobotWidth = 0.44;
 
   // How much the robot's body extends in front of its base link frame.
@@ -286,9 +286,9 @@ json DemoFromRequest(const SocialPipsSrv::Request& req,
        c.translational_velocity.y},
       {1, -1, 0});
   // cout << demo["humanA_v"] << endl;
-  cout << demo["humanA_p"] << endl;
-  cout << demo["humanB_p"] << endl;
-  cout << demo["humanC_p"] << endl;
+  // cout << demo["humanA_p"] << endl;
+  // cout << demo["humanB_p"] << endl;
+  // cout << demo["humanC_p"] << endl;
 
   // All Humans in a vector
   demo["human_states"] = GetHumanJson(req);
