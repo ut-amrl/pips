@@ -306,8 +306,8 @@ bool ShouldFollow() {
   const float goal_angle = Angle(path);
   const float closest_angle = Angle(closest_vel);
 
-  if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.5 && distance.norm() > 0.1
-      && closest_vel.norm() > 0.1) {
+  if (fabs(AngleDiff(goal_angle, closest_angle)) <=0.8 && distance.norm() > 0.1
+      && closest_vel.norm() > 0.0) {
     return true;
   }
   return false;

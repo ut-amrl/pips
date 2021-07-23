@@ -230,7 +230,6 @@ json DemoFromRequest(const utmrsStepperResponse& req) {
       {req.door_pose.x, req.door_pose.y}, {1, 0, 0});
 
   local_target_ = VecFromMsg(req.local_target);
-  cout << "Robot Pose: " << pose_.x() << ", " << pose_.y() << endl;
   demo["target"] = MakeEntry("target",
       local_target_, {1, 0, 0});
   demo["robot_vel"] = MakeEntry("robot_vel", vel_, {1, -1, 0});
@@ -262,10 +261,10 @@ json DemoFromRequest(const utmrsStepperResponse& req) {
       {front_right_.translational_velocity.x,
       front_right_.translational_velocity.y},
       {1, -1, 0});
-  cout << demo["humanA_v"] << endl;
-  cout << demo["humanA_p"] << endl;
-  cout << demo["humanB_v"] << endl;
-  cout << demo["humanB_p"] << endl;
+  // cout << demo["humanA_v"] << endl;
+  // cout << demo["humanA_p"] << endl;
+  // cout << demo["humanB_v"] << endl;
+  // cout << demo["humanB_p"] << endl;
   // cout << demo["humanC_p"] << endl;
 
   // All Humans in a vector
@@ -327,7 +326,6 @@ void GetRelevantHumans(utmrsStepperResponse& req) {
     const Vector2f h_pose(pose.x, pose.y);
     if (h_pose.norm() < geometry::kEpsilon) continue;
     const float angle = fabs(Angle(h_pose));
-    cout << "Angle: " << angle << endl;
     if (h_pose.x() > 0) {
       if (angle < kLowerAngle || angle > kUpperAngle) {
         front.push_back(human);
@@ -348,8 +346,6 @@ void GetRelevantHumans(utmrsStepperResponse& req) {
 }
 
 void Run() {
-    cout << "Running Demo Recorder" << endl;
-    cout << "State: " << state_ << endl;
     // Convert State to Action
     int action = 0;
     if (state_ == "Halt") {
