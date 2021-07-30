@@ -108,7 +108,7 @@ string Transition(const Example& example) {
       } else if (trans.first == "Pass" && trans.second == "Follow") {
         pred = pass_to_follow;
       }
-      cout << pred << endl;
+      // cout << pred << endl;
       if (InterpretBool(pred, example)) {
         // cout << "True" << endl;
         return trans.second;
@@ -193,6 +193,12 @@ int main(int argc, char** argv) {
   pass_to_follow = LoadJson(FLAGS_ast_path + "Pass_Follow.json");
   pass_to_pass = LoadJson(FLAGS_ast_path + "Pass_Pass.json");
   pass_to_halt = LoadJson(FLAGS_ast_path + "Pass_Halt.json");
+  cout << ga_to_follow << endl;
+  cout << ga_to_halt << endl;
+  cout << follow_to_ga << endl;
+  cout << follow_to_halt << endl;
+  cout << halt_to_follow << endl;
+  cout << halt_to_ga << endl;
 
   // Initialize ROS.
   ros::init(argc, argv, "social_interp");
