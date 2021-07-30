@@ -1,8 +1,13 @@
-# cpp-pips
+# PIPS
 
 Physics Informed Program Synthesis
  
+## Related Publications
+[SRTR](https://arxiv.org/pdf/1802.01706.pdf) Jarrett Holtz, Arjun Guha, and Joydeep Biswas. Interactive robot transition repair with SMT. IJCAI. 2018.
 
+[PIPS](https://arxiv.org/pdf/2008.04133.pdf) Jarrett Holtz, Arjun Guha, and Joydeep Biwas. Robot Action Selection Learning via Layered Dimension Informed Program Synthesis. CORL. 2020.
+
+[IDIPS](https://arxiv.org/pdf/2103.04880.pdf) Jarrett Holtz, Simon Andrews, Arjun Guha, and Joydeep Biswas. Iterative Program Synthesis for Adaptable Social Navigation. IROS. 2021. 
 ## Make a Docker image (recommended)
 
 1. Install [Docker](https://www.docker.com/get-started)
