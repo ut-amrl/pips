@@ -1,6 +1,6 @@
+Follow GoAlone
+GoAlone Follow
 Halt Follow
 Follow Halt
-Follow GoAlone
 GoAlone Halt
-GoAlone Follow
 Halt GoAlone

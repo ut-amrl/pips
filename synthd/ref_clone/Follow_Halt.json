@@ -10,188 +10,78 @@
             0,
             0
         ],
-        "left": {
+        "name": "fX1",
+        "node": "Feature",
+        "symbolic": false,
+        "type": 2,
+        "value": {
             "dim": [
-                0,
-                0,
+                1,
+                -1,
                 0
             ],
-            "name": "fX2",
-            "node": "Feature",
-            "symbolic": false,
-            "type": 2,
-            "value": {
+            "input": {
                 "dim": [
-                    0,
-                    0,
+                    1,
+                    -1,
                     0
                 ],
                 "left": {
                     "dim": [
-                        0,
-                        0,
+                        1,
+                        -1,
                         0
                     ],
-                    "input": {
-                        "dim": [
-                            1,
-                            0,
-                            0
-                        ],
-                        "name": "target",
-                        "node": "Var",
-                        "symbolic": false,
-                        "type": 3
-                    },
-                    "node": "UnOp",
-                    "op": "Angle",
+                    "name": "robot_vel",
+                    "node": "Var",
                     "symbolic": false,
-                    "type": 4
+                    "type": 3
                 },
                 "node": "BinOp",
-                "op": "AngleDist",
+                "op": "Plus",
                 "right": {
                     "dim": [
-                        0,
-                        0,
+                        1,
+                        -1,
                         0
                     ],
-                    "input": {
-                        "dim": [
-                            1,
-                            -1,
-                            0
-                        ],
-                        "name": "humanA_v",
-                        "node": "Var",
-                        "symbolic": false,
-                        "type": 3
-                    },
-                    "node": "UnOp",
-                    "op": "Angle",
+                    "name": "humanA_v",
+                    "node": "Var",
                     "symbolic": false,
-                    "type": 4
+                    "type": 3
                 },
                 "symbolic": false,
                 "type": 4
-            }
-        },
-        "node": "BinOp",
-        "op": ">",
-        "right": {
-            "dim": [
-                0,
-                0,
-                0
-            ],
-            "name": "pX2",
-            "node": "Param",
-            "symbolic": true,
-            "type": 2,
-            "value": {
-                "dim": [
-                    0,
-                    0,
-                    0
-                ],
-                "node": "Num",
-                "symbolic": false,
-                "type": 2,
-                "value": 0.5003489851951599
-            }
-        },
-        "symbolic": false,
-        "type": 4
+            },
+            "node": "UnOp",
+            "op": "VecX",
+            "symbolic": false,
+            "type": 4
+        }
     },
     "node": "BinOp",
-    "op": "&&",
+    "op": "<",
     "right": {
         "dim": [
             0,
             0,
             0
         ],
-        "left": {
+        "name": "pX1",
+        "node": "Param",
+        "symbolic": true,
+        "type": 2,
+        "value": {
             "dim": [
                 0,
                 0,
                 0
             ],
-            "name": "fX1",
-            "node": "Feature",
+            "node": "Num",
             "symbolic": false,
             "type": 2,
-            "value": {
-                "dim": [
-                    1,
-                    -1,
-                    0
-                ],
-                "input": {
-                    "dim": [
-                        1,
-                        -1,
-                        0
-                    ],
-                    "left": {
-                        "dim": [
-                            1,
-                            -1,
-                            0
-                        ],
-                        "name": "robot_vel",
-                        "node": "Var",
-                        "symbolic": false,
-                        "type": 3
-                    },
-                    "node": "BinOp",
-                    "op": "Plus",
-                    "right": {
-                        "dim": [
-                            1,
-                            -1,
-                            0
-                        ],
-                        "name": "robot_vel",
-                        "node": "Var",
-                        "symbolic": false,
-                        "type": 3
-                    },
-                    "symbolic": false,
-                    "type": 4
-                },
-                "node": "UnOp",
-                "op": "VecX",
-                "symbolic": false,
-                "type": 4
-            }
-        },
-        "node": "BinOp",
-        "op": "<",
-        "right": {
-            "dim": [
-                0,
-                0,
-                0
-            ],
-            "name": "pX1",
-            "node": "Param",
-            "symbolic": true,
-            "type": 2,
-            "value": {
-                "dim": [
-                    0,
-                    0,
-                    0
-                ],
-                "node": "Num",
-                "symbolic": false,
-                "type": 2,
-                "value": 0.25
-            }
-        },
-        "symbolic": false,
-        "type": 4
+            "value": 0.20299600064754486
+        }
     },
     "symbolic": false,
     "type": 4
