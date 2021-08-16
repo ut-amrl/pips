@@ -354,7 +354,7 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
   }
   const json demo = social_lib::DemoFromRequest(req, state_);
   const Example example = MakeDemo(demo);
-  demos_.push_back(demo);
+  // demos_.push_back(demo);
 
   local_target_ = VecFromMsg(req.local_target);
   goal_pose_ = VecFromMsg(req.goal_pose);
