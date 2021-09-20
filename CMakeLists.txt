@@ -133,4 +133,8 @@ IF(BUILD_WITH_ROS)
 	rosbuild_add_executable(social_ref src/policy/social_ref.cpp
 													src/policy/social_lib.cpp)
 	target_link_libraries(social_ref c++-pips-core)
+
+	rosbuild_add_executable(social_greed src/policy/greedy_ref.cpp
+													src/policy/social_lib.cpp)
+	target_link_libraries(social_greed c++-pips-core)
 ENDIF()

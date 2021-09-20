@@ -25,6 +25,31 @@
     ]
   },
   {
+    "op": "Plus",
+    "inputType": [
+      "VEC",
+      "VEC"
+    ],
+    "inputDim": [
+      [
+        1,
+        -1,
+        0
+      ],
+      [
+        1,
+        -1,
+        0
+      ]
+    ],
+    "outputType": "VEC",
+    "outputDim": [
+      1,
+      -1,
+      0
+    ]
+  },
+  {
     "op": "StraightFreePathLength",
     "inputType": [
       "VEC"

@@ -227,7 +227,9 @@ vector<Example> ReadExamples(const string& file,
   json examples;
   input >> examples;
   std::map<pair<string,string>, int> trans_count;
-  for (json example : examples) {
+  const float length = examples.size();
+  for (size_t i = 0; i < length / 2; ++i) {
+    const json example = examples[i];
     Example new_ex;
     map<string, SymEntry> table;
     for (json input : example) {
@@ -252,10 +254,10 @@ vector<Example> ReadExamples(const string& file,
     trans_count[trans] += 1;
     // transitions->insert(trans);
     output.push_back(new_ex);
-    if (example["start"]["value"] == "Halt" && example["output"]["value"] == "Follow") {
-        cout << "Example" << endl;
-        cout << new_ex.symbol_table_["target"] << endl;
-    }
+    // if (example["start"]["value"] == "Halt" && example["output"]["value"] == "Follow") {
+        // cout << "Example" << endl;
+        // cout << new_ex.symbol_table_["target"] << endl;
+    // }
   }
 
   // TODO(jaholtz) this is a mess, but it works for now.
@@ -336,6 +338,7 @@ vector<ast_ptr> LoadSketches(const string& dir,
   const string d1 = "_";
   const string d2 = ".json";
   for (const string& file : files) {
+    if (file == "transitions.txt") continue;
     const string filename = dir + file;
     output.push_back(LoadJson(filename));
     std::pair<string, string> branch;

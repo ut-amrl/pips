@@ -20,7 +20,7 @@
 // #include "sketches/sketches.hpp"
 
 DEFINE_string(ex_file, "", "Examples file");
-DEFINE_string(lib_file, "ops/social_test.json", "Operation library file");
+DEFINE_string(lib_file, "ops/social_ref.json", "Operation library file");
 DEFINE_string(output, "synthd/dipsl3/", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
@@ -86,6 +86,7 @@ int main(int argc, char* argv[]) {
   std::reverse(transitions.begin(), transitions.end());
 
   examples = WindowExamples(examples, FLAGS_window_size);
+  cout << "Number of Examples: " << examples.size() << endl;
 
   // Turning variables into roots
   vector<ast_ptr> inputs, roots;
@@ -95,6 +96,7 @@ int main(int argc, char* argv[]) {
       roots.push_back(make_shared<Var>(variable));
     }
   }
+  inputs = roots;
 
   cout << "----Roots----" << endl;
   for (auto& node : roots) {

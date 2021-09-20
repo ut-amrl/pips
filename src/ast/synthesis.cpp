@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <unordered_set>
 #include <queue>
+#include <z3++.h>
 
 #include "enumeration.hpp"
 #include "gflags/gflags_declare.h"
@@ -142,7 +143,12 @@ CumulativeFunctionTimer solve_smtlib("SolveSMTLIBProblem");
 Model SolveSMTLIBProblem(const string& problem) {
   CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
   z3::context context;
+  z3::params p(context);
+  p.set(":timeout", 200u);
+  // p.set(":smt.arith.solver", 3);
+  // p.set(":opt.wmaxsat_engine", );
   z3::optimize solver(context);
+  solver.set(p);
   solver.from_string(problem.c_str());
   z3::check_result result = solver.check();
   if (result == z3::sat) {
@@ -180,7 +186,7 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
     // important to check whether the example is in both sets because we could
     // have contradictory examples.
     if (yes.find(example) != yes.cend())
-      assertions.insert("(assert-soft " + smtlib + ")");
+      assertions.insert("(assert-soft " + smtlib + " :weight 10)");
     if (no.find(example) != no.cend())
       assertions.insert("(assert-soft (not " + smtlib + "))");
 
@@ -260,6 +266,7 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
 double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
     const unordered_set<Example>& neg, const bool srtr) {
   const string problem = MakeSMTLIBProblem(pos, neg, sketch, srtr);
+  // cout << problem << endl;
   try {
     const Model solution = SolveSMTLIBProblem(problem);
     if (solution.empty()) {
@@ -354,6 +361,7 @@ ast_ptr PredicateL2(
   if (FLAGS_debug) {
     cout << "PosE: " << yes.size() << " NegE: " <<  no.size() << endl;;
     cout << "Current Sketch: " << sketch << endl;
+    cout << "Num Examples: " << yes.size() + no.size() << endl;
   }
 
   // Start iterating through possible models. index_iterator is explained
@@ -383,18 +391,23 @@ ast_ptr PredicateL2(
 
       ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
       if (filled != nullptr) {
-        const double sat_ratio = PredicateL1(filled, yes, no, false);
-        #pragma omp critical
-        {
-          if (keep_searching && sat_ratio >= min_accuracy) {
-            keep_searching = false;
-            solution_cond = filled;
-            current_best = sat_ratio;
-          } else if (sat_ratio >= current_best) {
-            solution_cond = filled;
-            current_best = sat_ratio;
+          // cout << filled << endl;
+          #pragma omp critical
+          {
+          const double sat_ratio = PredicateL1(filled, yes, no, false);
+          // cout << filled << endl;
+          // cout << "Candidate: " << filled;
+          // cout << ", Score: " << sat_ratio << ", " << min_accuracy << endl;
+            if (keep_searching && (min_accuracy - sat_ratio) < 0.00001) {
+              cout << "Good answer" << endl;
+              keep_searching = false;
+              solution_cond = filled;
+              current_best = sat_ratio;
+            } else if (sat_ratio > current_best) {
+              solution_cond = filled;
+              current_best = sat_ratio;
+            }
           }
-        }
       }
     }
   } else {
@@ -461,6 +474,7 @@ void ldipsL3(const vector<Example>& demos,
     const string output_name =
       output_path + transition.first + "_" + transition.second + ".json";
     if (ExistsFile(output_name) || transition.first == transition.second) {
+      examples = FilterExamples(examples, transition);
       continue;
     }
     cout << "----- " << transition.first << "->";
