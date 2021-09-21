@@ -29,7 +29,6 @@
 #include "visitors/print_visitor.hpp"
 
 using amrl_msgs::Pose2Df;
-using amrl_msgs::NavigationConfigMsg;
 using Eigen::Vector2f;
 using nlohmann::json;
 using std::vector;

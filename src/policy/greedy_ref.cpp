@@ -36,11 +36,8 @@
 #include "amrl_msgs/Pose2Df.h"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
-#include "amrl_msgs/NavStatusMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
 #include "cobot_msgs/CobotLocalizationMsg.h"
 #include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "eigen3/Eigen/Dense"
@@ -58,7 +55,6 @@
 #include "visualization_msgs/Marker.h"
 
 using amrl_msgs::Pose2Df;
-using amrl_msgs::NavigationConfigMsg;
 using Eigen::Vector2f;
 using nlohmann::json;
 using std::vector;

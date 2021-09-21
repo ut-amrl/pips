@@ -25,7 +25,6 @@
 #include "policy/social_lib.h"
 
 using amrl_msgs::Pose2Df;
-using amrl_msgs::NavigationConfigMsg;
 using amrl_msgs::HumanStateMsg;
 using amrl_msgs::SocialPipsSrv;
 using Eigen::Vector2f;

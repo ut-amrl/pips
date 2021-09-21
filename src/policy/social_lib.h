@@ -24,11 +24,8 @@
 #include <stdlib.h>
 #include <vector>
 
-#include "amrl_msgs/NavStatusMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
 #include "amrl_msgs/SocialPipsSrv.h"
 #include "amrl_msgs/HumanStateMsg.h"
 
