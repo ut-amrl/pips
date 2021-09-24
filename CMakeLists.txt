@@ -66,6 +66,8 @@ set(CXX_PIPS_SRCS
 	src/visitors/fillhole_visitor.hpp
 	src/visitors/interp_visitor.cpp
 	src/visitors/interp_visitor.hpp
+	src/visitors/trace_visitor.cpp
+	src/visitors/trace_visitor.hpp
 	src/visitors/print_visitor.cpp
 	src/visitors/print_visitor.hpp
 	src/visitors/tosmtlib_visitor.cpp
@@ -86,6 +88,10 @@ target_link_libraries(c++-pips-core Eigen3::Eigen)
 target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
 target_link_libraries(c++-pips-core ${libs})
+
+# Add an executable for trace coverage
+add_executable(traceon src/traceon.cpp)
+target_link_libraries(traceon c++-pips-core)
 
 # Add an executable for ldips-l3
 add_executable(ldips-l3 src/ldips-l3.cpp)
@@ -121,14 +127,14 @@ IF(BUILD_WITH_ROS)
 													src/policy/social_lib.cpp)
 	target_link_libraries(social_interp c++-pips-core)
 
-	rosbuild_add_executable(social_demo
-													src/policy/social_demo.cpp
-													src/policy/social_lib.cpp)
-	target_link_libraries(social_demo c++-pips-core)
+	# rosbuild_add_executable(social_demo
+													# src/policy/social_demo.cpp
+													# src/policy/social_lib.cpp)
+	# target_link_libraries(social_demo c++-pips-core)
 
-	rosbuild_add_executable(mpdm_demo
-													src/policy/mpdm_demo.cpp)
-	target_link_libraries(mpdm_demo c++-pips-core)
+	# rosbuild_add_executable(mpdm_demo
+													# src/policy/mpdm_demo.cpp)
+	# target_link_libraries(mpdm_demo c++-pips-core)
 
 	rosbuild_add_executable(social_ref src/policy/social_ref.cpp
 													src/policy/social_lib.cpp)

@@ -1,17 +1,15 @@
 #pragma once
 
+#include <ostream>
+
 #include "ast/ast.hpp"
 
 namespace AST {
 
-ast_ptr Interpret(const ast_ptr& program);
-ast_ptr Interpret(const ast_ptr& program, const Example& example);
-bool InterpretBool(const ast_ptr& program, const Example& example);
+std::vector<bool> TraceOn(const ast_ptr& ast);
 
-class Interp : public Visitor {
+class Trace : public Visitor {
  public:
-  Interp();
-  Interp(const Example& world);
   ast_ptr Visit(AST* node);
   ast_ptr Visit(If* node);
   ast_ptr Visit(BinOp* node);
@@ -23,9 +21,10 @@ class Interp : public Visitor {
   ast_ptr Visit(UnOp* node);
   ast_ptr Visit(Var* node);
   ast_ptr Visit(Vec* node);
+  std::vector<bool> GetTrace() const;
 
  private:
-  Example world_;
+  std::vector<bool> trace_;
 };
 
 }  // namespace AST

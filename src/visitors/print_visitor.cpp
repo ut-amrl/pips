@@ -14,6 +14,20 @@ namespace AST {
 
 ast_ptr Print::Visit(AST* node) { return ast_ptr(node); }
 
+ast_ptr Print::Visit(If* node) {
+  depth_++;
+
+  program_ += "if ( ";
+  node->cond_->Accept(this);
+  program_ += ") {";
+  node->left_->Accept(this);
+  program_ += "} \n else {";
+  node->right_->Accept(this);
+  program_ += "} \n";
+
+  return make_shared<If>(*node);
+}
+
 ast_ptr Print::Visit(BinOp* node) {
   depth_++;
   std::string op = node->op_;
@@ -52,6 +66,12 @@ ast_ptr Print::Visit(Bool* node) {
   depth_++;
   program_ += (node->value_) ? "true" : "false";
   return make_shared<Bool>(*node);
+}
+
+ast_ptr Print::Visit(String* node) {
+  depth_++;
+  program_ += node->value_;
+  return make_shared<String>(*node);
 }
 
 ast_ptr Print::Visit(Feature* node) {
@@ -121,6 +141,13 @@ void Print::Display() {
   cout << program_;
   program_ = "";
   depth_ = 0;
+}
+
+void PrintAST(ast_ptr ast) {
+    Print printer;
+    ast->Accept(&printer);
+    printer.Display();
+    cout << endl;
 }
 
 }  // namespace AST

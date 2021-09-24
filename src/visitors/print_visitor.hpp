@@ -6,11 +6,15 @@
 
 namespace AST {
 
+
+
 class Print : public Visitor {
  public:
   ast_ptr Visit(AST* node);
+  ast_ptr Visit(If* node);
   ast_ptr Visit(BinOp* node);
   ast_ptr Visit(Bool* node);
+  ast_ptr Visit(String* node);
   ast_ptr Visit(Feature* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(Param* node);
@@ -24,6 +28,8 @@ class Print : public Visitor {
   std::string program_ = "";
   int depth_ = 0;
 };
+
+void PrintAST(ast_ptr ast);
 
 }  // namespace AST
 

@@ -83,10 +83,26 @@ class AST {
   const Dimension dims_;
   const Type type_;
   bool symbolic_;
+  bool visited_ = false;
 
  private:
 };
 typedef std::shared_ptr<AST> ast_ptr;
+
+class If : public AST {
+ public:
+  If(ast_ptr left, ast_ptr right, ast_ptr cond);
+  ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
+  ast_ptr left_;
+  ast_ptr right_;
+  ast_ptr cond_;
+  Type type_ = NODE;
+
+ private:
+};
+typedef std::shared_ptr<If> if_ptr;
 
 class BinOp : public AST {
  public:
@@ -116,6 +132,18 @@ class Bool : public AST {
  private:
 };
 typedef std::shared_ptr<Bool> bool_ptr;
+
+class String : public AST {
+ public:
+  String(const std::string& value);
+  ast_ptr Accept(class Visitor* v);
+  nlohmann::json ToJson();
+  ast_ptr FromJson(const nlohmann::json&);
+  const std::string value_;
+
+ private:
+};
+typedef std::shared_ptr<String> string_ptr;
 
 class Feature : public AST {
  public:
@@ -201,7 +229,9 @@ class Visitor {
  public:
   virtual ast_ptr Visit(AST* node) = 0;
   virtual ast_ptr Visit(BinOp* node) = 0;
+  virtual ast_ptr Visit(If* node) = 0;
   virtual ast_ptr Visit(Bool* node) = 0;
+  virtual ast_ptr Visit(String* node) = 0;
   virtual ast_ptr Visit(Feature* node) = 0;
   virtual ast_ptr Visit(Num* node) = 0;
   virtual ast_ptr Visit(Param* node) = 0;

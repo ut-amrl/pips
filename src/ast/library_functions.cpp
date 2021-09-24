@@ -9,6 +9,7 @@
 #include <vector>
 #include "amrl_shared_lib/math/geometry.h"
 #include "amrl_shared_lib/math/math_util.h"
+#include "visitors/interp_visitor.hpp"
 
 #include "ast.hpp"
 
@@ -168,7 +169,6 @@ ast_ptr DividedBy(ast_ptr left, ast_ptr right) {
 
 ast_ptr Abs(ast_ptr operand) {
   ASSERT_TYPE(operand, Type::NUM);
-
   num_ptr operand_cast = dynamic_pointer_cast<Num>(operand);
   Num result(abs(operand_cast->value_), operand->dims_);
   return make_shared<Num>(result);
@@ -305,6 +305,10 @@ ast_ptr And(ast_ptr P, ast_ptr Q) {
 
   bool_ptr P_cast = dynamic_pointer_cast<Bool>(P);
   bool_ptr Q_cast = dynamic_pointer_cast<Bool>(Q);
+  P->visited_ = true;
+  if (P_cast->value_ == true) {
+    Q->visited_ = true;
+  }
   Bool result(P_cast->value_ && Q_cast->value_);
   return make_shared<Bool>(result);
 }
@@ -315,6 +319,10 @@ ast_ptr Or(ast_ptr P, ast_ptr Q) {
 
   bool_ptr P_cast = dynamic_pointer_cast<Bool>(P);
   bool_ptr Q_cast = dynamic_pointer_cast<Bool>(Q);
+  P->visited_ = true;
+  if (P_cast->value_ != true) {
+    Q->visited_ = true;
+  }
   Bool result(P_cast->value_ || Q_cast->value_);
   return make_shared<Bool>(result);
 }
@@ -328,13 +336,22 @@ ast_ptr Not(ast_ptr P) {
 }
 
 ast_ptr Eq(ast_ptr x, ast_ptr y) {
-  ASSERT_TYPE(x, Type::NUM);
-  ASSERT_TYPE(y, Type::NUM);
-
-  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
-  num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ == y_cast->value_);
-  return make_shared<Bool>(result);
+  if (x->type_ == Type::STATE) {
+    ASSERT_TYPE(x, Type::STATE);
+    ASSERT_TYPE(y, Type::STATE);
+    AST::string_ptr x_cast = dynamic_pointer_cast<AST::String>(x);
+    AST::string_ptr y_cast = dynamic_pointer_cast<AST::String>(y);
+    Bool result(x_cast->value_ == y_cast->value_);
+    return make_shared<Bool>(result);
+  } else if (x->type_ == Type::NUM) {
+    ASSERT_TYPE(x, Type::NUM);
+    ASSERT_TYPE(y, Type::NUM);
+    AST::string_ptr x_cast = dynamic_pointer_cast<AST::String>(x);
+    AST::string_ptr y_cast = dynamic_pointer_cast<AST::String>(y);
+    Bool result(x_cast->value_ == y_cast->value_);
+    return make_shared<Bool>(result);
+  }
+  return make_shared<Bool>(Bool(false));
 }
 
 ast_ptr Lt(ast_ptr x, ast_ptr y) {

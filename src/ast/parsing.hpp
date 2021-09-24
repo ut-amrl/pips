@@ -29,6 +29,8 @@ std::vector<AST::Example> WindowExamples(
 		const std::vector<AST::Example>& examples,
 		const int window_size);
 
+std::vector<nlohmann::json> ReadExamples(const std::string& file);
+
 std::vector<AST::Example> ReadExamples(const std::string& file,
     std::unordered_set<AST::Var>& vars,
     std::vector<std::pair<std::string, std::string>>* transitions);

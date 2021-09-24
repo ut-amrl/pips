@@ -107,6 +107,9 @@ ast_ptr MapHoles::Visit(BinOp* node) {
 }
 
 ast_ptr MapHoles::Visit(Bool* node) { return make_shared<Bool>(*node); }
+ast_ptr MapHoles::Visit(String* node) { return make_shared<String>(*node); }
+ast_ptr MapHoles::Visit(If* node) { return make_shared<If>(*node); }
+ast_ptr FillHole::Visit(If* node) { return make_shared<If>(*node); }
 
 ast_ptr MapHoles::Visit(Feature* node) {
   if (node->current_value_ == nullptr) {
@@ -178,6 +181,7 @@ ast_ptr FillHole::Visit(BinOp* node) {
 }
 
 ast_ptr FillHole::Visit(Bool* node) { return make_shared<Bool>(*node); }
+ast_ptr FillHole::Visit(String* node) { return make_shared<String>(*node); }
 
 ast_ptr FillHole::Visit(Feature* node) {
   if (node->name_ == target_name_ && node->current_value_ == nullptr) {

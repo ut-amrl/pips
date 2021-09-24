@@ -216,6 +216,20 @@ Example JsonToExample(const json& example) {
   return new_ex;
 }
 
+vector<json> ReadExamples(const string& file) {
+  std::ifstream input(file);
+  vector<json> output;
+  json examples;
+  input >> examples;
+  std::map<pair<string,string>, int> trans_count;
+  const float length = examples.size();
+  for (size_t i = 0; i < length / 2; ++i) {
+    const json example = examples[i];
+    output.push_back(example);
+  }
+  return output;
+}
+
 // This version assumes that the file will contain state transitions
 // and is used for ASP synthesis. The transitions in the examples
 // will be saved to transitions, and written to the examples.
@@ -238,7 +252,7 @@ vector<Example> ReadExamples(const string& file,
           const Vector2f obstacle(obs["pose"][0], obs["pose"][1]);
           new_ex.obstacles_.push_back(obstacle);
         }
-      } else if (input["name"] != "output" && input["name"] != "start") {
+      } else if (input["name"] != "output") {
         vector<int> dim = input["dim"];
         Var var(input["name"], Dimension(dim.data()),
             StringToType(input["type"]));

@@ -23,6 +23,18 @@ DeepCopy::DeepCopy() : copy_(nullptr) {}
 
 ast_ptr DeepCopy::Visit(AST* node) { return ast_ptr(node); }
 
+ast_ptr DeepCopy::Visit(If* node) {
+  node->left_->Accept(this);
+  ast_ptr lhs = copy_;
+  node->right_->Accept(this);
+  ast_ptr rhs = copy_;
+  node->cond_->Accept(this);
+  ast_ptr cond = copy_;
+  If copy(lhs, rhs, cond);
+  copy_ = make_shared<If>(copy);
+  return copy_;
+}
+
 ast_ptr DeepCopy::Visit(BinOp* node) {
   node->left_->Accept(this);
   ast_ptr lhs = copy_;
@@ -36,6 +48,12 @@ ast_ptr DeepCopy::Visit(BinOp* node) {
 ast_ptr DeepCopy::Visit(Bool* node) {
   Bool copy(node->value_);
   copy_ = make_shared<Bool>(copy);
+  return copy_;
+}
+
+ast_ptr DeepCopy::Visit(String* node) {
+  String copy(node->value_);
+  copy_ = make_shared<String>(copy);
   return copy_;
 }
 

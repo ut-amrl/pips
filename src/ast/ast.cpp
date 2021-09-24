@@ -112,10 +112,14 @@ ostream& operator<<(ostream& stream, const SymEntry& symentry) {
     case NUM:
       stream << symentry.GetFloat();
       break;
+    case STATE:
+      stream << symentry.GetString();
+      break;
     case VEC:
       stream << symentry.GetVector();
       break;
     default:
+      cout << symentry.name_ << endl;
       throw invalid_argument("Invalid SymEntry");
   }
   return stream;
@@ -150,6 +154,9 @@ AST::~AST(){};
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op)
     : AST({0, 0, 0}, OP), left_(left), right_(right), op_(op) {}
 
+If::If(ast_ptr left, ast_ptr right, ast_ptr cond)
+    : AST({0, 0, 0}, NODE), left_(left), right_(right), cond_(cond) {}
+
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op, const Type& type,
              const Dimension& dim)
     : AST(dim, type), left_(left), right_(right), op_(op) {}
@@ -174,13 +181,17 @@ Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VEC), value_(value) {}
 
 Bool::Bool(const bool& value) : AST({0, 0, 0}, BOOL), value_(value) {}
 
+String::String(const string& value) : AST({0, 0, 0}, STATE), value_(value) {}
+
 Num::Num(const float& value, const Dimension& dims)
     : AST(dims, NUM), value_(value) {}
 
 // Necessary to get the automatic casting correct
 ast_ptr AST::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr BinOp::Accept(class Visitor* v) { return v->Visit(this); }
+ast_ptr If::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Bool::Accept(class Visitor* v) { return v->Visit(this); }
+ast_ptr String::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Feature::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Num::Accept(class Visitor* v) { return v->Visit(this); }
 ast_ptr Param::Accept(class Visitor* v) { return v->Visit(this); }
@@ -221,6 +232,28 @@ ast_ptr AstFromJson(const json& input) {
   }
   cout << "ERROR Loading from Json: Unrecognized Node Type" << endl;
   return temp_ptr;
+}
+
+json If::ToJson() {
+  json output;
+  output["node"] = "If";
+  output["type"] = type_;
+  output["cond"] = cond_->ToJson();
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  output["left"] = left_->ToJson();
+  output["right"] = right_->ToJson();
+
+  return output;
+}
+
+ast_ptr If::FromJson(const json& input) {
+  ast_ptr left = AstFromJson(input["left"]);
+  ast_ptr right = AstFromJson(input["right"]);
+  ast_ptr cond = AstFromJson(input["cond"]);
+  const vector<int> dims = input["dim"];
+  If output(left, right, cond);
+  return make_shared<If>(output);
 }
 
 json BinOp::ToJson() {
@@ -372,6 +405,22 @@ json Bool::ToJson() {
 }
 
 ast_ptr Bool::FromJson(const json& input) {
+  const bool value(input["value"]);
+  Bool output(value);
+  return make_shared<Bool>(output);
+}
+
+json String::ToJson() {
+  json output;
+  output["node"] = "Bool";
+  output["type"] = type_;
+  output["value"] = value_;
+  output["symbolic"] = symbolic_;
+  output["dim"] = {dims_.x(), dims_.y(), dims_.z()};
+  return output;
+}
+
+ast_ptr String::FromJson(const json& input) {
   const bool value(input["value"]);
   Bool output(value);
   return make_shared<Bool>(output);

@@ -75,6 +75,16 @@ ast_ptr ToSMTLIB::Visit(Bool* node) {
   return make_shared<Bool>(*node);
 }
 
+ast_ptr ToSMTLIB::Visit(If* node) {
+  cout << "If to SMT not supported" << endl;
+  return make_shared<If>(*node);
+}
+
+ast_ptr ToSMTLIB::Visit(String* node) {
+  cout << "String to SMT not supported" << endl;
+  return make_shared<String>(*node);
+}
+
 ast_ptr ToSMTLIB::Visit(Feature* node) {
   if (node->current_value_ != nullptr) {
     // TODO(simon) delete next two lines maybe?

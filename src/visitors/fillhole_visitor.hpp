@@ -22,7 +22,9 @@ class MapHoles : public Visitor {
   MapHoles();
   ast_ptr Visit(AST* node);
   ast_ptr Visit(BinOp* node);
+  ast_ptr Visit(If* node);
   ast_ptr Visit(Bool* node);
+  ast_ptr Visit(String* node);
   ast_ptr Visit(Feature* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(Param* node);
@@ -49,7 +51,9 @@ class FillHole : public Visitor {
   FillHole(const std::string& target_name, const ast_ptr& new_value);
   ast_ptr Visit(AST* node);
   ast_ptr Visit(BinOp* node);
+  ast_ptr Visit(If* node);
   ast_ptr Visit(Bool* node);
+  ast_ptr Visit(String* node);
   ast_ptr Visit(Feature* node);
   ast_ptr Visit(Num* node);
   ast_ptr Visit(Param* node);
