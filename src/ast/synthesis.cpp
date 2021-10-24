@@ -144,7 +144,7 @@ Model SolveSMTLIBProblem(const string& problem) {
   CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
   z3::context context;
   z3::params p(context);
-  p.set(":timeout", 200u);
+  p.set(":timeout", 100u);
   // p.set(":smt.arith.solver", 3);
   // p.set(":opt.wmaxsat_engine", );
   z3::optimize solver(context);
@@ -455,7 +455,6 @@ ast_ptr ldipsL2(ast_ptr candidate,
   return best_program;
 }
 
-// TODO(currently writes to file, may want a call that doesn't do this).
 void ldipsL3(const vector<Example>& demos,
       const vector<pair<string, string>>& transitions,
       const vector<ast_ptr> lib,

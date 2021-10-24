@@ -23,12 +23,13 @@
 #include "boost/dynamic_bitset.hpp"
 
 DEFINE_string(ex_file, "big_ref.json", "Examples file");
-DEFINE_string(ast_path, "synthd/ref_clone/", "Operation library file");
+DEFINE_string(ast_path, "synthd/big_clone/", "Operation library file");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
 
 using AST::ast_ptr;
 using AST::BinOp;
 using AST::If;
+using AST::if_ptr;
 using AST::BOOL;
 using AST::Dimension;
 using AST::Example;
@@ -80,16 +81,20 @@ ast_ptr pass_to_ga_;
 ast_ptr pass_to_halt_;
 ast_ptr pass_to_follow_;
 
-const bool kDebug = true;
+const bool kDebug = false;
+int num_actions_ = 0;
 
 vector<std::pair<string,string>> LoadTransitionList(const string& path) {
   std::ifstream infile(path);
+  std::set<string> actions;
   vector<std::pair<string, string>> trans_list;
   string start, output;
   while(infile >> start >> output) {
     const std::pair<string, string> trans(start, output);
     trans_list.push_back(trans);
+    actions.insert(start);
   }
+  num_actions_ = actions.size();
   return trans_list;
 }
 
@@ -113,7 +118,7 @@ void LoadSocialAST() {
   pass_to_halt_ = LoadJson(FLAGS_ast_path + "Pass_Halt.json");
 }
 
-ast_ptr GetCond(const std::pair<string, string>& trans) {
+AST::bin_ptr GetCond(const std::pair<string, string>& trans) {
   AST::ast_ptr pred;
   if (trans.first == "Halt" && trans.second == "GoAlone") {
     pred = halt_to_ga_;
@@ -140,7 +145,7 @@ ast_ptr GetCond(const std::pair<string, string>& trans) {
   } else if (trans.first == "Pass" && trans.second == "Follow") {
     pred = pass_to_follow_;
   }
-  return pred;
+  return std::dynamic_pointer_cast<BinOp>(pred);
 }
 
 void Print(ast_ptr ast) {
@@ -150,8 +155,8 @@ void Print(ast_ptr ast) {
     cout << endl;
 }
 
-std::map<string, AST::if_ptr> InitializeBranches() {
-  std::map<string, AST::if_ptr> branches;
+std::map<string, if_ptr> InitializeBranches() {
+  std::map<string, if_ptr> branches;
   for (std::pair<string, string> trans : trans_list_) {
     if (branches.count(trans.first) == 0) {
       String state(trans.first);
@@ -168,39 +173,71 @@ std::map<string, AST::if_ptr> InitializeBranches() {
   return branches;
 }
 
+// Todo(jaholtz) clean up how this is branching is displayed.
+ast_ptr BuildIf(const string& state, AST::bin_ptr cond, ast_ptr next) {
+  ast_ptr next_copy = AST::DeepCopyAST(next);
+  ast_ptr left;
+  ast_ptr right;
+  ast_ptr condition;
+  if (cond->op_ == "&&") {
+    left = BuildIf(state,
+        std::dynamic_pointer_cast<AST::BinOp>(cond->right_), next_copy);
+    condition = cond->left_;
+    right = next;
+  } else if (cond->op_ == "||") {
+    AST::String left_str(state);
+    left = make_shared<AST::String>(state);
+    right = BuildIf(state,
+        std::dynamic_pointer_cast<AST::BinOp>(cond->right_), next_copy);
+    condition = cond->left_;
+  } else { // There is only one condition here, no need to expand
+    // Left is the output state
+    AST::String left_str(state);
+    left = make_shared<AST::String>(state);
+    // Right is either a state or the next if block.
+    right = next_copy;
+    condition = std::dynamic_pointer_cast<BinOp>(cond);
+  }
+  If if_block(left, right, condition);
+  return make_shared<If>(if_block);
+}
+
 ast_ptr BuildSocialProgram() {
   ast_ptr program;
-  std::map<string, AST::if_ptr> branches = InitializeBranches();
-  std::map<string, AST::if_ptr> last;
+  std::map<string, if_ptr> branches = InitializeBranches();
+  std::map<string, if_ptr> last;
+
+  ast_ptr last_block;
+  // Reverse the list, working backwards
+  std::reverse(trans_list_.begin(), trans_list_.end());
+  int state_count = 0;
 
   for (const std::pair<string, string>& trans : trans_list_) {
-    // Left is the output state
-    AST::String left(trans.second);
-    // Right is either a state or the next if block.
-    ast_ptr right;
-    ast_ptr cond = GetCond(trans);
-    // Create a new if block
-    If if_block(make_shared<AST::String>(left), right, cond);
-    if (last.count(trans.first) < 1) {
-      AST::if_ptr block = make_shared<If>(if_block);
-      branches[trans.first]->left_ = block;
-      last[trans.first] = block;
+    cout << trans.first << " --> " << trans.second << endl;
+    AST::bin_ptr cond = GetCond(trans);
+    ast_ptr if_block;
+    if (state_count == 0) {
+      String state(trans.first);
+      ast_ptr same_block = make_shared<String>(state);
+      if_block = BuildIf(trans.second, cond, same_block);
+      Print(if_block);
     } else {
-      AST::if_ptr block = make_shared<If>(if_block);
-      last[trans.first]->right_ = block;
-      last[trans.first] = block;
+      if_block = BuildIf(trans.second, cond, last_block);
+      Print(if_block);
+    }
+    last_block = if_block;
+    state_count++;
+    if (state_count == num_actions_ - 1) {
+      state_count = 0;
+      branches[trans.first]->left_ = if_block;
+      cout << trans.first << "-->" << trans.second << endl;
+      Print(if_block);
     }
   }
-
-  for (auto const& branch : last) {
-    cout << branch.first << endl;
-    AST::String left(branch.first);
-    branch.second->right_ = make_shared<AST::String>(left);
-    Print(branch.second);
-  }
+  Print(last_block);
 
   bool started = false;
-  AST::if_ptr previous;
+  if_ptr previous;
   for (auto const& branch : branches) {
     if (!started) {
       program = branch.second;
@@ -212,7 +249,6 @@ ast_ptr BuildSocialProgram() {
   }
   String state("Failure");
   previous->right_ = make_shared<String>(state);
-  cout << "-------------" << endl;
   Print(program);
   return program;
 }
@@ -245,6 +281,8 @@ int BestElement(const vector<boost::dynamic_bitset<>>& traces,
 }
 
 vector<json> MinCoverSet(const vector<json>& examples,
+                         const vector<Example>& input_examples,
+                         ast_ptr program,
                          const vector<boost::dynamic_bitset<>>& traces) {
   // While not fully covered and growth options remain.
   boost::dynamic_bitset<> coverage(traces[0].size());
@@ -264,6 +302,21 @@ vector<json> MinCoverSet(const vector<json>& examples,
     if (new_score > last_score) {
       updated = true;
       cover_set.push_back(example);
+      if (kDebug) {
+        cout << "Best: " << best << endl;
+        cout << "Len Traces: " << traces.size() << endl;
+        cout << example << endl;
+        cout << "=======" << endl;
+        ast_ptr p_copy = AST::DeepCopyAST(program);
+        ast_ptr result = AST::Interpret(p_copy, input_examples[best]);
+        cout << "=======" << endl;
+        Print(result);
+        vector<bool> trace_vec = AST::TraceOn(p_copy);
+        std::reverse(trace_vec.begin(), trace_vec.end());
+        cout << "=======" << endl;
+        const boost::dynamic_bitset<> trace = ToBits(trace_vec);
+        cout << trace << endl;
+      }
     }
   }
   cout << coverage << endl;
@@ -293,34 +346,46 @@ int main(int argc, char* argv[]) {
 
   // Window the examples if necessary
   // examples = WindowExamples(examples, FLAGS_window_size);
-  cout << "Number of Examples: " << examples.size() << endl;
 
   // Read in the Existing AST and the transition List.
   LoadSocialAST();
 
+  cout << "Building Program" << endl;
   // Use the individual conditions to build the full program.
   // (For legacy ast output).
   ast_ptr program = BuildSocialProgram();
 
   // Build the Set of Traces
   vector<boost::dynamic_bitset<>> trace_list;
-  for (const Example& example : examples) {
+  vector<json> temp_json;
+  vector<Example> temp_examples;
+  for (size_t i = 0; i < examples.size(); ++i) {
+    const Example& example = examples[i];
     // Copy the ast
     ast_ptr p_copy = AST::DeepCopyAST(program);
     // const auto& example = examples[0];
-    AST::Interpret(p_copy, example);
+    ast_ptr result = AST::Interpret(p_copy, example);
+    AST::string_ptr result_string =
+        std::dynamic_pointer_cast<String>(result);
+    // We only want examples that agree with the demonstrations.
+    if (example.result_.GetString() == result_string->value_) {
+      // Extract the trace information as a vector
+      vector<bool> trace_vec = AST::TraceOn(p_copy);
+      std::reverse(trace_vec.begin(), trace_vec.end());
+      const boost::dynamic_bitset<> trace = ToBits(trace_vec);
+      trace_list.push_back(trace);
+      temp_json.push_back(json_ex[i]);
+      temp_examples.push_back(example);
 
-    // Extract the trace information as a vector
-    cout << " ----------" << endl;
-    boost::dynamic_bitset<> trace = ToBits(AST::TraceOn(p_copy));
-    trace_list.push_back(trace);
-    cout << " ----------" << endl;
-
-    if (kDebug) {
-      cout << trace << endl;
+      if (kDebug) {
+        cout << trace << endl;
+      }
     }
   }
-  vector<json> cover_set = MinCoverSet(json_ex, trace_list);
+  // Keeping things the same size after subsampling traces
+  json_ex = temp_json;
+  examples = temp_examples;
+  vector<json> cover_set = MinCoverSet(json_ex, examples, program, trace_list);
 
   // Dump the minimal covering set to a file
   WriteDemos(cover_set);

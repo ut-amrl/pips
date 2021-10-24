@@ -223,7 +223,7 @@ vector<json> ReadExamples(const string& file) {
   input >> examples;
   std::map<pair<string,string>, int> trans_count;
   const float length = examples.size();
-  for (size_t i = 0; i < length / 2; ++i) {
+  for (size_t i = 0; i < length; ++i) {
     const json example = examples[i];
     output.push_back(example);
   }
@@ -242,7 +242,7 @@ vector<Example> ReadExamples(const string& file,
   input >> examples;
   std::map<pair<string,string>, int> trans_count;
   const float length = examples.size();
-  for (size_t i = 0; i < length / 2; ++i) {
+  for (size_t i = 0; i < length; ++i) {
     const json example = examples[i];
     Example new_ex;
     map<string, SymEntry> table;

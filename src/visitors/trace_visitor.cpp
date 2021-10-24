@@ -18,8 +18,11 @@ ast_ptr Trace::Visit(AST* node) { return ast_ptr(node); }
 
 ast_ptr Trace::Visit(If* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<If>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   node->cond_->Accept(this);
@@ -30,8 +33,11 @@ ast_ptr Trace::Visit(If* node) {
 
 ast_ptr Trace::Visit(BinOp* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<BinOp>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   node->left_->Accept(this);
@@ -41,8 +47,11 @@ ast_ptr Trace::Visit(BinOp* node) {
 
 ast_ptr Trace::Visit(Bool* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<Bool>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   return make_shared<Bool>(*node);
@@ -50,36 +59,59 @@ ast_ptr Trace::Visit(Bool* node) {
 
 ast_ptr Trace::Visit(String* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<String>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   return make_shared<String>(*node);
 }
 
 ast_ptr Trace::Visit(Feature* node) {
+  if (kDebug) {
+    cout << "----" << endl;
+    PrintAST(make_shared<Feature>(*node));
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
+  }
   trace_.push_back(node->visited_);
   return make_shared<Feature>(*node);
 }
 
 ast_ptr Trace::Visit(Num* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<Num>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   return make_shared<Num>(*node);
 }
 
 ast_ptr Trace::Visit(Param* node) {
+  if (kDebug) {
+    cout << "----" << endl;
+    PrintAST(make_shared<Param>(*node));
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
+  }
   trace_.push_back(node->visited_);
   return make_shared<Param>(*node);
 }
 
 ast_ptr Trace::Visit(UnOp* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<UnOp>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   node->input_->Accept(this);
@@ -88,8 +120,11 @@ ast_ptr Trace::Visit(UnOp* node) {
 
 ast_ptr Trace::Visit(Var* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<Var>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   return make_shared<Var>(*node);
@@ -97,8 +132,11 @@ ast_ptr Trace::Visit(Var* node) {
 
 ast_ptr Trace::Visit(Vec* node) {
   if (kDebug) {
+    cout << "----" << endl;
     PrintAST(make_shared<Vec>(*node));
-    cout << node->visited_ << endl;
+    cout << "Index: " << trace_.size() << endl;
+    cout << "Visited: " << node->visited_ << endl;
+    cout << "----" << endl;
   }
   trace_.push_back(node->visited_);
   return make_shared<Vec>(*node);
