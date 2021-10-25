@@ -27,7 +27,7 @@ else()
 endif()
 
 OPTION(BUILD_WITH_ROS "Builds the ros-based infra for interpreting social_nav
-behaviors." FALSE)
+behaviors." TRUE)
 
 # Load required third-party libraries from system
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)

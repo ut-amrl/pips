@@ -38,8 +38,6 @@
 #include "visitors/print_visitor.hpp"
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
-#include "cobot_msgs/CobotLocalizationMsg.h"
-#include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 #include "ros/publisher.h"
