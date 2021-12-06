@@ -16,19 +16,45 @@
 \author  Jarrett Holtz, (C) 2021
 */
 //========================================================================
-#include "policy/social_lib.h"
+// #include "policy/social_lib.h"
+#include "social_lib.h"
 
+#include <dlfcn.h>
+#include "eigen3/Eigen/Dense"
+#include "eigen3/Eigen/Geometry"
+#include <signal.h>
+#include <stdlib.h>
+#include <math.h>
+#include <nlohmann/json.hpp>
+#include <string.h>
+#include <vector>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
+
+#include "social_lib.h"
 #include "ast/ast.hpp"
 #include "ast/parsing.hpp"
-#include "gflags/gflags.h"
-#include "ros/ros.h"
-#include "std_msgs/String.h"
+#include "amrl_msgs/Pose2Df.h"
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
+#include "amrl_msgs/Pose2Df.h"
+#include "amrl_msgs/Localization2DMsg.h"
+#include "eigen3/Eigen/Dense"
+#include "eigen3/Eigen/Geometry"
+#include "ros/publisher.h"
+#include "amrl_msgs/SocialPipsSrv.h"
+#include "amrl_msgs/HumanStateMsg.h"
+#include "gflags/gflags.h"
+#include "ros/ros.h"
+#include "std_msgs/Bool.h"
+#include "std_msgs/String.h"
+#include "geometry_msgs/Pose2D.h"
+#include "amrl_shared_lib/math/geometry.h"
+#include "amrl_shared_lib/math/math_util.h"
+#include "visualization_msgs/Marker.h"
 
 using amrl_msgs::Pose2Df;
-using amrl_msgs::NavigationConfigMsg;
 using Eigen::Vector2f;
 using nlohmann::json;
 using std::vector;
@@ -92,6 +118,7 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
 }
 
 void SetStateCb(const std_msgs::String& msg) {
+    cout << "STATE CB" << endl;
   last_state_ = state_;
   state_ = msg.data;
 }

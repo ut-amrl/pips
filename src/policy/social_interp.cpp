@@ -68,14 +68,43 @@ ast_ptr follow_to_ga;
 ast_ptr follow_to_follow;
 ast_ptr follow_to_halt;
 ast_ptr follow_to_pass;
+ast_ptr follow_to_left;
+ast_ptr follow_to_right;
+ast_ptr follow_to_step;
 ast_ptr halt_to_ga;
 ast_ptr halt_to_follow;
 ast_ptr halt_to_halt;
 ast_ptr halt_to_pass;
+ast_ptr halt_to_left;
+ast_ptr halt_to_right;
+ast_ptr halt_to_step;
 ast_ptr pass_to_pass;
 ast_ptr pass_to_ga;
 ast_ptr pass_to_halt;
 ast_ptr pass_to_follow;
+ast_ptr pass_to_left;
+ast_ptr pass_to_right;
+ast_ptr pass_to_step;
+ast_ptr left_to_ga;
+ast_ptr left_to_pass;
+ast_ptr left_to_halt;
+ast_ptr left_to_follow;
+ast_ptr left_to_right;
+ast_ptr left_to_step;
+ast_ptr right_to_pass;
+ast_ptr right_to_ga;
+ast_ptr right_to_halt;
+ast_ptr right_to_follow;
+ast_ptr right_to_left;
+ast_ptr right_to_right;
+ast_ptr right_to_step;
+ast_ptr step_to_pass;
+ast_ptr step_to_ga;
+ast_ptr step_to_halt;
+ast_ptr step_to_follow;
+ast_ptr step_to_left;
+ast_ptr step_to_right;
+ast_ptr step_to_step;
 
 string Transition(const Example& example) {
   for (const std::pair<string, string>& trans : trans_list_) {
@@ -88,12 +117,24 @@ string Transition(const Example& example) {
         pred = halt_to_follow;
       } else if (trans.first == "Halt" && trans.second == "Pass") {
         pred = halt_to_pass;
+      } else if (trans.first == "Halt" && trans.second == "Left") {
+        pred = halt_to_left;
+      } else if (trans.first == "Halt" && trans.second == "Right") {
+        pred = halt_to_right;
+      } else if (trans.first == "Halt" && trans.second == "StepAside") {
+        pred = halt_to_step;
       } else if (trans.first == "Follow" && trans.second == "Halt") {
         pred = follow_to_halt;
       } else if (trans.first == "Follow" && trans.second == "GoAlone") {
         pred = follow_to_ga;
       } else if (trans.first == "Follow" && trans.second == "Pass") {
         pred = follow_to_pass;
+      } else if (trans.first == "Follow" && trans.second == "Left") {
+        pred = follow_to_left;
+      } else if (trans.first == "Follow" && trans.second == "Right") {
+        pred = follow_to_right;
+      } else if (trans.first == "Follow" && trans.second == "StepAside") {
+        pred = follow_to_step;
       } else if (trans.first == "GoAlone" && trans.second == "Pass") {
         pred = ga_to_pass;
       } else if (trans.first == "GoAlone" && trans.second == "Follow") {
@@ -106,8 +147,47 @@ string Transition(const Example& example) {
         pred = pass_to_ga;
       } else if (trans.first == "Pass" && trans.second == "Follow") {
         pred = pass_to_follow;
+      } else if (trans.first == "Pass" && trans.second == "Left") {
+        pred = pass_to_left;
+      } else if (trans.first == "Pass" && trans.second == "Right") {
+        pred = pass_to_right;
+      } else if (trans.first == "Pass" && trans.second == "StepAside") {
+        pred = pass_to_step;
+      } else if (trans.first == "Left" && trans.second == "Pass") {
+        pred = left_to_pass;
+      } else if (trans.first == "Left" && trans.second == "Follow") {
+        pred = left_to_follow;
+      } else if (trans.first == "Left" && trans.second == "Halt") {
+        pred = left_to_halt;
+      } else if (trans.first == "Left" && trans.second == "Right") {
+        pred = left_to_right;
+      } else if (trans.first == "Left" && trans.second == "StepAside") {
+        pred = left_to_step;
+      } else if (trans.first == "Right" && trans.second == "Pass") {
+        pred = right_to_pass;
+      } else if (trans.first == "Right" && trans.second == "Follow") {
+        pred = right_to_follow;
+      } else if (trans.first == "Right" && trans.second == "Halt") {
+        pred = right_to_halt;
+      } else if (trans.first == "Right" && trans.second == "Left") {
+        pred = right_to_left;
+      } else if (trans.first == "Right" && trans.second == "Right") {
+        pred = right_to_right;
+      } else if (trans.first == "Right" && trans.second == "StepAside") {
+        pred = right_to_step;
+      } else if (trans.first == "StepAside" && trans.second == "Pass") {
+        pred = step_to_pass;
+      } else if (trans.first == "StepAside" && trans.second == "Follow") {
+        pred = step_to_follow;
+      } else if (trans.first == "StepAside" && trans.second == "Halt") {
+        pred = step_to_halt;
+      } else if (trans.first == "StepAside" && trans.second == "Left") {
+        pred = step_to_left;
+      } else if (trans.first == "StepAside" && trans.second == "Right") {
+        pred = step_to_right;
+      } else if (trans.first == "StepAside" && trans.second == "StepAside") {
+        pred = step_to_step;
       }
-      // cout << pred << endl;
       if (InterpretBool(pred, example)) {
         // cout << "True" << endl;
         return trans.second;
@@ -137,7 +217,6 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
     res.action = 0;
     return true;
   }
-
   // Convert the req to the appropriate form of a demo
   const json demo = social_lib::DemoFromRequest(req, state_);
   const Example example = MakeDemo(demo);
@@ -176,28 +255,53 @@ int main(int argc, char** argv) {
 
   // Load the Predicates for the behavior
   LoadTransitionList(FLAGS_ast_path + "transitions.txt");
-  ga_to_ga = LoadJson(FLAGS_ast_path + "GoAlone_GoAlone.json");
   ga_to_follow = LoadJson(FLAGS_ast_path + "GoAlone_Follow.json");
   ga_to_halt = LoadJson(FLAGS_ast_path + "GoAlone_Halt.json");
   ga_to_pass = LoadJson(FLAGS_ast_path + "GoAlone_Pass.json");
   follow_to_ga = LoadJson(FLAGS_ast_path + "Follow_GoAlone.json");
-  follow_to_follow = LoadJson(FLAGS_ast_path + "Follow_Follow.json");
   follow_to_halt = LoadJson(FLAGS_ast_path + "Follow_Halt.json");
   follow_to_pass = LoadJson(FLAGS_ast_path + "Follow_Pass.json");
+  follow_to_left = LoadJson(FLAGS_ast_path + "Follow_Left.json");
+  follow_to_right = LoadJson(FLAGS_ast_path + "Follow_Right.json");
+  follow_to_step = LoadJson(FLAGS_ast_path + "Follow_StepAside.json");
   halt_to_ga = LoadJson(FLAGS_ast_path + "Halt_GoAlone.json");
   halt_to_follow = LoadJson(FLAGS_ast_path + "Halt_Follow.json");
-  halt_to_halt = LoadJson(FLAGS_ast_path + "Halt_Halt.json");
   halt_to_pass = LoadJson(FLAGS_ast_path + "Halt_Pass.json");
+  halt_to_left = LoadJson(FLAGS_ast_path + "Halt_Left.json");
+  halt_to_right = LoadJson(FLAGS_ast_path + "Halt_Right.json");
+  halt_to_step = LoadJson(FLAGS_ast_path + "Halt_StepAside.json");
   pass_to_ga = LoadJson(FLAGS_ast_path + "Pass_GoAlone.json");
   pass_to_follow = LoadJson(FLAGS_ast_path + "Pass_Follow.json");
-  pass_to_pass = LoadJson(FLAGS_ast_path + "Pass_Pass.json");
   pass_to_halt = LoadJson(FLAGS_ast_path + "Pass_Halt.json");
+  pass_to_left = LoadJson(FLAGS_ast_path + "Pass_Left.json");
+  pass_to_right = LoadJson(FLAGS_ast_path + "Pass_Right.json");
+  pass_to_step = LoadJson(FLAGS_ast_path + "Pass_StepAside.json");
+  left_to_ga = LoadJson(FLAGS_ast_path + "Left_GoAlone.json");
+  left_to_follow = LoadJson(FLAGS_ast_path + "Left_Follow.json");
+  left_to_halt = LoadJson(FLAGS_ast_path + "Left_Halt.json");
+  left_to_right = LoadJson(FLAGS_ast_path + "Left_Right.json");
+  left_to_step = LoadJson(FLAGS_ast_path + "Left_StepAside.json");
+  right_to_ga = LoadJson(FLAGS_ast_path + "Right_GoAlone.json");
+  right_to_follow = LoadJson(FLAGS_ast_path + "Right_Follow.json");
+  right_to_halt = LoadJson(FLAGS_ast_path + "Right_Halt.json");
+  right_to_left = LoadJson(FLAGS_ast_path + "Right_Left.json");
+  right_to_step = LoadJson(FLAGS_ast_path + "Right_StepAside.json");
+  step_to_ga = LoadJson(FLAGS_ast_path + "StepAside_GoAlone.json");
+  step_to_follow = LoadJson(FLAGS_ast_path + "StepAside_Follow.json");
+  step_to_halt = LoadJson(FLAGS_ast_path + "StepAside_Halt.json");
+  step_to_left = LoadJson(FLAGS_ast_path + "StepAside_Left.json");
   cout << ga_to_follow << endl;
   cout << ga_to_halt << endl;
+  cout << ga_to_pass << endl;
   cout << follow_to_ga << endl;
   cout << follow_to_halt << endl;
+  cout << follow_to_pass << endl;
   cout << halt_to_follow << endl;
   cout << halt_to_ga << endl;
+  cout << halt_to_pass << endl;
+  cout << pass_to_ga << endl;
+  cout << pass_to_follow << endl;
+  cout << pass_to_halt << endl;
 
   // Initialize ROS.
   ros::init(argc, argv, "social_interp");

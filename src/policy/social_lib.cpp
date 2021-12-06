@@ -239,6 +239,12 @@ json DemoFromRequest(const SocialPipsSrv::Request& req,
     state = "Follow";
   } else if (req.robot_state == 3) {
     state = "Pass";
+  } else if (req.robot_state == 4) {
+    state = "Left";
+  } else if (req.robot_state == 5) {
+    state = "Right";
+  } else if (req.robot_state == 6) {
+    state = "StepAside";
   }
   demo["start"] = MakeEntry("start", state);
   demo["output"] = MakeEntry("output", action);

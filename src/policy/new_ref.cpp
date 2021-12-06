@@ -238,7 +238,7 @@ float StraightFreePathLength(const Vector2f& start, const Vector2f& end) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   float kRobotLength = 1.0;
   float kRearAxleOffset = 0.0;
-  float kObstacleMargin = 0.4;
+  float kObstacleMargin = 0.1;
   float kRobotWidth = 0.44;
 
   if (false) {
@@ -325,7 +325,7 @@ bool ShouldPass() {
     // cout << "a_c: " << a_c << endl;
     const float kNormThresh = 1.0;
     // return false;
-    return false;
+    // return false;
     if (a_b < kNormThresh || a_c < kNormThresh) {
         return false;
     }
@@ -334,9 +334,9 @@ bool ShouldPass() {
 
 string Transition() {
   if (ShouldGoAlone()) {
-    return "GoAlone";
+    return "Right";
   } else if (ShouldPass()) {
-    return "Pass";
+    return "Left";
   } else if (ShouldFollow()) {
     return "Follow";
   }
@@ -389,7 +389,15 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
     state = 2;
   } else if (state_ == "Pass") {
     state = 3;
+  } else if (state_ == "Left") {
+    state = 4;
+  } else if (state_ == "Right") {
+    state = 5;
+  } else if (state_ == "StepAside") {
+    state = 6;
   }
+
+
 
   res.action = state;
   return true;

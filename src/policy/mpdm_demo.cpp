@@ -32,18 +32,18 @@
 #include <iomanip>
 #include <iostream>
 
-#include "amrl_msgs/NavStatusMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
+// #include "amrl_msgs/NavStatusMsg.h"
+// #include "amrl_msgs/NavigationConfigMsg.h"
 #include "amrl_msgs/Pose2Df.h"
 #include "amrl_msgs/Localization2DMsg.h"
-#include "amrl_msgs/NavigationConfigMsg.h"
+// #include "amrl_msgs/NavigationConfigMsg.h"
 #include "ast/ast.hpp"
 #include "ast/parsing.hpp"
 #include "eigen3/Eigen/Dense"
 #include "eigen3/Eigen/Geometry"
 #include "ros/publisher.h"
-#include "cobot_msgs/CobotLocalizationMsg.h"
-#include "cobot_msgs/CobotDoorDetectionsMsg.h"
+// #include "cobot_msgs/CobotLocalizationMsg.h"
+// #include "cobot_msgs/CobotDoorDetectionsMsg.h"
 #include "amrl_msgs/HumanStateArrayMsg.h"
 #include "ut_multirobot_sim/HumanStateMsg.h"
 #include "ut_multirobot_sim/SimulatorStateMsg.h"
@@ -61,7 +61,7 @@
 #include "visualization_msgs/Marker.h"
 
 using amrl_msgs::Pose2Df;
-using amrl_msgs::NavigationConfigMsg;
+// using amrl_msgs::NavigationConfigMsg;
 using AST::Example;
 using Eigen::Vector2f;
 using nlohmann::json;
@@ -354,6 +354,12 @@ void Run() {
       action = 2;
     } else if (state_ == "Pass") {
       action = 3;
+    } else if (state_ == "Left") {
+      action = 4;
+    } else if (state_ == "Right") {
+      action = 5;
+    } else if (state_ == "StepAside") {
+      action = 6;
     }
     // Step Gym and Store Observation
     ut_multirobot_sim::utmrsStepperRequest req;
