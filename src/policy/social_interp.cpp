@@ -55,8 +55,8 @@ DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_bool(debug, false, "Enable Debug Printing");
 DEFINE_string(ast_path,  "expers/nice_dipr/", "Path to synthesized predicates.");
 
-string state_ = "GoAlone";
-string last_state_ = "GoAlone";
+string state_ = "Right";
+string last_state_ = "Right";
 vector<std::pair<string, string>> trans_list_;
 
 // Transition Function ASTs
@@ -188,8 +188,8 @@ string Transition(const Example& example) {
       } else if (trans.first == "StepAside" && trans.second == "StepAside") {
         pred = step_to_step;
       }
+      cout << "Interpreting: " << trans.first << "->" << trans.second << endl;
       if (InterpretBool(pred, example)) {
-        // cout << "True" << endl;
         return trans.second;
       }
       // cout << "False" << endl;
@@ -238,12 +238,19 @@ bool ActionRequestCb(SocialPipsSrv::Request &req,
 
   // Convert State to Number
   int state = 0;
+  cout << "State: " << state_ << endl;
   if (state_ == "Halt") {
     state = 1;
   } else if (state_ == "Follow") {
     state = 2;
   } else if (state_ == "Pass") {
     state = 3;
+  } else if (state_ == "Left") {
+    state = 4;
+  } else if (state_ == "Right") {
+    state = 5;
+  } else if (state_ == "StepAside") {
+    state = 6;
   }
 
   res.action = state;
