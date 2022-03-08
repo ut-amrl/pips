@@ -93,6 +93,10 @@ target_link_libraries(c++-pips-core ${libs})
 add_executable(traceon src/traceon.cpp)
 target_link_libraries(traceon c++-pips-core)
 
+# CEDR
+add_executable(cedr src/cedr.cpp)
+target_link_libraries(cedr c++-pips-core)
+
 # Add an executable for ldips-l3
 add_executable(ldips-l3 src/ldips-l3.cpp)
 target_link_libraries(ldips-l3 c++-pips-core)
@@ -132,9 +136,9 @@ IF(BUILD_WITH_ROS)
 													# src/policy/social_lib.cpp)
 	# target_link_libraries(social_demo c++-pips-core)
 
-	# rosbuild_add_executable(mpdm_demo
-													# src/policy/mpdm_demo.cpp)
-	# target_link_libraries(mpdm_demo c++-pips-core)
+	rosbuild_add_executable(mpdm_demo
+													src/policy/mpdm_demo.cpp)
+	target_link_libraries(mpdm_demo c++-pips-core)
 
 	rosbuild_add_executable(social_ref src/policy/social_ref.cpp
 													src/policy/social_lib.cpp)

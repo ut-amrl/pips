@@ -399,8 +399,8 @@ ast_ptr StraightFreePathLength(ast_ptr v,
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
   float kRobotLength = 1.0;
   float kRearAxleOffset = 0.0;
-  float kObstacleMargin = 0.2;
-  float kRobotWidth = 0.44;
+  float kObstacleMargin = 0.1;
+  float kRobotWidth = 0.22;
   const bool cobot = false;
   if (cobot) {
     kRobotLength = 0.4;

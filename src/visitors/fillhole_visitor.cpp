@@ -34,6 +34,12 @@ unordered_map<string, pair<Type, Dimension>> MapFeatureHoles(
   return mapper.GetFeatureHoles();
 }
 
+std::vector<BinOp*> MapPredicatesHole(ast_ptr& ast) {
+  MapHoles mapper;
+  ast->Accept(&mapper);
+  return mapper.GetPredicateHoles();
+}
+
 ast_ptr Srtrize(ast_ptr &ast) {
   MapHoles mapper;
   mapper.srtrize_ = true;
@@ -95,12 +101,16 @@ ast_ptr MapHoles::Visit(AST* node) { return ast_ptr(node); }
 
 ast_ptr MapHoles::Visit(BinOp* node) {
   depth_ += 1;
-  ast_ptr left = node->left_->Accept(this);
-  ast_ptr right = node->right_->Accept(this);
-  if (srtrize_) {
-    BinOp srtrd(left, right, node->op_);
-    node = &srtrd;
-    return make_shared<BinOp>(srtrd);
+  if (node->op_ == "") {
+    predicates_.push_back(node);
+  } else {
+    ast_ptr left = node->left_->Accept(this);
+    ast_ptr right = node->right_->Accept(this);
+    if (srtrize_) {
+      BinOp srtrd(left, right, node->op_);
+      node = &srtrd;
+      return make_shared<BinOp>(srtrd);
+    }
   }
   is_relative_ = true;
   return make_shared<BinOp>(*node);
@@ -108,7 +118,13 @@ ast_ptr MapHoles::Visit(BinOp* node) {
 
 ast_ptr MapHoles::Visit(Bool* node) { return make_shared<Bool>(*node); }
 ast_ptr MapHoles::Visit(String* node) { return make_shared<String>(*node); }
-ast_ptr MapHoles::Visit(If* node) { return make_shared<If>(*node); }
+ast_ptr MapHoles::Visit(If* node) {
+  depth_ += 1;
+  ast_ptr left = node->left_->Accept(this);
+  ast_ptr right = node->right_->Accept(this);
+  ast_ptr cond = node->cond_->Accept(this);
+  return make_shared<If>(*node);
+}
 ast_ptr FillHole::Visit(If* node) { return make_shared<If>(*node); }
 
 ast_ptr MapHoles::Visit(Feature* node) {
@@ -158,6 +174,10 @@ unordered_map<string, pair<Type, Dimension>> MapHoles::GetFeatureHoles() const {
 
 unordered_set<string> MapHoles::GetParameterHoles() const {
   return parameters_;
+}
+
+std::vector<BinOp*> MapHoles::GetPredicateHoles() {
+  return predicates_;
 }
 
 bool MapHoles::IsRelative() const {

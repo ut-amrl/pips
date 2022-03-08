@@ -3,10 +3,13 @@
 #include <ostream>
 
 #include "ast/ast.hpp"
+#include "boost/dynamic_bitset.hpp"
 
 namespace AST {
 
 std::vector<bool> TraceOn(const ast_ptr& ast);
+std::vector<bool> CheckTrace(const ast_ptr& ast,
+                             const boost::dynamic_bitset<>& trace);
 
 class Trace : public Visitor {
  public:
@@ -22,6 +25,8 @@ class Trace : public Visitor {
   ast_ptr Visit(Var* node);
   ast_ptr Visit(Vec* node);
   std::vector<bool> GetTrace() const;
+  boost::dynamic_bitset<> check_trace_;
+  bool print_ = false;
 
  private:
   std::vector<bool> trace_;

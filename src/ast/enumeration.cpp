@@ -144,6 +144,18 @@ vector<ast_ptr> EnumerateSketchesHelper(int depth) {
     return sketches;
   }
 
+  if (depth == 2) {
+    for (auto skt : rec_sketches) {
+      if (skt->type_ != BOOL) {
+        std::shared_ptr<BinOp> andg = make_shared<BinOp>(great, skt, "&&");
+        std::shared_ptr<BinOp> org = make_shared<BinOp>(great, skt, "||");
+        sketches.push_back(andg);
+        sketches.push_back(org);
+      }
+    }
+    return sketches;
+  }
+
   for (auto skt : rec_sketches) {
     if (skt->type_ != BOOL) {
       std::shared_ptr<BinOp> andg = make_shared<BinOp>(great, skt, "&&");
@@ -364,6 +376,9 @@ double CheckModelAccuracy(const ast_ptr& cond,
   }
 
   // Compute the final percentage of satisfied examples to all examples.
+  if (cond->type_ == BOOL) {
+    return 0.0;
+  }
   const double sat_ratio = (double)satisfied / (yes.size() + no.size());
   return sat_ratio;
 }

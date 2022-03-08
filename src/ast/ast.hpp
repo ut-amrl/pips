@@ -64,6 +64,7 @@ struct Example {
   std::vector<Eigen::Vector2f> obstacles_;
   SymEntry result_; // Output may not necessarily be a state
   SymEntry start_; // Start should be a state, but leaving as SymEntry
+  int index;
   bool operator==(const Example& other) const;
 };
 
@@ -114,7 +115,7 @@ class BinOp : public AST {
   ast_ptr FromJson(const nlohmann::json&);
   ast_ptr left_;
   ast_ptr right_;
-  const std::string op_;
+  std::string op_;
   Type type_ = OP;
 
  private:

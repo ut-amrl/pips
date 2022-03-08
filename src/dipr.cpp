@@ -20,17 +20,17 @@
 
 DEFINE_string(ex_file, "merged.json", "Examples file");
 DEFINE_string(lib_file, "ops/social_ref.json", "Operation library file");
-DEFINE_string(sketch_dir, "synthd/dips-window/", "Directory containing components of sketch.");
+DEFINE_string(sketch_dir, "cedrF/policies/ldips4/", "Directory containing components of sketch.");
 DEFINE_uint32(feat_depth, 2, "Maximum enumeration depth for features.");
-DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
-DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
+DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
+DEFINE_uint32(window_size, 5, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
 DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
-DEFINE_bool(debug, false, "Enable Debug Printing");
+DEFINE_bool(debug, true, "Enable Debug Printing");
 
 using AST::ast_ptr;
 using AST::BinOp;
@@ -85,14 +85,15 @@ int main(int argc, char* argv[]) {
 
   std::reverse(transitions.begin(), transitions.end());
 
-  cout << "Examples Loaded" << endl << endl;
+  cout << "Examples Loaded: " << examples.size() << endl << endl;
 
-  examples = WindowExamples(examples, FLAGS_window_size);
+  // examples = WindowExamples(examples, FLAGS_window_size);
 
   // Turning variables into roots
   vector<ast_ptr> inputs, roots;
   for (const Var& variable : variables) {
-    if (variable.name_ != "goal" && variable.name_ != "free_path") {
+    if (variable.name_ != "goal" && variable.name_ != "free_path" &&
+        variable.name_ != "DoorState" && variable.name_ != "DoorPose") {
       roots.push_back(make_shared<Var>(variable));
     }
   }

@@ -138,8 +138,11 @@ vector<Example> ReadExamples(const string& file,
   json examples;
   // TODO(jaholtz) this is never set to false?
   bool first = true;
+  int count = 0;
   for (json example : examples) {
     Example new_ex;
+    new_ex.index = count;
+    count++;
     map<string, SymEntry> table;
     for (json input : example) {
       if (input["name"] != "output") {
@@ -245,6 +248,7 @@ vector<Example> ReadExamples(const string& file,
   for (size_t i = 0; i < length; ++i) {
     const json example = examples[i];
     Example new_ex;
+    new_ex.index = i;
     map<string, SymEntry> table;
     for (json input : example) {
       if (input.is_array()) {

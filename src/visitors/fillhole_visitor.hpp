@@ -11,6 +11,7 @@ namespace AST {
 
 std::unordered_map<std::string, std::pair<Type, Dimension>> MapFeatureHoles(
     const ast_ptr& ast);
+std::vector<BinOp*> MapPredicatesHole(ast_ptr& ast);
 void ResetParams(ast_ptr ast);
 void FillHoles(ast_ptr& ast, const Model& model);
 ast_ptr Srtrize(ast_ptr& ast);
@@ -34,6 +35,7 @@ class MapHoles : public Visitor {
   std::unordered_map<std::string, std::pair<Type, Dimension>> GetFeatureHoles()
       const;
   std::unordered_set<std::string> GetParameterHoles() const;
+  std::vector<BinOp*> GetPredicateHoles();
   bool IsRelative() const;
   bool reset_params_;
   bool srtrize_;
@@ -42,6 +44,7 @@ class MapHoles : public Visitor {
  private:
   std::unordered_map<std::string, std::pair<Type, Dimension>> features_;
   std::unordered_set<std::string> parameters_;
+  std::vector<BinOp*> predicates_;
   int depth_ = 0;
   bool is_relative_ = false;
 };

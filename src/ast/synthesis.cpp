@@ -144,7 +144,7 @@ Model SolveSMTLIBProblem(const string& problem) {
   CumulativeFunctionTimer::Invocation invoke(&solve_smtlib);
   z3::context context;
   z3::params p(context);
-  p.set(":timeout", 100u);
+  p.set(":timeout", 25u);
   // p.set(":smt.arith.solver", 3);
   // p.set(":opt.wmaxsat_engine", );
   z3::optimize solver(context);
@@ -330,6 +330,400 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
   return filled;
 }
 
+// Given the sketch generate all of the possible sketches where
+// features holes are filled with features in ops
+void EnumerateL2(const vector<ast_ptr>& ops,
+                 ast_ptr sketch,
+                 vector<ast_ptr>& sketches) {
+  // Get a list of the names of all the feature holes in the conditional,
+  // then store them in a vector because being able to access them in a
+  // consistent order and by index is important for something we do later.
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+      MapFeatureHoles(sketch);
+  vector<string> feature_holes;
+  for (const auto& p : feature_hole_map) {
+    feature_holes.push_back(p.first);
+  }
+  const size_t feature_hole_count = feature_holes.size();
+
+  // Start iterating through possible models. index_iterator is explained
+  // seperately.
+  ast_ptr solution_cond = sketch;
+  if (feature_hole_count > 0) {
+    index_iterator c(ops.size(), feature_hole_count);
+    solution_cond = nullptr;
+    bool keep_searching = true;
+    int count = 0.0;
+    // #pragma omp parallel
+    while (keep_searching) {
+      // Use the indices given to us by the iterator to select ops for filling
+      // our feature holes and create a model.
+      vector<size_t> op_indicies;
+      #pragma omp critical
+      {
+        if (c.has_next()) {
+          op_indicies = c.next();
+        } else {
+          keep_searching = false;
+          op_indicies = c.zeros();
+        }
+        count++;
+      }
+
+      ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+      if (filled != nullptr) {
+        sketches.push_back(filled);
+      }
+    }
+  } else {
+    sketches.push_back(solution_cond);
+  }
+}
+
+vector<vector<int>> Combinations(const int& num_holes,
+                                 const int& num_predicates) {
+  vector<vector<int>> combos;
+  std::string bitmask(num_holes, 1); // K leading 1's
+  bitmask.resize(num_predicates, 0); // N-K trailing 0's
+  // Cool trick courtesy of std::algorithms
+  // Will go from 1111....0000 to 0000....1111 one step at a time.
+  // ie 11101....0000 is the next step.
+  do {
+    vector<int> combo;
+    for (size_t i = 0; i < bitmask.size(); ++i) {
+      combo.push_back(bitmask[i]);
+    }
+    combos.push_back(combo);
+  } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+  return combos;
+}
+
+void FillPredicates(ast_ptr sketch,
+                    const vector<ast_ptr>& predicates,
+                    vector<ast_ptr> sketches) {
+  // Get all of the predicate holes in the program
+  vector<BinOp*> predicate_holes = MapPredicatesHole(sketch);
+  cout << sketch << endl;
+  cout << "Blank Predicates Mapped " << endl;
+  // Get all of the possible combinations of predicates in holes.
+  cout << "Number of Holes: " << predicate_holes.size() << endl;
+  cout << "Number of Predicates: " << predicates.size() << endl;
+  // vector<vector<int>> combos =
+      // Combinations(predicate_holes.size(), predicates.size());
+  // cout << "Combos Calculated" << endl;
+  std::string bitmask(predicate_holes.size(), 1); // K leading 1's
+  bitmask.resize(predicates.size(), 0); // N-K trailing 0's
+  // Cool trick courtesy of std::algorithms
+  // Will go from 1111....0000 to 0000....1111 one step at a time.
+  // ie 11101....0000 is the next step.
+  do {
+    int count = 0;
+    for (size_t i = 0; i < bitmask.size(); ++i) {
+      // TODO(jaholtz) this might not quite work, need to make sure
+      // we're updating sketch when we do this.
+      if (bitmask[i] == 1) {
+        bin_ptr value = std::dynamic_pointer_cast<BinOp>(predicates[i]);
+        BinOp* hole = predicate_holes[count];
+        // TODO(jaholtz) make this a copy assignment if it works.
+        (*hole).left_ = value->left_;
+        (*hole).right_ = value->right_;
+        (*hole).op_ = value->op_;
+        count++;
+      }
+    }
+    ast_ptr filled = DeepCopyAST(sketch);
+    // Check if the sketch is any good given our current demos.
+  } while (std::prev_permutation(bitmask.begin(), bitmask.end()));
+
+  // for (vector<int> combo : combos) {
+    // // Fill in all of the holes in sketch.
+    // cout << "Combo Size: " << combo.size() << endl;
+    // int count = 0;
+    // for (size_t i = 0; i < combo.size(); ++i) {
+      // // TODO(jaholtz) this might not quite work, need to make sure
+      // // we're updating sketch when we do this.
+      // if (combo[i] == 1) {
+        // predicate_holes[count] = predicates[i];
+        // count++;
+      // }
+      // cout << "Assigned Value" << endl;
+    // }
+    // // Copy the sketch
+    // ast_ptr filled = DeepCopyAST(sketch);
+    // // Check if the sketch is any good given our current demos.
+    // cout << filled << endl;
+
+    // // If it is, save it, if it's not, throw it out.
+    // sketches.push_back(filled);
+    // cout << "Sketch Saved" << endl;
+  // }
+}
+
+void EnumerateL3(const int& sketch_depth,
+                 const vector<ast_ptr>& ops,
+                 ast_ptr sketch,
+                 vector<ast_ptr>& sketches) {
+  // Enumerate possible predicates sketches
+  const auto pred_sketches = EnumerateSketches(sketch_depth);
+  cout << "Predicate Sketches Enumerated" << endl;
+
+  // Fill the predicates sketches with possible features.
+  // Forms the set of all possible predicates up to sketch_depth.
+  vector<ast_ptr> l2_sketches;
+  for (ast_ptr pred_sketch : pred_sketches) {
+    EnumerateL2(ops, pred_sketch, l2_sketches);
+  }
+  cout << "Predicate sketches completed" << endl;
+
+  // Fill in all of the predicates holes with candidates from l2_sketches
+  // Forms the set of all possible programs.
+  FillPredicates(sketch, l2_sketches, sketches);
+  cout << "Predicate Sketches filled" << endl;
+}
+
+void EnumPredicateL2(
+    const vector<Example>& examples, const vector<ast_ptr>& ops,
+    ast_ptr sketch, const pair<string,string>& transition,
+    const double min_accuracy,
+    vector<ast_ptr>* cand_sketches,
+    vector<ast_ptr>* comp_sketches) {
+
+  const SymEntry out(transition.second);
+  const SymEntry in(transition.first);
+
+  // Get a list of the names of all the feature holes in the conditional,
+  // then store them in a vector because being able to access them in a
+  // consistent order and by index is important for something we do later.
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+      MapFeatureHoles(sketch);
+  vector<string> feature_holes;
+  for (const auto& p : feature_hole_map) {
+    feature_holes.push_back(p.first);
+  }
+  const size_t feature_hole_count = feature_holes.size();
+
+  // Split up all the examples into a "yes" set or a "no" set based on
+  // whether the result for the example matches the current example's
+  // behavior.
+  unordered_set<Example> yes;
+  unordered_set<Example> no;
+  SplitExamples(examples, transition, &yes, &no);
+
+  if (FLAGS_debug) {
+    cout << "PosE: " << yes.size() << " NegE: " <<  no.size() << endl;;
+    cout << "Current Sketch: " << sketch << endl;
+    cout << "Num Examples: " << yes.size() + no.size() << endl;
+  }
+
+  // Start iterating through possible models. index_iterator is explained
+  // seperately.
+  if (feature_hole_count > 0) {
+    index_iterator c(ops.size(), feature_hole_count);
+    bool keep_searching = true;
+    int count = 0.0;
+    #pragma omp parallel
+    while (keep_searching) {
+      // Use the indices given to us by the iterator to select ops for filling
+      // our feature holes and create a model.
+      vector<size_t> op_indicies;
+      #pragma omp critical
+      {
+        if (c.has_next()) {
+          op_indicies = c.next();
+        } else {
+          keep_searching = false;
+          op_indicies = c.zeros();
+        }
+        count++;
+      }
+
+      ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+      if (filled != nullptr) {
+        #pragma omp critical
+        {
+          // ast_ptr complete = DeepCopyAST(filled);
+          // const double sat_ratio = PredicateL1(complete, yes, no, false);
+          // if ((min_accuracy - sat_ratio) < 0.00001) {
+          cand_sketches->push_back(filled);
+          // comp_sketches->push_back(complete);
+          // }
+        }
+      }
+    }
+  }
+}
+
+void PruneL2(const vector<Example>& demos,
+      const vector<pair<string, string>>& transitions,
+      const float min_accuracy,
+      vector<vector<ast_ptr>>* cand_sketches,
+      vector<vector<ast_ptr>>* comp_sketches) {
+  vector<vector<ast_ptr>> return_candidates;
+  vector<vector<ast_ptr>> return_complete;
+
+  for (size_t i = 0; i < transitions.size(); ++i) {
+    const pair<string, string> transition = transitions[i];
+    const SymEntry out(transition.second);
+    const SymEntry in(transition.first);
+
+    // Split up all the examples into a "yes" set or a "no" set based on
+    // whether the result for the example matches the current example's
+    // behavior.
+    unordered_set<Example> yes;
+    unordered_set<Example> no;
+    SplitExamples(demos, transition, &yes, &no);
+
+    vector<ast_ptr> trans_candidates;
+    vector<ast_ptr> trans_complete;
+    for (ast_ptr& sketch : cand_sketches->at(i)) {
+      ast_ptr complete = DeepCopyAST(sketch);
+      const double sat_ratio = PredicateL1(complete, yes, no, false);
+      Z3_reset_memory();
+      // Keep All demos that agree with current set
+      if ((min_accuracy - sat_ratio) < 0.00001) {
+        trans_candidates.push_back(sketch);
+        trans_complete.push_back(complete);
+      }
+    }
+    return_candidates.push_back(trans_candidates);
+    return_complete.push_back(trans_complete);
+  }
+
+  vector<Example> examples = demos;
+  *cand_sketches = return_candidates;
+  *comp_sketches = return_complete;
+}
+
+void UpdateFrontier(const vector<Example>& demos,
+      const vector<pair<string, string>>& transitions,
+      const float min_accuracy,
+      const int frontier_size,
+      vector<vector<ast_ptr>>* remaining_sketches,
+      vector<vector<ast_ptr>>* cand_sketches,
+      vector<vector<ast_ptr>>* comp_sketches) {
+
+  const bool kDebug = true;
+  vector<vector<ast_ptr>> return_candidates;
+  vector<vector<ast_ptr>> return_complete;
+  if (kDebug) {
+    cout << "Updating Frontier" << endl;
+  }
+
+  for (size_t i = 0; i < transitions.size(); ++i) {
+    const pair<string, string> transition = transitions[i];
+    const SymEntry out(transition.second);
+    const SymEntry in(transition.first);
+
+    if (kDebug) {
+      cout << "Transition: " << transition.first << " -> " << transition.second;
+      cout << endl;
+    }
+
+    // Split up all the examples into a "yes" set or a "no" set based on
+    // whether the result for the example matches the current example's
+    // behavior.
+    unordered_set<Example> yes;
+    unordered_set<Example> no;
+    SplitExamples(demos, transition, &yes, &no);
+
+    vector<ast_ptr> trans_candidates = cand_sketches->at(i);
+    vector<ast_ptr> trans_complete = comp_sketches->at(i);
+    vector<ast_ptr> remaining;
+    vector<ast_ptr> current_sketches = remaining_sketches->at(i);
+    while (static_cast<int>(trans_complete.size()) < frontier_size &&
+           !current_sketches.empty()) {
+      if (kDebug) {
+        cout << "Current Frontier: " << trans_complete.size() << endl;
+        cout << "Current Horizon: " << current_sketches.size() << endl;
+      }
+      ast_ptr sketch = current_sketches.front();
+      current_sketches.erase(current_sketches.begin());
+      ast_ptr complete = DeepCopyAST(sketch);
+      const double sat_ratio = PredicateL1(complete, yes, no, false);
+      Z3_reset_memory();
+      if ((min_accuracy - sat_ratio) < 0.00001) {
+        trans_candidates.push_back(sketch);
+        trans_complete.push_back(complete);
+      }
+    }
+    return_candidates.push_back(trans_candidates);
+    return_complete.push_back(trans_complete);
+    remaining_sketches->at(i) = current_sketches;
+  }
+
+  vector<Example> examples = demos;
+  *cand_sketches = return_candidates;
+  *comp_sketches = return_complete;
+}
+
+
+void EnumLdipsL2(ast_ptr candidate,
+    const vector<Example>& examples,
+    const vector<ast_ptr>& ops,
+    const pair<string, string>& transition,
+    const float min_accuracy,
+    vector<ast_ptr>* cand_sketches,
+    vector<ast_ptr>* comp_sketches) {
+
+  EnumPredicateL2(examples,
+      ops, candidate, transition, min_accuracy, cand_sketches, comp_sketches);
+
+  Z3_reset_memory();
+}
+
+void EnumLdipsL3(const vector<Example>& demos,
+      const vector<pair<string, string>>& transitions,
+      const vector<ast_ptr> lib,
+      const int sketch_depth,
+      const float min_accuracy,
+      vector<vector<ast_ptr>>* cand_sketches,
+      vector<vector<ast_ptr>>* comp_sketches) {
+
+  vector<Example> examples = demos;
+  // Enumerate possible sketches
+  const auto sketches = EnumerateSketches(sketch_depth);
+  const vector<int> transition_depths =
+      {0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0};
+
+  const vector<int> max_transition_depths =
+      {7, 7, 7, 7, 7, 7, 15, 7, 7, 7, 7, 7, 7, 7, 7, 7,  7, 7};
+
+  // For each input/output pair
+  int current_sketch_depth = 0;
+  Print printer;
+  int trans_index = 0;
+  for (const auto& transition : transitions) {
+    cout << "----- " << transition.first << "->";
+    cout << transition.second << " -----" << endl;
+    vector<ast_ptr> transition_candidates;
+    vector<ast_ptr> transition_complete_sketches;
+    for (const auto& sketch : sketches) {
+      // get depth of sketch
+      sketch->Accept(&printer);
+      current_sketch_depth = printer.depth_;
+      printer.depth_ = 0;
+      cout << "Sketch Depth: " << current_sketch_depth << endl;
+      // Attempt L2 Synthesis with current sketch.
+      // if (current_sketch_depth > transition_depths[trans_index] &&
+          // current_sketch_depth <= max_transition_depths[trans_index]) {
+        EnumLdipsL2(sketch, examples, lib, transition,
+            min_accuracy, &transition_candidates, &transition_complete_sketches);
+      // }
+      if (FLAGS_debug) {
+        cout << "Number of Candidates: " << transition_candidates.size() << endl;
+      }
+    }
+    trans_index++;
+    cand_sketches->push_back(transition_candidates);
+    // comp_sketches->push_back(transition_complete_sketches);
+
+    // Filter out Examples used by this transition
+    examples = FilterExamples(examples, transition);
+
+    cout << endl;
+  }
+}
+
 CumulativeFunctionTimer pred_l2("PredicateL2");
 ast_ptr PredicateL2(
     const vector<Example>& examples, const vector<ast_ptr>& ops,
@@ -466,13 +860,18 @@ void ldipsL3(const vector<Example>& demos,
   // Enumerate possible sketches
   const auto sketches = EnumerateSketches(sketch_depth);
 
+  const vector<int> transition_depths =
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0,  0, 0};
+
   // For each input/output pair
+  int trans_index = 0;
   for (const auto& transition : transitions) {
     // Skipping already synthesized conditions, allows for very basic
     // checkpointing.
     const string output_name =
       output_path + transition.first + "_" + transition.second + ".json";
     if (ExistsFile(output_name) || transition.first == transition.second) {
+      trans_index++;
       examples = FilterExamples(examples, transition);
       continue;
     }
@@ -480,10 +879,29 @@ void ldipsL3(const vector<Example>& demos,
     cout << transition.second << " -----" << endl;
     float current_best = 0.0;
     ast_ptr current_solution = nullptr;
+    int current_depth = 0;
+    int sketch_depth = 0;
+    Print printer;
     for (const auto& sketch : sketches) {
+
+      // get depth of sketch
+      sketch->Accept(&printer);
+      sketch_depth = printer.depth_;
+      printer.depth_ = 0;
+
       // Attempt L2 Synthesis with current sketch.
-      current_solution = ldipsL2(sketch, examples, lib, transition,
-          min_accuracy, current_solution, &current_best);
+      cout << "Sketch Depth: " << sketch_depth << endl;
+      if (sketch_depth > transition_depths[trans_index] || current_depth < 1) {
+        const float last_best = current_best;
+        current_solution = ldipsL2(sketch, examples, lib, transition,
+            min_accuracy, current_solution, &current_best);
+        // Get Depth of Best Solution
+        if (current_best > last_best) {
+          current_depth = sketch_depth;
+        }
+      }
+
+
       if (current_best >= min_accuracy) break;
       if (FLAGS_debug) {
         cout << "Score: " << current_best << endl;
@@ -491,6 +909,7 @@ void ldipsL3(const vector<Example>& demos,
         cout << "- - - - -" << endl;
       }
     }
+    trans_index++;
     // Write the solution out to a file.
     cout << "Score: " << current_best << endl;
     cout << "Final Solution: " << current_solution << endl;
@@ -516,6 +935,8 @@ void DIPR(const vector<Example>& demos,
       const string& output_path) {
 
   vector<Example> examples = demos;
+
+  cout << "Num Examples: " << examples.size() << endl;
   // Enumerate possible sketches
   const auto sketches = EnumerateSketches(sketch_depth);
 
@@ -540,7 +961,6 @@ void DIPR(const vector<Example>& demos,
     cout << "Initial Score: " << best_score << endl;
     total_sat += best_score;
     // Filter out Examples used by this transition
-    examples = FilterExamples(examples, transition);
     if (best_score >= min_accuracy || std::isnan(best_score)) {
       cout << "Sufficient Performance, Skipping" << endl;
       cout << endl;
@@ -557,19 +977,31 @@ void DIPR(const vector<Example>& demos,
     // Search all possible extensions of the current program.
     // TODO(jaholtz) iterative over both sketches separately
     for (const auto& sketch : sketches) {
-      // Extend the Sketch
-      if (FLAGS_debug) {
-        cout << "Pos: " << pos << " Neg: " << neg << endl;
+      if (false) {
+        // Attempt L2 Synthesis with current sketch.
+        best_program = ldipsL2(sketch, examples, lib, transition,
+            min_accuracy, best_program, &best_score);
+        Z3_reset_memory();
+        if (best_score >= min_accuracy) break;
+      } else {
+        // Extend the Sketch
+        if (FLAGS_debug) {
+          cout << "Pos: " << pos << " Neg: " << neg << endl;
+        }
+        ast_ptr candidate = ExtendPred(programs[i], sketch, sketch, pos, neg);
+        if (FLAGS_debug) {
+          cout << candidate << endl;
+        }
+
+        // Attempt L2 Synthesis with the extended sketch.
+        best_program = ldipsL2(candidate, examples, lib, transition,
+            min_accuracy, best_program, &best_score);
+        Z3_reset_memory();
+
+        if (best_score >= min_accuracy) break;
       }
-      ast_ptr candidate = ExtendPred(programs[i], sketch, sketch, pos, neg);
-
-      // Attempt L2 Synthesis with the extended sketch.
-      best_program = ldipsL2(candidate, examples, lib, transition,
-          min_accuracy, best_program, &best_score);
-      Z3_reset_memory();
-
-      if (best_score >= min_accuracy) break;
     }
+    examples = FilterExamples(examples, transition);
     // Write the solution out to a file.
     cout << "Final Solution: " << best_program << endl;
     cout << "Final Score: " << best_score << endl;
@@ -585,7 +1017,7 @@ void DIPR(const vector<Example>& demos,
     examples = FilterExamples(examples, transition);
     cout << endl;
   }
-  cout << "Sat: " << total_sat << "Total: " << total_ex << endl;
+  cout << "Sat: " << total_sat << " Total: " << total_ex << endl;
   cout << "Score: " << (double)total_sat / (double)total_ex << endl;
 }
 

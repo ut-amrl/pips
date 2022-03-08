@@ -23,10 +23,10 @@ class Print : public Visitor {
   ast_ptr Visit(Vec* node);
   std::string GetString() const;
   void Display();
+  int depth_ = 0;
 
  private:
   std::string program_ = "";
-  int depth_ = 0;
 };
 
 void PrintAST(ast_ptr ast);
