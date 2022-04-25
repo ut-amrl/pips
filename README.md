@@ -111,7 +111,11 @@ This object is an example of the robot transition from GO to STOP when the neare
 Of course, you would need many more examples to get any good results. A sample example file `toy.json` and a script for generating more like it `toy.py` are available in the examples directory.
 
 ### Running
-With your library file (let's call it `ops/social_test.json`) and your examples file (let's call it `examples/toy.json`) its time to run cpp-pips. In a terminal, type `./bin/ldips-l3 -lib_file ops/library.json -ex_file examples/toy.json`. You should see output similar to the following:
+With your library file (let's call it `ops/social_test.json`) and your examples file (let's call it `examples/toy.json`) its time to run cpp-pips. In a terminal, type:
+
+` ./bin/ldips -debug -ex_file examples/toy.json -lib_file ops/social_ref.json`. 
+
+You should see output similar to the following:
 ```
 ----- Transition Demonstrations -----
 GO->GO : 38
@@ -171,6 +175,97 @@ Not bad! Maybe with a few more examples we could get exactly the results we're l
 
 ## Extended Examples
 Try some real world social navigation scenarios! A library for this purpose (`ops/social_test.json`) and some recorded demonstrations (`examples/del_N.json`) are included in this repository.
+
+## Adapting a Policy with IDIPS
+Iterative Dimension Informed Program Synthesis (IDIPS) minimally adapts an existing policy to best accomodate new demonstrations. Using IDIPS is very similary to using PIPS/LDIPS as demonstrated above, you still require a library json file, and json file filled with examples. In addition, IDIPS requires the path to a policy as output by PIPS, provided with the `flag -sketch-dir`. 
+
+In this repo we have provided an additional toy example `toy-2.json` that represents a second reason for our example agent to stop. In this case, we have created a new observation representing the position of a truck, and demonstrations that show the agent stopping when the truck is within a certain distance. To apply IDIPs to synthesize new rules for this previously unseen information, call the following in your terminal:
+
+`./bin/idips -debug -lib_file ops/exampl_lib.json -ex_file examples/toy-2.json -sketch_dir synthd/pips_output/`
+
+You should see output similar to the following, where IDIPs has synthesized new clauses for the previous predicates based on the truck_pose:
+```
+----- Transition Demonstrations -----
+GO->STOP : 43
+STOP->STOP : 35
+STOP->GO : 12
+GO->GO : 10
+
+Examples Loaded: 100
+
+----Roots----
+truck_pose [1, 0, 0]
+start [0, 0, 0]
+distance_to_human [1, 0, 0]
+
+Prog Size: 2
+----Transitions----
+GO->GO
+STOP->GO
+STOP->STOP
+GO->STOP
+
+----Library----
+SqDist:	VEC [1, 0, 0], VEC [1, 0, 0] --> NUM [1, 0, 0]
+Abs:	NUM [0, 0, 0] --> NUM [0, 0, 0]
+Norm:	VEC [1, 0, 0] --> NUM [1, 0, 0]
+Norm:	VEC [1, -1, 0] --> NUM [1, -1, 0]
+Plus:	NUM [1, 0, 0], NUM [1, 0, 0] --> NUM [1, 0, 0]
+Times:	NUM [0, 0, 1], NUM [0, 0, 1] --> NUM [0, 0, 2]
+
+---- Features Synthesized ----
+truck_pose [1, 0, 0]
+start [0, 0, 0]
+distance_to_human [1, 0, 0]
+Norm(truck_pose)
+start [0, 0, 0]
+SqDist(truck_pose, truck_pose)
+Plus(distance_to_human, distance_to_human)
+Plus(distance_to_human, Norm(truck_pose))
+Plus(Norm(truck_pose), Norm(truck_pose))
+
+---- Number of Features Enumerated ----
+9
+
+
+Num Examples: 100
+----- STOP->GO -----
+Initial Program:>(distance_to_human, 0.899374)
+Initial Score: 0.255319
+Pos: 0 Neg: 35
+>(distance_to_human, 0.899374) && >(, )
+PosE: 12 NegE: 35
+Current Sketch: >(distance_to_human, 0.899374) && >(, )
+Num Examples: 47
+Final Solution: >(distance_to_human, 0.899374) && >(Norm(truck_pose), 8.837197)
+Final Score: 1
+
+----- GO->STOP -----
+Initial Program:<(distance_to_human, 1.227231)
+Initial Score: 0.188679
+Pos: 43 Neg: 0
+<(distance_to_human, 1.227231) || >(, )
+PosE: 43 NegE: 10
+Current Sketch: <(distance_to_human, 1.227231) || >(, )
+Num Examples: 53
+Pos: 43 Neg: 0
+<(distance_to_human, 1.227231) || <(, )
+PosE: 43 NegE: 10
+Current Sketch: <(distance_to_human, 1.227231) || <(, )
+Num Examples: 53
+Final Solution: <(distance_to_human, 1.227231) || <(Norm(truck_pose), 9.568246)
+Final Score: 1
+
+Run-time stats for PredicateL2 : mean run time = 28.392529 ms, invocations = 3
+Run-time stats for MakeSMTLIBProblem : mean run time = 0.271669 ms, invocations = 18
+Run-time stats for SolveSMTLIBProblem : mean run time = 3.351814 ms, invocations = 18
+Run-time stats for CheckModelAccuracy : mean run time = 0.075824 ms, invocations = 20
+Run-time stats for GetLegalOperations : mean run time = 0.001352 ms, invocations = 7
+Run-time stats for RecEnumerate : mean run time = 42.002851 ms, invocations = 1
+Run-time stats for UpdateList : mean run time = 0.000123 ms, invocations = 7
+Run-time stats for Enum : mean run time = 0.006168 ms, invocations = 2
+Run-time stats for CalcSigs : mean run time = 20.983932 ms, invocations = 2
+```
 
 ## License
 
