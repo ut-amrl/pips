@@ -48,7 +48,7 @@ To use cpp-pips to solve this problem, you will need
 A library is a JSON file that tells cpp-pips which functions it can use and on what types of data.
 
 The file is a list of objects. Each object has the following fields:
- * `op` (string): The operation to be run. See below for a list of implemented operations. A list of implemented library functions is in src/ast/library_functions.hpp.
+ * `op` (string): The operation to be run. See below for a list of implemented operations. A list of implemented library functions is in `src/ast/library_functions.hpp`.
  * `inputType` (list of strings): The allowed types for the inputs to the operation. Valid types are NUM, BOOL, STATE (string), VEC (2D float vector)
  * `inputDim` (list of lists of integers): The allowed dimensionalities for the inputs to the operation. Should have 3 elements. The first represents the power of distance, the second time, and the third mass. For example, m/s would be [1, -1, 0].
  * `outputType` (string): The type of the operation's output.
