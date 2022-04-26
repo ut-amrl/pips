@@ -26,7 +26,7 @@ Physics Informed Program Synthesis
 6. [Z3](https://github.com/Z3Prover/z3/releases) (version 4.8.9)
 
 ### Compilation
-Add the path to cpp-pips to your $ROS_PACKAGE_PATH, then run `make`.
+Add the path to pips to your $ROS_PACKAGE_PATH, then run `make`.
 
 ## Example Usage
 
@@ -111,7 +111,11 @@ This object is an example of the robot transition from GO to STOP when the neare
 Of course, you would need many more examples to get any good results. A sample example file `toy.json` and a script for generating more like it `toy.py` are available in the examples directory.
 
 ### Running
-With your library file (let's call it `ops/social_test.json`) and your examples file (let's call it `examples/toy.json`) its time to run cpp-pips. In a terminal, type `./bin/ldips-l3 -lib_file ops/library.json -ex_file examples/toy.json`. You should see output similar to the following:
+With your library file (we'll use the provided example `ops/social_test.json`) and your examples file (we'll use the provided example file `examples/toy.json`) it's time to run pips. In a terminal, type:
+```
+./bin/ldips-l3 -lib_file ops/social_test.json -ex_file examples/toy.json
+```
+You should see output similar to the following:
 ```
 ----- Transition Demonstrations -----
 GO->GO : 38
