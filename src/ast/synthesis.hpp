@@ -35,6 +35,11 @@ namespace AST {
       const float min_accuracy,
       const std::string& output_path);
 
+void RulePIPS(const std::vector<std::vector<std::vector<Example>>>& positive,
+              const std::vector<std::vector<std::vector<Example>>>& negative,
+              const std::vector<ast_ptr> sketches, const std::vector<ast_ptr> lib,
+              const float min_accuracy, const std::string& output_path);
+
   void SRTR(const std::vector<Example>& demos,
       const std::vector<ast_ptr>& programs,
       const std::vector<std::pair<std::string, std::string>>& transitions,
@@ -47,5 +52,7 @@ namespace AST {
       const int sketch_depth,
       const float min_accuracy,
       const std::string& output_path);
+
+std::vector<ast_ptr> EnumerateCompletions(const ast_ptr sketch, const std::vector<ast_ptr>& expressions);
 
 }  // namespace AST

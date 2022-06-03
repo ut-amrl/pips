@@ -103,3 +103,6 @@ target_link_libraries(srtr c++-pips-core)
 
 add_executable(dipr src/dipr.cpp)
 target_link_libraries(dipr c++-pips-core)
+
+add_executable(rulePIPS src/rulePIPS.cpp)
+target_link_libraries(rulePIPS c++-pips-core)

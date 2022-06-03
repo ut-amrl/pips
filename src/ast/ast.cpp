@@ -147,12 +147,26 @@ AST::AST(const Dimension& dims, const Type& type, const bool& symbolic) :
 
 AST::~AST(){};
 
+bool AST::IsLegal() {
+  return true; 
+}
+
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op)
     : AST({0, 0, 0}, OP), left_(left), right_(right), op_(op) {}
 
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op, const Type& type,
              const Dimension& dim)
     : AST(dim, type), left_(left), right_(right), op_(op) {}
+  
+bool BinOp::IsLegal() {
+  if (op_ == "Gt" || op_ == "Lt" || op_ == "Plus" || op_ == "Sub"){
+    return left_->dims_ == right_->dims_;
+  }
+  if (op_ == "And" || op_ == "Or") {
+    return left_->IsLegal() && right_->IsLegal();
+  }
+  return true;
+}
 
 UnOp::UnOp(ast_ptr input, const string& op)
     : AST({0, 0, 0}, OP), input_(input), op_(op) {}

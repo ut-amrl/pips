@@ -294,6 +294,51 @@ vector<string> FilesInDir(const string& path) {
   return output;
 }
 
+void ReadTrajExamples(const string& folder, unordered_set<AST::Var>& vars,
+                      vector<vector<vector<Example>>>& positive,
+                      vector<vector<vector<Example>>>& negative) {
+  // For each file in the directory (trajectory)
+  for (const string file : FilesInDir(folder)) {
+    const string filename = folder + file;
+    std::ifstream input(filename);
+    json examples;
+    input >> examples;
+    // For each full demo in the file (timestep)
+    vector<vector<Example>> trajectory;
+    for (json step : examples["trajectory"]) {
+      // For each vehicle/agent/object in the observation
+      vector<Example> observations;
+      for (json obs : step["observations"]) {
+        Example new_ex;
+        map<string, SymEntry> table;
+        for (json input : obs) {
+          if (!input.count("name")) {
+              continue;
+          }
+          vector<int> dim = input["dim"];
+          // Create a variable (set keeps us from duplicating)
+          Var var(input["name"], Dimension(dim.data()),
+                  StringToType(input["type"]));
+          vars.insert(var);
+          // Add mapping to the symbol table
+          table[input["name"]] = json_to_symentry(input);
+        }
+        // Update the symbol table for this example
+        new_ex.symbol_table_ = table;
+        // Update the action for this example
+        // Push back to the correct list
+        observations.push_back(new_ex);
+      }
+      trajectory.push_back(observations);
+    }
+    if (examples["mistake"]) {
+      negative.push_back(trajectory);
+    } else {
+      positive.push_back(trajectory);
+    }
+  }
+}
+
 ast_ptr LoadJson(const string& file) {
   ifstream input_file;
   input_file.open(file);

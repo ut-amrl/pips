@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
 using std::invalid_argument;
 using std::out_of_range;
@@ -20,6 +21,7 @@ nd_bool_array::nd_bool_array(const vector<size_t>& dims) : dims_(dims) {
     }
     elem_count *= dim;
   }
+  std::cout << "Bool Array Elements: " << elem_count << std::endl;
   data_.resize(elem_count);
 }
 

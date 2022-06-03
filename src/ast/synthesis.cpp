@@ -156,6 +156,7 @@ CumulativeFunctionTimer make_smtlib("MakeSMTLIBProblem");
 string MakeSMTLIBProblem(const unordered_set<Example>& yes,
                          const unordered_set<Example>& no,
                          const ast_ptr program,
+                         const bool soft,
                          const bool srtr) {
   CumulativeFunctionTimer::Invocation invoke(&make_smtlib);
 
@@ -163,13 +164,13 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   // set will track the names of parameter holes discovered, and the assertions
   // set will hold the assertions we generate.
   unordered_set<string> params;
-  unordered_set<string> assertions;
+  vector<string> assertions;
 
   // Make a new set that includes all examples.
   unordered_set<Example> all_examples(yes);
   all_examples.insert(no.cbegin(), no.cend());
   // For every example, ...
-  for (const Example& example : all_examples) {
+  for (const Example& example : yes) {
     // Partially evaluate the program with the examples as much as possible.
     ast_ptr partial = Interpret(program, example);
     // Create an SMT-LIB expression from the program and that example.
@@ -178,52 +179,38 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
     // Add full assertions using that expression to our assertion list. It's
     // important to check whether the example is in both sets because we could
     // have contradictory examples.
-    if (yes.find(example) != yes.cend())
-      assertions.insert("(assert-soft " + smtlib + ")");
-    if (no.find(example) != no.cend())
-      assertions.insert("(assert-soft (not " + smtlib + "))");
-
+    if (soft) {
+      assertions.push_back("(assert-soft " + smtlib + ")");
+    }
+    else {
+      assertions.push_back("(assert " + smtlib + ")");
+    }
     // If there are any parameter holes, make note of them too.
     const unordered_set<string> example_params = converter.GetParams();
-    params.insert(example_params.cbegin(), example_params.cend());
+    params.insert(example_params.cbegin(), example_params.cend()); 
   }
 
-  // Create a string where our full SMT-LIB problem will be created.
-  //
-  // Any SMT-LIB formula including division by 0 is SAT, so create a new
-  // function for "safe" division.
-  //
-  // TODO(simon) Find a smarter solution, since this could still possibly
-  // result in SATs when it shouldn't.
-  string problem = R"(
-    (define-fun safe-div ((x!1 Real) (x!2 Real)) Real
-      (ite (= x!2 0.0)
-        0.0
-        (/ x!1 x!2)))
+  for (const Example& example : no) {
+    // Partially evaluate the program with the examples as much as possible.
+    ast_ptr partial = Interpret(program, example);
+    // Create an SMT-LIB expression from the program and that example.
+    ToSMTLIB converter = AstToSMTLIB(partial, example);
+    const string smtlib = converter.Get();
+    // Add full assertions using that expression to our assertion list. It's
+    // important to check whether the example is in both sets because we could
+    // have contradictory examples.
+    if (soft) {
+      assertions.push_back("(assert-soft (not " + smtlib + "))");
+    }
+    else {
+      assertions.push_back("(assert (not " + smtlib + "))");
+    }
+    // If there are any parameter holes, make note of them too.
+    const unordered_set<string> example_params = converter.GetParams();
+    params.insert(example_params.cbegin(), example_params.cend()); 
+  }
 
-    (define-fun cross ((x!1 Real) (y!1 Real) (x!2 Real) (y!2 Real)) Real
-      (+ (* x!1 y!2) (* y!1 x!2)))
-
-    (define-fun dot ((x!1 Real) (y!1 Real) (x!2 Real) (y!2 Real)) Real
-      (+ (* x!1 x!2) (* y!1 y!2)))
-
-    (define-fun sq ((x!1 Real)) Real
-      (* x!1 x!1))
-
-    (define-fun euc-dist-sq ((x!1 Real) (y!1 Real) (x!2 Real) (y!2 Real)) Real
-      (+ (sq (- x!2 x!1)) (sq (- y!2 y!1))))
-
-    (define-fun norm-sq ((x!1 Real) (y!1 Real)) Real
-      (+ (sq x!1) (sq y!1)))
-
-    (define-fun vec-x ((x!1 Real) (y!1 Real)) Real
-      x!1)
-
-    (define-fun vec-y ((x!1 Real) (y!1 Real)) Real
-      y!1)
-  )";
-
-  problem = "";
+  string problem = "";
 
   // For every parameter hole discovered, add a real constant to the problem.
   for (const string& param : params) {
@@ -236,14 +223,14 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   }
 
   if (srtr) {
-  for (const string& param : params) {
-    // minimize the absolute value of these constants. Closer to 0 is better
-    // in the SRTR case, and ignoreable the rest of the time (because of
-    // lexicographic optimization)
-    const string absolute =
-      "(ite (> 0 " + param + ") (- 0 " + param + ") " + param + ")";
-    problem += "(minimize " + absolute + ")\n" ;
-  }
+    for (const string& param : params) {
+      // minimize the absolute value of these constants. Closer to 0 is better
+      // in the SRTR case, and ignoreable the rest of the time (because of
+      // lexicographic optimization)
+      const string absolute =
+          "(ite (> 0 " + param + ") (- 0 " + param + ") " + param + ")";
+      problem += "(minimize " + absolute + ")\n";
+    }
   }
 
   // Now that the problem string has been completely generated, return it.
@@ -258,18 +245,93 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
 // percentage of examples satisfied.
 double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
     const unordered_set<Example>& neg, const bool srtr) {
-  const string problem = MakeSMTLIBProblem(pos, neg, sketch, srtr);
+  const string problem = MakeSMTLIBProblem(pos, neg, sketch, true, srtr);
   try {
     const Model solution = SolveSMTLIBProblem(problem);
     if (solution.empty()) {
-      throw std::invalid_argument("UNSAT");
+      // throw std::invalid_argument("UNSAT");
     }
     FillHoles(sketch, solution);
     const double output = CheckModelAccuracy(sketch, pos, neg);
+    if (FLAGS_debug) {
+      cout << "L1 Candidate: " << sketch << endl;
+      cout << "Score : " << output << endl << endl;
+    }
     return output;
   } catch (const std::invalid_argument) {
     return 0.0;
   }
+}
+
+void UpdateRuleProblem(z3::optimize& solver, z3::context& context, ast_ptr program, const vector<Example>& observation) {
+  // Create empty sets to hold data needed for program generation. The params
+  // set will track the names of parameter holes discovered.
+  unordered_set<string> params;
+  string smt_string = "";
+  for (const Example& example : observation) {
+    // Partially evaluate the program with the examples as much as possible.
+    ast_ptr partial = Interpret(program, example);
+    // Create an SMT-LIB expression from the program and that example.
+    ToSMTLIB converter = AstToSMTLIB(partial, example);
+    const string smtlib = converter.Get();
+    // Add full assertions using that expression to our assertion list. It's
+    // important to check whether the example is in both sets because we could
+    // have contradictory examples.
+    smt_string += "" + smtlib + "\n";
+    
+    // If there are any parameter holes, make note of them too.
+    const unordered_set<string> example_params = converter.GetParams();
+    params.insert(example_params.cbegin(), example_params.cend());
+  }
+  string new_clause = "";
+  for (const string& param : params) {
+    new_clause += "(declare-const " + param + " Real)\n";
+  }
+  new_clause += "(assert (or " + smt_string + "))\n";
+  solver.push();
+  auto expr = context.parse_string(new_clause.c_str());
+  solver.add(expr);
+}
+
+double TrapL1(ast_ptr sketch, const vector<vector<vector<Example>>>& positive, const vector<vector<Example>>& negative) {
+  // Flatten the 'positive' examples and form an SMT-problem the solution which should return false for
+  // all positive examples. 
+  std::unordered_set<Example> positives;
+  for (const auto& trajectory : positive) {
+    for (const auto& observation : trajectory) {
+      for (const Example& example : observation) {
+        positives.insert(example);
+      } 
+    }
+  }
+  // TODO(jaholtz) Relax this constraint.
+  const string problem = MakeSMTLIBProblem({}, positives, sketch, false, false);
+  z3::context context;
+  z3::optimize solver(context);
+  solver.from_string(problem.c_str());
+  z3::check_result result = solver.check();
+  if (result != z3::sat) {
+    return 0;
+  }
+  
+  // For each step in the negative trajectory add a clause and solve iteratively. Record the length of the sequence identified and the final rule.
+  auto solution = Z3ModelToMap(solver.get_model());
+  int output = 0;
+  for (size_t i = 0; i < negative.size(); ++i) {
+    const vector<Example> observation = negative[i];
+    // Update the solver
+    UpdateRuleProblem(solver, context, sketch, observation);
+    z3::check_result result = solver.check();
+    if (result != z3::sat) {
+      break;
+    }
+    output = i + 1;
+    solution = Z3ModelToMap(solver.get_model());
+  }
+  cout << "L1 Candidate: " << sketch << endl;
+  cout << "Trap Size: " << output << endl << endl;
+  FillHoles(sketch, solution);
+  return output;
 }
 
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
@@ -320,6 +382,68 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
   ast_ptr filled = DeepCopyAST(sketch);
   FillHoles(filled, m);
   return filled;
+}
+
+CumulativeFunctionTimer trap_l2("TrapL2");
+ast_ptr TrapL2(const vector<vector<Example>>& neg_example, 
+               const vector<vector<vector<Example>>>& positive, ast_ptr sketch,
+               const vector<ast_ptr>& ops,
+               const int min_trap,  float* solved) {
+  CumulativeFunctionTimer::Invocation invoke(&trap_l2);
+  // Get a list of the names of all the feature holes in the conditional,
+  // then store them in a vector because being able to access them in a
+  // consistent order and by index is important for something we do later.
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+      MapFeatureHoles(sketch);
+  vector<string> feature_holes;
+  for (const auto& p : feature_hole_map) {
+    feature_holes.push_back(p.first);
+  }
+  const size_t feature_hole_count = feature_holes.size();
+  
+  if (FLAGS_debug) {
+    cout << "Current Sketch: " << sketch << endl;
+  }
+  
+  ast_ptr solution_cond = sketch;
+  float current_best =  *solved;
+  index_iterator c(ops.size(), feature_hole_count);
+  bool keep_searching = true;
+  int count = 0.0;
+  #pragma omp parallel
+  while (keep_searching) {
+    // Use the indices given to us by the iterator to select ops for filling
+    // our feature holes and create a model.
+    vector<size_t> op_indicies;
+    #pragma omp critical
+    {
+      if (c.has_next()) {
+        op_indicies = c.next();
+      } else {
+        keep_searching = false;
+        op_indicies = c.zeros();
+      }
+      count++;
+    }
+    ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+    if (filled != nullptr) {
+      // TODO(jaholtz) Check if a solution exists
+      #pragma omp critical
+      {
+        const int trap_size = TrapL1(filled, positive, neg_example);
+        if (keep_searching && trap_size >= min_trap) {
+          keep_searching = false;
+          solution_cond = filled;
+          current_best = trap_size;
+        } else if (trap_size > current_best) {
+          solution_cond = filled;
+          current_best = trap_size;
+        }
+      }
+    }
+  }
+  *solved = current_best;
+  return solution_cond;
 }
 
 CumulativeFunctionTimer pred_l2("PredicateL2");
@@ -440,6 +564,189 @@ ast_ptr ldipsL2(ast_ptr candidate,
   return best_program;
 }
 
+vector<ast_ptr> PruneRuleOps(vector<ast_ptr> ops, vector<vector<Example>>& neg) {
+  vector<ast_ptr> pruned;
+  vector<Example> observation = neg[0];
+  for (const ast_ptr& op : ops) {
+    // Only keep ops that are true for at least the first observation
+    z3::context context;
+    z3::optimize solver(context);
+    UpdateRuleProblem(solver, context, op, observation);
+    z3::check_result result = solver.check();
+    if (result == z3::sat) {
+      pruned.push_back(op);
+    }
+  }
+  return pruned;
+}
+
+ast_ptr RuleL2(const vector<Example>& neg_example, 
+               const vector<Example>& positive, ast_ptr sketch,
+               const vector<ast_ptr>& ops,
+               const int min_accuracy,  float* solved) {
+  // Convert examples to sets from vectors
+  const std::unordered_set<Example> neg_set(neg_example.begin(), neg_example.end());
+  const std::unordered_set<Example> pos_set(positive.begin(), positive.end());
+  // Get a list of the names of all the feature holes in the conditional,
+  // then store them in a vector because being able to access them in a
+  // consistent order and by index is important for something we do later.
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+      MapFeatureHoles(sketch);
+  vector<string> feature_holes;
+  for (const auto& p : feature_hole_map) {
+    feature_holes.push_back(p.first);
+  }
+  const size_t feature_hole_count = feature_holes.size();
+  
+  if (FLAGS_debug) {
+    cout << "Current Sketch: " << sketch << endl;
+  }
+  
+  ast_ptr solution_cond = sketch;
+  float current_best =  *solved;
+  index_iterator c(ops.size(), feature_hole_count);
+  bool keep_searching = true;
+  int count = 0.0;
+  #pragma omp parallel
+  while (keep_searching) {
+    // Use the indices given to us by the iterator to select ops for filling
+    // our feature holes and create a model.
+    vector<size_t> op_indicies;
+    #pragma omp critical
+    {
+      if (c.has_next()) {
+        op_indicies = c.next();
+      } else {
+        keep_searching = false;
+        op_indicies = c.zeros();
+      }
+      count++;
+    }
+    ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+    if (filled != nullptr) {
+      // TODO(jaholtz) Check if a solution exists
+      #pragma omp critical
+      {
+        // Trying to return true for neg_set, and false otherwise
+        const float score = PredicateL1(filled, neg_set, pos_set, false);
+        if (keep_searching && score >= min_accuracy) {
+          keep_searching = false;
+          solution_cond = filled;
+          current_best = score;
+        } else if (score > current_best) {
+          solution_cond = filled;
+          current_best = score;
+        }
+      }
+    }
+  }
+  *solved = current_best;
+  return solution_cond;
+}
+
+void SynthesizeRule(const int &trap_size,
+                    const vector<vector<vector<Example>>> &positive,
+                    const vector<vector<Example>> &negative, const float& min_accuracy,
+                    const vector<ast_ptr> sketches, const vector<ast_ptr> lib, 
+                    const string& output_path) {
+
+  vector<Example> positive_ex, negative_ex;
+  vector<Example> trap_start = negative[trap_size + 1];
+  // Starting with the transition just before the trap, we should never take the trap 
+  // starting action.
+  for (size_t i = 0; i < trap_size + 1; ++i) {
+    const vector<Example> observation = negative[i];
+    negative_ex.insert(negative_ex.end(), observation.begin(), observation.end());
+  }
+
+  // Any positive example with the trap starting action should be maintained.
+  // These represent the safe states for taking that action.
+  for (const auto& trajectory : positive) {
+    for (const auto& observation : trajectory)  {
+      for (const Example& example : observation) {
+        if (example.result_ == trap_start[0].result_) {
+          positive_ex.push_back(example);
+        }
+      }
+    }
+  }
+
+  if (FLAGS_debug) {
+    cout << "Negative Examples: " << negative_ex.size() << endl;
+    cout << "Positive Examples: " << positive_ex.size() << endl;
+  }
+
+  // Consider each possible base sketch
+  float current_best = 0.0;
+  ast_ptr best_solution = nullptr;
+  for (const auto &sketch : sketches) {
+    float l2_score = 0.0;
+    // check if any completion of the sketch is good.
+    auto l2_solution = RuleL2(negative_ex, positive_ex, sketch, lib, min_accuracy,
+                              &l2_score);
+    if (l2_score > current_best) {
+     best_solution = l2_solution;
+     current_best = l2_score; 
+    }
+    if (FLAGS_debug) {
+      cout << "Score: " << current_best << endl;
+      cout << "Solution: " << best_solution << endl;
+      cout << "- - - - -" << endl;
+    }
+  }
+  // Write the solution out to a file.
+  cout << "Score: " << current_best << endl;
+  cout << "Banned Transition: " << trap_start[0].result_ << endl;
+  cout << "Final Solution: " << best_solution << endl;
+  ofstream output_file;
+  output_file.open(output_path);
+  const json output = best_solution->ToJson();
+  output_file << std::setw(4) << output << std::endl;
+  output_file.close();
+  cout << endl;
+}
+
+void RulePIPS(const vector<vector<vector<Example>>>& positive,
+              const vector<vector<vector<Example>>>& negative,
+              const vector<ast_ptr> sketches, const vector<ast_ptr> lib,
+              const float min_accuracy, const string& output_path) {
+  // Synthesize one rule per negative example
+  // TODO identify when negative example overlap
+  for (size_t i = 0; i < negative.size(); ++i) {
+    auto neg_example = negative[i];
+    // Reversing it to check from the end.
+    std::reverse(neg_example.begin(), neg_example.end());
+    vector<ast_ptr> pruned_ops = PruneRuleOps(lib, neg_example);
+    string output_name = output_path + "_" + std::to_string(i) + ".json";
+    float current_best = 0.0;
+    ast_ptr current_solution = nullptr;
+    ast_ptr best_solution = nullptr;
+    // First Synthesize a Trap to identify where things went wrong.
+    for (const auto& sketch : sketches) {
+      const float last_best = current_best;
+      // TODO(jaholtz) is min trap ever a good idea?
+      auto l2_solution = TrapL2(neg_example, positive, sketch, pruned_ops,
+          100.0, &current_best); 
+      if (current_best > last_best) {
+        current_solution = l2_solution; 
+      }
+      if (FLAGS_debug) {
+        cout << "Trap Size: " << current_best << endl;
+        cout << "Trap Expression: " << current_solution << endl;
+        cout << "- - - - -" << endl;
+      }
+    }
+    if (FLAGS_debug) {
+      cout << "Final Trap Size: " << current_best << endl;
+      cout << "Final Trap Expression: " << current_solution << endl;
+    }
+
+    // Take the identified trap (score for now) and synthesize a rule
+    // from it.
+    SynthesizeRule(current_best, positive, neg_example, min_accuracy, sketches, lib, output_path);
+  }
+}
+
 // TODO(currently writes to file, may want a call that doesn't do this).
 void ldipsL3(const vector<Example>& demos,
       const vector<pair<string, string>>& transitions,
@@ -461,9 +768,6 @@ void ldipsL3(const vector<Example>& demos,
     if (ExistsFile(output_name)) {
       continue;
     }
-    // if (transition.first != "GoAlone" || transition.second != "Pass") {
-      // continue;
-    // }
     cout << "----- " << transition.first << "->";
     cout << transition.second << " -----" << endl;
     float current_best = 0.0;
@@ -621,6 +925,32 @@ void SRTR(const vector<Example>& demos,
       cout << endl;
     }
   }
+}
+
+vector<ast_ptr> EnumerateCompletions(const ast_ptr sketch, const vector<ast_ptr>& expressions) {
+  vector<ast_ptr> completions; 
+
+  // Get a list of the names of all the feature holes in the conditional,
+  // then store them in a vector because being able to access them in a
+  // consistent order and by index is important for something we do later.
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+      MapFeatureHoles(sketch);
+  vector<string> feature_holes;
+  for (const auto& p : feature_hole_map) {
+    feature_holes.push_back(p.first);
+  }
+  const size_t feature_hole_count = feature_holes.size();
+  
+  ast_ptr solution_cond = sketch;
+  index_iterator c(expressions.size(), feature_hole_count);
+  while (c.has_next()) {
+    // Use the indices given to us by the iterator to select ops for filling
+    // our feature holes and create a model.
+    vector<size_t> op_indicies = c.next();
+    ast_ptr filled = FillFeatureHoles(sketch, op_indicies, expressions);
+    completions.push_back(filled);
+  }
+  return completions;
 }
 
 }  // namespace AST

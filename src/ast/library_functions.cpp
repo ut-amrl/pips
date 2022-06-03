@@ -377,6 +377,14 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
   return make_shared<Bool>(result);
 }
 
+ast_ptr CopySign(ast_ptr x) {
+  ASSERT_TYPE(x, Type::NUM);
+  num_ptr x_cast = dynamic_pointer_cast<Num>(x);
+  const int one_sign = copysign(1, x_cast->value_);
+  Num result(one_sign, {0,0,0});
+  return make_shared<Num>(result);
+}
+
 ast_ptr StraightFreePathLength(ast_ptr v,
     const vector<Vector2f> obstacles) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)

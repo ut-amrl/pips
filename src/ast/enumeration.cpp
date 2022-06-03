@@ -159,6 +159,26 @@ vector<ast_ptr> EnumerateSketchesHelper(int depth) {
   return sketches;
 }
 
+vector<ast_ptr> EnumerateRuleSketches(const int depth) {
+  vector<ast_ptr> sketches;
+  ast_ptr last_sketch;
+  for (int i = 0; i < depth; ++i) {
+    const string depth_string = std::to_string(i);
+    Feature fX("bX" + depth_string, {0, 0, 0}, OP);
+    if (i > 0) {
+      std::shared_ptr<BinOp> andl =
+          make_shared<BinOp>(last_sketch, make_shared<Feature>(fX), "And");
+      sketches.push_back(andl);
+      last_sketch = andl;
+    } else {
+      ast_ptr shared_fx = make_shared<Feature>(fX);
+      sketches.push_back(shared_fx);
+      last_sketch = shared_fx;
+    }
+  }
+  return sketches;
+}
+
 vector<ast_ptr> EnumerateSketches(int depth) {
   vector<ast_ptr> sketches;
   int counter = 0;

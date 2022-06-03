@@ -182,6 +182,7 @@ ast_ptr FillHole::Visit(Bool* node) { return make_shared<Bool>(*node); }
 ast_ptr FillHole::Visit(Feature* node) {
   if (node->name_ == target_name_ && node->current_value_ == nullptr) {
     node->current_value_ = new_value_;
+    node->dims_ = new_value_->dims_;
   }
   if (node->current_value_ != nullptr) {
     node->current_value_->Accept(this);

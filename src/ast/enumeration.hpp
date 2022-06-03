@@ -40,6 +40,7 @@ std::vector<ast_ptr> GetLegalOps(ast_ptr node, std::vector<ast_ptr> input,
 
 std::vector<ast_ptr> EnumerateSketches(int depth);
 std::vector<ast_ptr> EnumerateSketchesHelper(int depth);
+std::vector<ast_ptr> EnumerateRuleSketches(int depth);
 
 ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
     const float& pos, const float& neg);

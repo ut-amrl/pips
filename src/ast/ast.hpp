@@ -82,9 +82,10 @@ class AST {
   virtual std::shared_ptr<AST> Accept(class Visitor* v) = 0;
   virtual nlohmann::json ToJson() = 0;
   virtual std::shared_ptr<AST> FromJson(const nlohmann::json&) = 0;
+  virtual bool IsLegal();
   virtual ~AST() = 0;
-  const Dimension dims_;
   const Type type_;
+  Dimension dims_;
   bool symbolic_;
 
  private:
@@ -96,6 +97,7 @@ class BinOp : public AST {
   BinOp(ast_ptr left, ast_ptr right, const std::string& op);
   BinOp(ast_ptr left, ast_ptr right, const std::string& op, const Type& type,
         const Dimension& dim);
+  bool IsLegal();
   ast_ptr Accept(class Visitor* v);
   nlohmann::json ToJson();
   ast_ptr FromJson(const nlohmann::json&);

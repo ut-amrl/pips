@@ -62,7 +62,7 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = Minus(left, right);
     } else if (op == "Times") {
       result = Times(left, right);
-    } else if (op == "DividedBy") {
+    } else if (op == "Div") {
       result = DividedBy(left, right);
     } else if (op == "Cross") {
       result = Cross(left, right);
@@ -151,6 +151,8 @@ ast_ptr Interp::Visit(UnOp* node) {
       result = VecY(input);
     } else if (op == "Not") {
       result = Not(input);
+    } else if (op=="CopySign") {
+      result = CopySign(input);
     } else if (op == "StraightFreePathLength") {
       result = StraightFreePathLength(input, world_.obstacles_);
     } else {
