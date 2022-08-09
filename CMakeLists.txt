@@ -28,10 +28,10 @@ else()
 endif()
 
 # ros setup stuff
-INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
-ROSBUILD_INIT()
-SET(ROS_BUILD_STATIC_LIBS true)
-SET(ROS_BUILD_SHARED_LIBS false)
+# INCLUDE($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+# ROSBUILD_INIT()
+# SET(ROS_BUILD_STATIC_LIBS true)
+# SET(ROS_BUILD_SHARED_LIBS false)
 
 # Load required third-party libraries from system
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)

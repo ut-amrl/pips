@@ -623,4 +623,98 @@ void SRTR(const vector<Example>& demos,
   }
 }
 
+
+
+
+
+
+EmdipsOutput EMDIPS(const vector<Example>& demos,
+      const vector<pair<string, string>>& transitions,
+      const vector<ast_ptr> lib,
+      const int sketch_depth,
+      const vector<float> min_accuracy,
+      const string& output_path) {
+
+  vector<Example> examples = demos;
+  const auto sketches = EnumerateSketches(sketch_depth);
+
+  cout << "Number of sketches: " << sketches.size() << endl;
+  for(ast_ptr each: sketches){ cout << each << endl; }
+  cout << endl << endl;
+
+  vector<ast_ptr> transition_solutions;
+  vector<float> accuracies;
+
+  // For each input/output pair
+  for(int t = 0; t < transitions.size(); t++){
+    const auto& transition = transitions[t];
+    // Skipping already synthesized conditions, allows for very basic
+    // checkpointing.
+    const string output_name =
+      output_path + transition.first + "_" + transition.second + ".json";
+    if (ExistsFile(output_name)) {
+      continue;
+    }
+
+    cout << "----- " << transition.first << "->";
+    cout << transition.second << " -----" << endl;
+    cout << "Target accuracy: " << min_accuracy[t] << endl;
+
+    unordered_set<Example> yes;
+    unordered_set<Example> no;
+    SplitExamples(examples, transition, &yes, &no);
+    cout << "Num transitions (pos): " << yes.size() << endl;
+    cout << "Num transitions (neg): " << no.size() << endl;
+
+    if(yes.size() == 0) {
+      transition_solutions.push_back(make_shared<Bool>(Bool(false)));
+      accuracies.push_back(1.0);
+      continue;
+    }
+
+    float current_best = -std::numeric_limits<float>::infinity();
+    ast_ptr current_solution = nullptr;
+    for (const auto& sketch : sketches) {
+      std::chrono::steady_clock::time_point timerBegin = std::chrono::steady_clock::now();
+
+      // Attempt L2 Synthesis with current sketch.
+      pair<ast_ptr, float> new_solution = emdipsL2(sketch, examples, lib, transition, min_accuracy[t]);
+      
+      if (new_solution.second > current_best) {
+        current_best = new_solution.second;
+        current_solution = new_solution.first;
+      }
+      if (flagsDebug) {
+        cout << "Score: " << new_solution.second << endl;
+        cout << "Solution: " << new_solution.first << endl;
+        std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
+        cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count()))/1000.0 << endl;
+        cout << "- - - - -" << endl;
+      }
+      // if (current_best > min_accuracy[t] || current_best == 1) break;
+
+    }
+    // Write the solution out to a file.
+    cout << "Score: " << current_best << endl;
+    cout << "Final Solution: " << current_solution << endl;
+    ofstream output_file;
+    output_file.open(output_name);
+    const json output = current_solution->ToJson();
+    output_file << std::setw(4) << output << std::endl;
+    output_file.close();
+
+    // Filter out Examples used by this transition
+    examples = FilterExamples(examples, transition);
+
+    cout << endl;
+    transition_solutions.push_back(current_solution);
+    accuracies.push_back(current_best);
+  }
+  EmdipsOutput res;
+  res.ast_vec = transition_solutions;
+  res.transition_accuracies = accuracies;
+  return res;
+}
+
+
 }  // namespace AST
