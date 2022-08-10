@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <unordered_set>
 #include <queue>
+#include <chrono>
 
 #include "enumeration.hpp"
 #include "gflags/gflags_declare.h"
@@ -34,6 +35,7 @@ using AST::CheckModelAccuracy;
 DECLARE_uint32(sketch_depth);
 DECLARE_double(min_accuracy);
 DECLARE_bool(debug);
+
 
 namespace AST {
 
@@ -624,7 +626,21 @@ void SRTR(const vector<Example>& demos,
 }
 
 
+pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
+    const vector<Example>& examples,
+    const vector<ast_ptr>& ops,
+    const pair<string, string>& transition,
+    const float min_accuracy) {
 
+  // Find best performing completion of current sketch
+  float solved = -std::numeric_limits<float>::infinity();;
+  ast_ptr solution =
+    PredicateL2(examples,
+        ops, candidate, transition, min_accuracy, &solved);
+
+  Z3_reset_memory();
+  return pair<ast_ptr, float>(solution, solved);
+}
 
 
 
@@ -643,7 +659,36 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
   cout << endl << endl;
 
   vector<ast_ptr> transition_solutions;
-  vector<float> accuracies;
+  vector<float> new_accuracy;
+
+  unordered_set<string> initial_states;
+  for(auto& transition : transitions) initial_states.insert(transition.first);
+  for(auto iter=initial_states.begin(); iter!=initial_states.end(); iter++){
+    string curInitialState = *iter;
+    cout << "on transitions starting with: " << curInitialState << endl;
+    vector<Example> curExamples;
+    for(const Example ex : examples){
+      if(ex.start_ == curInitialState) curExamples.push_back(ex);
+    }
+
+
+    float current_best = -std::numeric_limits<float>::infinity();
+    ast_ptr current_solution = nullptr;
+    for (const auto& sketch : sketches) {
+      // Timer
+      std::chrono::steady_clock::time_point timerBegin = std::chrono::steady_clock::now();
+
+      // Synthesis
+      // pair<ast_ptr, float> new_solution = emdipsL2(sketch, examples, lib, transition, min_accuracy[t]);
+      
+      // Timer
+      std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
+      cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count()))/1000.0 << endl;
+    }
+
+  }
+  
+
 
   // For each input/output pair
   for(int t = 0; t < transitions.size(); t++){
@@ -668,7 +713,7 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
 
     if(yes.size() == 0) {
       transition_solutions.push_back(make_shared<Bool>(Bool(false)));
-      accuracies.push_back(1.0);
+      new_accuracy.push_back(1.0);
       continue;
     }
 
@@ -684,7 +729,7 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
         current_best = new_solution.second;
         current_solution = new_solution.first;
       }
-      if (flagsDebug) {
+      if (FLAGS_debug) {
         cout << "Score: " << new_solution.second << endl;
         cout << "Solution: " << new_solution.first << endl;
         std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
@@ -708,11 +753,12 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
 
     cout << endl;
     transition_solutions.push_back(current_solution);
-    accuracies.push_back(current_best);
+    new_accuracy.push_back(current_best);
   }
+
   EmdipsOutput res;
   res.ast_vec = transition_solutions;
-  res.transition_accuracies = accuracies;
+  res.transition_accuracies = new_accuracy;
   return res;
 }
 

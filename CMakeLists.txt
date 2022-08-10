@@ -46,7 +46,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # Libraries
 # SET(libs roslib roscpp rosbag boost_system pthread)
-SET(libs roslib roscpp rosbag glog amrl_shared_lib boost_system gflags
+SET(libs glog amrl_shared_lib boost_system gflags
     pthread)
 
 include_directories(src/)
