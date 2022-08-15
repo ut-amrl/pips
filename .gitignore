@@ -14,6 +14,6 @@ compile_commands.json
 .vscode/
 
 # Data
-examples/
-ops/
+# examples/
+# ops/
 features.txt

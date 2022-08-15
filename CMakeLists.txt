@@ -103,3 +103,6 @@ target_link_libraries(srtr c++-pips-core)
 
 add_executable(dipr src/dipr.cpp)
 target_link_libraries(dipr c++-pips-core)
+
+add_executable(emdips src/emdips.cpp)
+target_link_libraries(emdips c++-pips-core)

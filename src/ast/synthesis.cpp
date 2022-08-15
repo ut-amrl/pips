@@ -274,6 +274,11 @@ double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
   }
 }
 
+// double PredicateL1emdips(ast_ptr sketch, const unordered_set<Example>& pos,
+//     const unordered_set<Example>& neg){
+  
+// }
+
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
     const vector<ast_ptr>& ops) {
   Model m;
@@ -642,6 +647,10 @@ pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
   return pair<ast_ptr, float>(solution, solved);
 }
 
+float overallAccuracy(){
+  // use probabilities and conditional probabilities 
+  return 0;
+}
 
 
 EmdipsOutput EMDIPS(const vector<Example>& demos,
