@@ -20,10 +20,10 @@
 // #include "sketches/sketches.hpp"
 
 DEFINE_string(ex_file, "", "Examples file");
-DEFINE_string(lib_file, "ops/social_test.json", "Operation library file");
+DEFINE_string(lib_file, "ops/emdips_test.json", "Operation library file");
 DEFINE_string(out_dir, "ref/dipsl3/", "Operation library file");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
-DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
+DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0,
               "What proportion of examples should be SAT to declare victory?");
