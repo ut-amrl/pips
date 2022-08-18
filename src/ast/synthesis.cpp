@@ -27,11 +27,9 @@ using namespace std;
 using nlohmann::json;
 using AST::CheckModelAccuracy;
 
-// DECLARE_uint32(sketch_depth);
-// DECLARE_double(min_accuracy);
-// DECLARE_bool(debug);
-
-bool flagsDebug = true;
+DECLARE_uint32(sketch_depth);
+DECLARE_double(min_accuracy);
+DECLARE_bool(debug);
 
 namespace AST {
 
@@ -351,7 +349,7 @@ ast_ptr PredicateL2(
   unordered_set<Example> no;
   SplitExamples(examples, transition, &yes, &no);
 
-  if (flagsDebug) {
+  if (FLAGS_debug) {
     cout << "Current Sketch: " << sketch << endl;
   }
 
@@ -497,7 +495,7 @@ vector<ast_ptr> ldipsL3(const vector<Example>& demos,
       current_solution = ldipsL2(sketch, examples, lib, transition,
           min_accuracy, current_solution, &current_best);
       if (current_best >= min_accuracy) break;
-      if (flagsDebug) {
+      if (FLAGS_debug) {
         cout << "Score: " << current_best << endl;
         cout << "Solution: " << current_solution << endl;
         cout << "- - - - -" << endl;
@@ -567,7 +565,7 @@ void DIPR(const vector<Example>& demos,
     // TODO(jaholtz) iterative over both sketches separately
     for (const auto& sketch : sketches) {
       // Extend the Sketch
-      if (flagsDebug) {
+      if (FLAGS_debug) {
         cout << "Pos: " << pos << " Neg: " << neg << endl;
       }
       ast_ptr candidate = ExtendPred(programs[i], sketch, sketch, pos, neg);
@@ -708,7 +706,7 @@ EmdipsOutput emdips(const vector<Example>& demos,
         current_best = new_solution.second;
         current_solution = new_solution.first;
       }
-      if (flagsDebug) {
+      if (FLAGS_debug) {
         cout << "Score: " << new_solution.second << endl;
         cout << "Solution: " << new_solution.first << endl;
         std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
