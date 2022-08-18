@@ -22,21 +22,11 @@ using AST::Vec;
 using AST::vec_ptr;
 using Eigen::Vector2f;
 using Eigen::Vector3i;
-using std::abs;
-using std::array;
-using std::cos;
-using std::cout;
-using std::dynamic_pointer_cast;
-using std::endl;
-using std::invalid_argument;
-using std::make_shared;
-using std::pow;
-using std::sin;
-using std::min;
-using std::max;
-using std::vector;
+using namespace std;
 using geometry::Angle;
 using math_util::AngleDist;
+
+#define epsilon 10E-6
 
 #define ASSERT_DIM(expression, dimensionality)                  \
   {                                                             \
@@ -164,6 +154,20 @@ ast_ptr DividedBy(ast_ptr left, ast_ptr right) {
         "expected type of `left' to be `Type::NUM' and/or expected type of "
         "`right' to be `Type::NUM' or `Type::VEC'");
   }
+}
+
+ast_ptr DistTraveled(ast_ptr v1, ast_ptr a) {
+  ASSERT_TYPE(v1, Type::NUM);
+  ASSERT_TYPE(a, Type::NUM);
+
+  ASSERT_DIM(v1, Vector3i(1, -1, 0));
+  ASSERT_DIM(a, Vector3i(1, -2, 0));
+  
+  num_ptr vel1 = dynamic_pointer_cast<Num>(v1);
+  num_ptr accel = dynamic_pointer_cast<Num>(a);
+
+  Num result( -(vel1->value_ * vel1->value_) / (2.0 * accel->value_), {1, 0, 0});
+  return make_shared<Num>(result);
 }
 
 ast_ptr Abs(ast_ptr operand) {
@@ -343,7 +347,7 @@ ast_ptr Lt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ - y_cast->value_ < 0.0);
+  Bool result(x_cast->value_ - y_cast->value_ < -epsilon);
   return make_shared<Bool>(result);
 }
 
@@ -353,7 +357,7 @@ ast_ptr Gt(ast_ptr x, ast_ptr y) {
 
   num_ptr x_cast = dynamic_pointer_cast<Num>(x);
   num_ptr y_cast = dynamic_pointer_cast<Num>(y);
-  Bool result(x_cast->value_ - y_cast->value_ > 0);
+  Bool result(x_cast->value_ - y_cast->value_ > epsilon);
   return make_shared<Bool>(result);
 }
 

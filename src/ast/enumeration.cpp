@@ -44,8 +44,11 @@ using std::vector;
 using terminal_colors::ColorTerminal;
 using terminal_colors::ResetTerminal;
 
-DECLARE_bool(dim_checking);
-DECLARE_bool(sig_pruning);
+// DECLARE_bool(dim_checking);
+// DECLARE_bool(sig_pruning);
+
+bool dimChecking = true;
+bool sigPruning = true;
 
 namespace AST {
 
@@ -164,8 +167,6 @@ vector<ast_ptr> EnumerateSketches(int depth) {
   int counter = 0;
   while (counter <= depth) {
     const vector<ast_ptr> current = EnumerateSketchesHelper(counter);
-    for (auto astptr : current) {
-    }
     sketches.insert(sketches.end(), current.begin(), current.end());
     counter++;
   }
@@ -240,7 +241,8 @@ vector<ast_ptr> RecEnumerateHelper(const vector<ast_ptr>& roots,
                                    const vector<FunctionEntry>& library,
                                    int depth, vector<Signature>* signatures) {
   vector<ast_ptr> result = Enumerate(roots, inputs, library);
-  if (FLAGS_sig_pruning) {
+
+  if (sigPruning) {
     const vector<Signature> new_sigs = CalcSigs(result, examples);
     PruneFunctions(new_sigs, &result, signatures);
   }
@@ -261,6 +263,9 @@ vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                              const vector<FunctionEntry>& library, int depth,
                              vector<Signature>* signatures) {
   CumulativeFunctionTimer::Invocation invoke(&rec_enumerate);
+  for(ast_ptr each: roots){
+    each->priority = 1;
+  }
   return RecEnumerateHelper(roots, inputs, examples, library, depth,
                             signatures);
 }
@@ -287,7 +292,7 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
     const bool match_dim = IndexInVector(dimensions, dimension, &d_index);
     const bool match_index = t_index == d_index;
     // We can create operations with this then.
-    if (match_type && ((match_dim && match_index) || !FLAGS_dim_checking)) {
+    if (match_type && ((match_dim && match_index) || !dimChecking)) {
       if (types.size() == 1) {
         // Generate signature and check before adding
         // Unary Op, create it and push back.
@@ -295,6 +300,7 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
         // output dimensions and types. Should be able to use the operations
         // themselves to infer these without needing to enumerate them all.
         UnOp result = UnOp(node, func.op_, func.output_type_, func.output_dim_);
+        result.priority = node->priority + 1;
         operations.push_back(make_shared<UnOp>(result));
       } else {
         // Binary Op, have to find some other argument.
@@ -305,15 +311,15 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
           Vector3i in_dim = input->dims_;
           // If matches the function signature
           if (in_type == types[in_index] &&
-              (in_dim == dimensions[in_index] || !FLAGS_dim_checking)) {
+              (in_dim == dimensions[in_index] || !dimChecking)) {
             // Use the correct order of inputs
             if (in_index == 0) {
-              BinOp result = BinOp(input, node, func.op_, func.output_type_,
-                                   func.output_dim_);
+              BinOp result = BinOp(input, node, func.op_, func.output_type_, func.output_dim_);
+              result.priority = 1 + input->priority + node->priority;
               operations.push_back(make_shared<BinOp>(result));
             } else {
-              BinOp result = BinOp(node, input, func.op_, func.output_type_,
-                                   func.output_dim_);
+              BinOp result = BinOp(node, input, func.op_, func.output_type_, func.output_dim_);
+              result.priority = 1 + input->priority + node->priority;
               operations.push_back(make_shared<BinOp>(result));
             }
           }
@@ -430,7 +436,6 @@ vector<Example> FilterExamples(const vector<Example>& examples,
   }
   return copy;
 }
-
 
 vector<ast_ptr> RelativesOnly(const vector<ast_ptr>& ops) {
   vector<ast_ptr> output;

@@ -12,10 +12,6 @@
 
 #include "ast.hpp"
 
-using std::pair;
-using std::vector;
-using std::string;
-
 namespace AST {
 
     struct EmdipsOutput {
@@ -37,7 +33,7 @@ namespace AST {
         ast_ptr best_program,
         float* best_score);
 
-    void ldipsL3(const std::vector<Example>& demos,
+    std::vector<ast_ptr> ldipsL3(const std::vector<Example>& demos,
         const std::vector<std::pair<std::string, std::string>>& transitions,
         const std::vector<ast_ptr> lib,
         const int sketch_depth,
@@ -56,14 +52,8 @@ namespace AST {
         const int sketch_depth,
         const float min_accuracy,
         const std::string& output_path);
-
-    pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
-        const vector<Example>& examples,
-        const vector<ast_ptr>& ops,
-        const pair<string, string>& transition,
-        const float min_accuracy);
-
-    EmdipsOutput EMDIPS(const std::vector<Example>& demos,
+        
+    EmdipsOutput emdips(const std::vector<Example>& demos,
         const std::vector<std::pair<std::string, std::string>>& transitions,
         const std::vector<ast_ptr> lib,
         const int sketch_depth,

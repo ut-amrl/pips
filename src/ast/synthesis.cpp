@@ -8,6 +8,8 @@
 #include <unordered_set>
 #include <queue>
 #include <chrono>
+#include <algorithm>
+#include <unordered_map>
 
 #include "enumeration.hpp"
 #include "gflags/gflags_declare.h"
@@ -17,6 +19,7 @@
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 #include "visitors/tosmtlib_visitor.hpp"
+#include "visitors/tosmtopt_visitor.hpp"
 #include "../submodules/amrl_shared_lib/util/timer.h"
 #include "utils/nd_bool_array.hpp"
 
@@ -32,10 +35,11 @@ using std::make_shared;
 using nlohmann::json;
 using AST::CheckModelAccuracy;
 
-DECLARE_uint32(sketch_depth);
-DECLARE_double(min_accuracy);
-DECLARE_bool(debug);
+// DECLARE_uint32(sketch_depth);
+// DECLARE_double(min_accuracy);
+// DECLARE_bool(debug);
 
+bool flagsDebug = true;
 
 namespace AST {
 
@@ -171,19 +175,23 @@ string MakeSMTLIBProblem(const unordered_set<Example>& yes,
   unordered_set<Example> all_examples(yes);
   all_examples.insert(no.cbegin(), no.cend());
   // For every example, ...
+
   for (const Example& example : all_examples) {
+
     // Partially evaluate the program with the examples as much as possible.
     ast_ptr partial = Interpret(program, example);
     // Create an SMT-LIB expression from the program and that example.
+
     ToSMTLIB converter = AstToSMTLIB(partial, example);
     const string smtlib = converter.Get();
+
     // Add full assertions using that expression to our assertion list. It's
     // important to check whether the example is in both sets because we could
     // have contradictory examples.
     if (yes.find(example) != yes.cend())
-      assertions.insert("(assert-soft " + smtlib + ")");
+        assertions.insert("(assert-soft " + smtlib + ")");
     if (no.find(example) != no.cend())
-      assertions.insert("(assert-soft (not " + smtlib + "))");
+        assertions.insert("(assert-soft (not " + smtlib + "))");
 
     // If there are any parameter holes, make note of them too.
     const unordered_set<string> example_params = converter.GetParams();
@@ -274,11 +282,6 @@ double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
   }
 }
 
-// double PredicateL1emdips(ast_ptr sketch, const unordered_set<Example>& pos,
-//     const unordered_set<Example>& neg){
-  
-// }
-
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
     const vector<ast_ptr>& ops) {
   Model m;
@@ -325,7 +328,7 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
   // values from it and use them to fill the holes in a copy of the
   // condition.
   ast_ptr filled = DeepCopyAST(sketch);
-  FillHoles(filled, m);
+  filled->priority = FillHoles(filled, m);
   return filled;
 }
 
@@ -342,8 +345,7 @@ ast_ptr PredicateL2(
   // Get a list of the names of all the feature holes in the conditional,
   // then store them in a vector because being able to access them in a
   // consistent order and by index is important for something we do later.
-  const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
-      MapFeatureHoles(sketch);
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map = MapFeatureHoles(sketch);
   vector<string> feature_holes;
   for (const auto& p : feature_hole_map) {
     feature_holes.push_back(p.first);
@@ -357,7 +359,7 @@ ast_ptr PredicateL2(
   unordered_set<Example> no;
   SplitExamples(examples, transition, &yes, &no);
 
-  if (FLAGS_debug) {
+  if (flagsDebug) {
     cout << "Current Sketch: " << sketch << endl;
   }
 
@@ -366,10 +368,12 @@ ast_ptr PredicateL2(
   ast_ptr solution_cond = sketch;
   float current_best =  0.0;
   if (feature_hole_count > 0) {
+
     index_iterator c(ops.size(), feature_hole_count);
     solution_cond = nullptr;
     bool keep_searching = true;
     int count = 0.0;
+
     #pragma omp parallel
     while (keep_searching) {
       // Use the indices given to us by the iterator to select ops for filling
@@ -395,7 +399,7 @@ ast_ptr PredicateL2(
             keep_searching = false;
             solution_cond = filled;
             current_best = sat_ratio;
-          } else if (sat_ratio >= current_best) {
+          } else if (sat_ratio > current_best || sat_ratio == current_best && filled->priority < solution_cond->priority) {
             solution_cond = filled;
             current_best = sat_ratio;
           }
@@ -447,8 +451,26 @@ ast_ptr ldipsL2(ast_ptr candidate,
   return best_program;
 }
 
+
+pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
+    const vector<Example>& examples,
+    const vector<ast_ptr>& ops,
+    const pair<string, string>& transition,
+    const float min_accuracy) {
+
+  // Find best performing completion of current sketch
+  float solved = 0.0;
+  ast_ptr solution =
+    PredicateL2(examples,
+        ops, candidate, transition, min_accuracy, &solved);
+
+  Z3_reset_memory();
+  return pair<ast_ptr, float>(solution, solved);
+}
+
+
 // TODO(currently writes to file, may want a call that doesn't do this).
-void ldipsL3(const vector<Example>& demos,
+vector<ast_ptr> ldipsL3(const vector<Example>& demos,
       const vector<pair<string, string>>& transitions,
       const vector<ast_ptr> lib,
       const int sketch_depth,
@@ -458,6 +480,9 @@ void ldipsL3(const vector<Example>& demos,
   vector<Example> examples = demos;
   // Enumerate possible sketches
   const auto sketches = EnumerateSketches(sketch_depth);
+  cout << "Number of sketches: " << sketches.size() << endl;
+
+  vector<ast_ptr> transition_solutions;
 
   // For each input/output pair
   for (const auto& transition : transitions) {
@@ -476,12 +501,11 @@ void ldipsL3(const vector<Example>& demos,
     float current_best = 0.0;
     ast_ptr current_solution = nullptr;
     for (const auto& sketch : sketches) {
-
       // Attempt L2 Synthesis with current sketch.
       current_solution = ldipsL2(sketch, examples, lib, transition,
           min_accuracy, current_solution, &current_best);
       if (current_best >= min_accuracy) break;
-      if (FLAGS_debug) {
+      if (flagsDebug) {
         cout << "Score: " << current_best << endl;
         cout << "Solution: " << current_solution << endl;
         cout << "- - - - -" << endl;
@@ -500,7 +524,9 @@ void ldipsL3(const vector<Example>& demos,
     examples = FilterExamples(examples, transition);
 
     cout << endl;
+    transition_solutions.push_back(current_solution);
   }
+  return transition_solutions;
 }
 
 void DIPR(const vector<Example>& demos,
@@ -549,7 +575,7 @@ void DIPR(const vector<Example>& demos,
     // TODO(jaholtz) iterative over both sketches separately
     for (const auto& sketch : sketches) {
       // Extend the Sketch
-      if (FLAGS_debug) {
+      if (flagsDebug) {
         cout << "Pos: " << pos << " Neg: " << neg << endl;
       }
       ast_ptr candidate = ExtendPred(programs[i], sketch, sketch, pos, neg);
@@ -630,30 +656,7 @@ void SRTR(const vector<Example>& demos,
   }
 }
 
-
-pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
-    const vector<Example>& examples,
-    const vector<ast_ptr>& ops,
-    const pair<string, string>& transition,
-    const float min_accuracy) {
-
-  // Find best performing completion of current sketch
-  float solved = -std::numeric_limits<float>::infinity();;
-  ast_ptr solution =
-    PredicateL2(examples,
-        ops, candidate, transition, min_accuracy, &solved);
-
-  Z3_reset_memory();
-  return pair<ast_ptr, float>(solution, solved);
-}
-
-float overallAccuracy(){
-  // use probabilities and conditional probabilities 
-  return 0;
-}
-
-
-EmdipsOutput EMDIPS(const vector<Example>& demos,
+EmdipsOutput emdips(const vector<Example>& demos,
       const vector<pair<string, string>>& transitions,
       const vector<ast_ptr> lib,
       const int sketch_depth,
@@ -661,43 +664,17 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
       const string& output_path) {
 
   vector<Example> examples = demos;
+  // Enumerate possible sketches
   const auto sketches = EnumerateSketches(sketch_depth);
-
   cout << "Number of sketches: " << sketches.size() << endl;
-  for(ast_ptr each: sketches){ cout << each << endl; }
+  for(ast_ptr each: sketches){
+    cout << each << endl;
+  }
   cout << endl << endl;
 
   vector<ast_ptr> transition_solutions;
-  vector<float> new_accuracy;
 
-  unordered_set<string> initial_states;
-  for(auto& transition : transitions) initial_states.insert(transition.first);
-  for(auto iter=initial_states.begin(); iter!=initial_states.end(); iter++){
-    string curInitialState = *iter;
-    cout << "on transitions starting with: " << curInitialState << endl;
-    vector<Example> curExamples;
-    for(const Example ex : examples){
-      if(ex.start_ == curInitialState) curExamples.push_back(ex);
-    }
-
-
-    float current_best = -std::numeric_limits<float>::infinity();
-    ast_ptr current_solution = nullptr;
-    for (const auto& sketch : sketches) {
-      // Timer
-      std::chrono::steady_clock::time_point timerBegin = std::chrono::steady_clock::now();
-
-      // Synthesis
-      // pair<ast_ptr, float> new_solution = emdipsL2(sketch, examples, lib, transition, min_accuracy[t]);
-      
-      // Timer
-      std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
-      cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count()))/1000.0 << endl;
-    }
-
-  }
-  
-
+  vector<float> accuracies;
 
   // For each input/output pair
   for(int t = 0; t < transitions.size(); t++){
@@ -719,33 +696,34 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
     SplitExamples(examples, transition, &yes, &no);
     cout << "Num transitions (pos): " << yes.size() << endl;
     cout << "Num transitions (neg): " << no.size() << endl;
-
     if(yes.size() == 0) {
       transition_solutions.push_back(make_shared<Bool>(Bool(false)));
-      new_accuracy.push_back(1.0);
+      accuracies.push_back(1.0);
       continue;
     }
 
-    float current_best = -std::numeric_limits<float>::infinity();
+    float current_best = 0.0;
     ast_ptr current_solution = nullptr;
     for (const auto& sketch : sketches) {
       std::chrono::steady_clock::time_point timerBegin = std::chrono::steady_clock::now();
 
       // Attempt L2 Synthesis with current sketch.
+      // cout << "BEFORE EMDIPS" << endl;
       pair<ast_ptr, float> new_solution = emdipsL2(sketch, examples, lib, transition, min_accuracy[t]);
+      // cout << "AFTER EMDIPS" << endl;
       
       if (new_solution.second > current_best) {
         current_best = new_solution.second;
         current_solution = new_solution.first;
       }
-      if (FLAGS_debug) {
+      if (flagsDebug) {
         cout << "Score: " << new_solution.second << endl;
         cout << "Solution: " << new_solution.first << endl;
         std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
         cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count()))/1000.0 << endl;
         cout << "- - - - -" << endl;
       }
-      // if (current_best > min_accuracy[t] || current_best == 1) break;
+      if (current_best > min_accuracy[t] || current_best == 1) break;
 
     }
     // Write the solution out to a file.
@@ -762,14 +740,12 @@ EmdipsOutput EMDIPS(const vector<Example>& demos,
 
     cout << endl;
     transition_solutions.push_back(current_solution);
-    new_accuracy.push_back(current_best);
+    accuracies.push_back(current_best);
   }
-
   EmdipsOutput res;
   res.ast_vec = transition_solutions;
-  res.transition_accuracies = new_accuracy;
+  res.transition_accuracies = accuracies;
   return res;
 }
-
 
 }  // namespace AST
