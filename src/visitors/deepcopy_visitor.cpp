@@ -5,8 +5,7 @@
 
 // #include "../ast.hpp"
 
-using std::logic_error;
-using std::make_shared;
+using namespace std;
 
 namespace AST {
 

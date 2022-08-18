@@ -27,20 +27,7 @@
 #include "visitors/tosmtlib_visitor.hpp"
 
 using Eigen::Vector3i;
-using std::cerr;
-using std::cout;
-using std::dynamic_pointer_cast;
-using std::endl;
-using std::invalid_argument;
-using std::make_shared;
-using std::ostream;
-using std::pair;
-using std::queue;
-using std::string;
-using std::to_string;
-using std::unordered_map;
-using std::unordered_set;
-using std::vector;
+using namespace std;
 using terminal_colors::ColorTerminal;
 using terminal_colors::ResetTerminal;
 

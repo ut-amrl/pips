@@ -10,19 +10,10 @@
 #include "library_functions.hpp"
 #include "util/timer.h"
 
+using namespace std;
 using Eigen::Vector2f;
 using Eigen::Vector3i;
 using nlohmann::json;
-using std::cout;
-using std::dynamic_pointer_cast;
-using std::endl;
-using std::invalid_argument;
-using std::make_shared;
-using std::map;
-using std::ostream;
-using std::string;
-using std::to_string;
-using std::vector;
 
 namespace AST {
 

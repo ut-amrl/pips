@@ -4,11 +4,7 @@
 #include <memory>    // make_shared
 #include <string>    // to_string
 
-using std::cout;
-using std::endl;
-using std::make_shared;
-using std::ostream;
-using std::to_string;
+using namespace std;
 
 namespace AST {
 

@@ -23,15 +23,7 @@
 #include "../submodules/amrl_shared_lib/util/timer.h"
 #include "utils/nd_bool_array.hpp"
 
-using std::vector;
-using std::pair;
-using std::string;
-using std::cout;
-using std::endl;
-using std::ofstream;
-using std::unordered_map;
-using std::unordered_set;
-using std::make_shared;
+using namespace std;
 using nlohmann::json;
 using AST::CheckModelAccuracy;
 

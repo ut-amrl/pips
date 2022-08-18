@@ -12,17 +12,10 @@
 
 #include "ast.hpp"
 
-using AST::ast_ptr;
-using AST::Bool;
-using AST::bool_ptr;
-using AST::Num;
-using AST::num_ptr;
-using AST::Type;
-using AST::Vec;
-using AST::vec_ptr;
+using namespace AST;
+using namespace std;
 using Eigen::Vector2f;
 using Eigen::Vector3i;
-using namespace std;
 using geometry::Angle;
 using math_util::AngleDist;
 

@@ -9,14 +9,7 @@
 
 #include "ast/ast.hpp"
 
-using std::cout;
-using std::endl;
-using std::invalid_argument;
-using std::make_shared;
-using std::string;
-using std::to_string;
-using std::unordered_set;
-using std::vector;
+using namespace std;
 
 namespace AST {
 

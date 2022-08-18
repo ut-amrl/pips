@@ -14,16 +14,7 @@
 #include "visitors/print_visitor.hpp"
 
 using AST::Dimension;
-using std::cout;
-using std::endl;
-using std::make_pair;
-using std::make_shared;
-using std::pair;
-using std::string;
-using std::to_string;
-using std::unordered_map;
-using std::unordered_set;
-using std::ostream;
+using namespace std;
 
 namespace AST {
 
