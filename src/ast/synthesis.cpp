@@ -19,7 +19,6 @@
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 #include "visitors/tosmtlib_visitor.hpp"
-#include "visitors/tosmtopt_visitor.hpp"
 #include "../submodules/amrl_shared_lib/util/timer.h"
 #include "utils/nd_bool_array.hpp"
 
