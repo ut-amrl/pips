@@ -40,6 +40,13 @@ namespace AST {
         const float min_accuracy,
         const std::string& output_path);
 
+    EmdipsOutput emdipsL3(const std::vector<Example>& demos,
+        const std::vector<std::pair<std::string, std::string>>& transitions,
+        const std::vector<ast_ptr> lib,
+        const int sketch_depth,
+        const std::vector<float> min_accuracy,
+        const std::string& output_path);
+
     void SRTR(const std::vector<Example>& demos,
         const std::vector<ast_ptr>& programs,
         const std::vector<std::pair<std::string, std::string>>& transitions,
@@ -51,13 +58,6 @@ namespace AST {
         const std::vector<ast_ptr> lib,
         const int sketch_depth,
         const float min_accuracy,
-        const std::string& output_path);
-        
-    EmdipsOutput emdips(const std::vector<Example>& demos,
-        const std::vector<std::pair<std::string, std::string>>& transitions,
-        const std::vector<ast_ptr> lib,
-        const int sketch_depth,
-        const std::vector<float> min_accuracy,
         const std::string& output_path);
 
 }  // namespace AST

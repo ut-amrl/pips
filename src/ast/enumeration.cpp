@@ -407,15 +407,10 @@ void SplitExamples(const vector<Example>& examples,
 
 vector<Example> FilterExamples(const vector<Example>& examples,
     pair<string, string> transition) {
-  unordered_set<Example> yes;
-  unordered_set<Example> no;
-  SplitExamples(examples, transition, &yes, &no);
-  vector<Example> copy = examples;
-  for (const Example& example : yes) {
-    vector<Example>::iterator pos =
-      std::find(copy.begin(), copy.end(), example);
-    if (pos != copy.end()) {
-      copy.erase(pos);
+  vector<Example> copy;
+  for (const Example& example : examples) {
+    if(!(example.start_ == transition.first && example.result_ == transition.second)){
+        copy.push_back(example);
     }
   }
   return copy;
