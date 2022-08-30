@@ -52,6 +52,27 @@ Interp::Interp(const Example& world) : world_(world) {}
 
 ast_ptr Interp::Visit(AST* node) { return ast_ptr(node); }
 
+ast_ptr Interp::Visit(TernOp* node){
+    ast_ptr x = node->x_->Accept(this);
+    ast_ptr a = node->a_->Accept(this);
+    ast_ptr b = node->b_->Accept(this);
+    const string op = node->op_;
+    TernOp partial(x, a, b, node->op_, node->type_, node->dims_);
+    ast_ptr result = make_shared<TernOp>(partial);
+    // Don't try to evaluate if one of the arguments is symbolic
+    if (x->symbolic_ || a->symbolic_ || b->symbolic_) {
+        result->symbolic_ = true;
+    } else {
+        // One if clause per ternary operation
+        if (op == "Logistic") {
+            result = Logistic(x, a, b);
+        } else {
+            throw invalid_argument("unknown ternary operation `" + op + "'");
+        }
+    }
+    return result;
+}
+
 ast_ptr Interp::Visit(BinOp* node) {
   ast_ptr left = node->left_->Accept(this);
   ast_ptr right = node->right_->Accept(this);
@@ -102,33 +123,6 @@ ast_ptr Interp::Visit(BinOp* node) {
   return result;
 }
 
-ast_ptr Interp::Visit(Bool* node) { return make_shared<Bool>(*node); }
-
-ast_ptr Interp::Visit(Feature* node) {
-  if (node->current_value_ == nullptr) {
-    throw invalid_argument("AST has unfilled feature holes");
-  } else {
-    ast_ptr result = node->current_value_->Accept(this);
-    return result;
-  }
-}
-
-ast_ptr Interp::Visit(Num* node) { return make_shared<Num>(*node); }
-
-ast_ptr Interp::Visit(Param* node) {
-  if (node->current_value_ == nullptr) {
-    // throw invalid_argument("AST has unfilled parameter holes");
-    return make_shared<Param>(*node);
-  } else {
-    ast_ptr result = node->current_value_->Accept(this);
-    float boundaryValue = ((Num*) (result.get()))->value_;
-    boundaryValue += boundaryDistr(emdipsGen); // Add normally-distributed noise
-    ((Num*) (result.get()))->value_ = boundaryValue;
-    return result;
-  }
-}
-
-// TODO(jaholtz) Throw errors instead of printing
 ast_ptr Interp::Visit(UnOp* node) {
   ast_ptr input = node->input_->Accept(this);
   const string op = node->op_;
@@ -170,6 +164,32 @@ ast_ptr Interp::Visit(UnOp* node) {
     }
   }
   return result;
+}
+
+ast_ptr Interp::Visit(Bool* node) { return make_shared<Bool>(*node); }
+
+ast_ptr Interp::Visit(Feature* node) {
+  if (node->current_value_ == nullptr) {
+    throw invalid_argument("AST has unfilled feature holes");
+  } else {
+    ast_ptr result = node->current_value_->Accept(this);
+    return result;
+  }
+}
+
+ast_ptr Interp::Visit(Num* node) { return make_shared<Num>(*node); }
+
+ast_ptr Interp::Visit(Param* node) {
+  if (node->current_value_ == nullptr) {
+    // throw invalid_argument("AST has unfilled parameter holes");
+    return make_shared<Param>(*node);
+  } else {
+    ast_ptr result = node->current_value_->Accept(this);
+    float boundaryValue = ((Num*) (result.get()))->value_;
+    boundaryValue += boundaryDistr(emdipsGen); // Add normally-distributed noise
+    ((Num*) (result.get()))->value_ = boundaryValue;
+    return result;
+  }
 }
 
 ast_ptr Interp::Visit(Var* node) {

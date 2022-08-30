@@ -10,6 +10,18 @@ namespace AST {
 
 ast_ptr Print::Visit(AST* node) { return ast_ptr(node); }
 
+ast_ptr Print::Visit(TernOp* node) {
+    depth_++;
+    program_ += node->op_ + "(";
+    node->x_->Accept(this);
+    program_ += ", ";
+    node->a_->Accept(this);
+    program_ += ",";
+    node->b_->Accept(this);
+    program_ += ")";
+    return make_shared<TernOp>(*node);
+}
+
 ast_ptr Print::Visit(BinOp* node) {
   depth_++;
   program_ += node->op_ + "(";
@@ -18,6 +30,14 @@ ast_ptr Print::Visit(BinOp* node) {
   node->right_->Accept(this);
   program_ += ")";
   return make_shared<BinOp>(*node);
+}
+
+ast_ptr Print::Visit(UnOp* node) {
+  depth_++;
+  program_ += node->op_ + "(";
+  node->input_->Accept(this);
+  program_ += ")";
+  return make_shared<UnOp>(*node);
 }
 
 ast_ptr Print::Visit(Bool* node) {
@@ -57,14 +77,6 @@ ast_ptr Print::Visit(Param* node) {
   }
   depth_++;
   return make_shared<Param>(*node);
-}
-
-ast_ptr Print::Visit(UnOp* node) {
-  depth_++;
-  program_ += node->op_ + "(";
-  node->input_->Accept(this);
-  program_ += ")";
-  return make_shared<UnOp>(*node);
 }
 
 ast_ptr Print::Visit(Var* node) {

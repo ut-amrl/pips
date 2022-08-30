@@ -374,6 +374,21 @@ ast_ptr Gte(ast_ptr x, ast_ptr y) {
   return make_shared<Bool>(result);
 }
 
+ast_ptr Logistic(ast_ptr x, ast_ptr x_0, ast_ptr k) {
+  ASSERT_TYPE(x, Type::NUM);
+  ASSERT_TYPE(x_0, Type::NUM);
+  ASSERT_TYPE(k, Type::NUM);
+
+  float x_cast = dynamic_pointer_cast<Num>(x)->value_;
+  float x_0_cast = dynamic_pointer_cast<Num>(x_0)->value_;
+  float k_cast = dynamic_pointer_cast<Num>(k)->value_;
+
+  float val = 1 / (1 + exp( -k_cast * (x_cast - x_0_cast) ));
+  
+  Num result(val, {0,0,0});
+  return make_shared<Num>(result);
+}
+
 ast_ptr StraightFreePathLength(ast_ptr v,
     const vector<Vector2f> obstacles) {
   //TODO(jaholtz) need to set these to sane defaults (copy from sim)
