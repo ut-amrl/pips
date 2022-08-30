@@ -240,6 +240,24 @@ vector<ast_ptr> RecEnumerateHelper(const vector<ast_ptr>& roots,
   return result;
 }
 
+CumulativeFunctionTimer rec_enumerate_logistic("RecEnumerateLogistic");
+vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
+                             const vector<ast_ptr>& inputs,
+                             const vector<Example>& examples,
+                             const vector<FunctionEntry>& library, int depth,
+                             vector<Signature>* signatures) {
+  CumulativeFunctionTimer::Invocation invoke(&rec_enumerate_logistic);
+  for(ast_ptr each: roots){
+    each->priority = 1;
+  }
+  vector<ast_ptr> feat = RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
+  for(auto i = 0; i < feat.size(); i++){
+    TernOp logistic(feat[i], make_shared<Num>(Num(0, {0, 0, 0})), make_shared<Num>(Num(0, {0, 0, 0})), "Logistic");
+    feat[i] = make_shared<TernOp>(logistic);
+  }
+  return feat;
+}
+
 CumulativeFunctionTimer rec_enumerate("RecEnumerate");
 vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                              const vector<ast_ptr>& inputs,
@@ -250,8 +268,7 @@ vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
   for(ast_ptr each: roots){
     each->priority = 1;
   }
-  return RecEnumerateHelper(roots, inputs, examples, library, depth,
-                            signatures);
+  return RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
 }
 
 CumulativeFunctionTimer get_legal("GetLegalOperations");

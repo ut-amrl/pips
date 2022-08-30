@@ -16,7 +16,7 @@ ast_ptr Print::Visit(TernOp* node) {
     node->x_->Accept(this);
     program_ += ", ";
     node->a_->Accept(this);
-    program_ += ",";
+    program_ += ", ";
     node->b_->Accept(this);
     program_ += ")";
     return make_shared<TernOp>(*node);

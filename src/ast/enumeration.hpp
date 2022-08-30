@@ -48,6 +48,13 @@ std::vector<ast_ptr> Enumerate(const std::vector<ast_ptr>& roots,
                                const std::vector<ast_ptr>& inputs,
                                const std::vector<FunctionEntry>& library);
 
+std::vector<ast_ptr> RecEnumerateLogistic(const std::vector<ast_ptr>& roots,
+                                  const std::vector<ast_ptr>& inputs,
+                                  const std::vector<Example>& examples,
+                                  const std::vector<FunctionEntry>& library,
+                                  const int depth,
+                                  std::vector<Signature>* signatures);
+
 std::vector<ast_ptr> RecEnumerate(const std::vector<ast_ptr>& roots,
                                   const std::vector<ast_ptr>& inputs,
                                   const std::vector<Example>& examples,

@@ -22,15 +22,15 @@
 DEFINE_string(ex_file, "", "Examples file");
 DEFINE_string(lib_file, "ops/emdips_test.json", "Operation library file");
 DEFINE_string(out_dir, "ref/dipsl3/", "Operation library file");
+DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(min_accuracy, 1.0, "What proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
-DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
-DEFINE_bool(debug, false, "Enable Debug Printing");
+DEFINE_bool(debug, true, "Enable Debug Printing");
 
 using namespace AST;
 using namespace std;
@@ -104,7 +104,7 @@ int main(int argc, char* argv[]) {
 
   // Enumerate features up to a fixed depth
   vector<Signature> signatures;
-  vector<ast_ptr> ops = AST::RecEnumerate(roots, inputs, examples, library,
+  vector<ast_ptr> ops = AST::RecEnumerateLogistic(roots, inputs, examples, library,
                                           FLAGS_feat_depth, &signatures);
 
   if (FLAGS_debug) {
