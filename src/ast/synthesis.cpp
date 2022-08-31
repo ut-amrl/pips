@@ -520,7 +520,7 @@ EmdipsOutput emdipsL3(const vector<Example>& demos,
       const vector<pair<string, string>>& transitions,
       const vector<ast_ptr> lib,
       const int sketch_depth,
-      const vector<float> min_accuracy,
+      const vector<float> max_error,
       const string& output_path) {
 
   vector<Example> examples = demos;
@@ -534,7 +534,7 @@ EmdipsOutput emdipsL3(const vector<Example>& demos,
 
   vector<ast_ptr> transition_solutions;
 
-  vector<float> accuracies;
+  vector<float> log_likelihoods;
 
   // For each input/output pair
   for(int t = 0; t < transitions.size(); t++){
@@ -549,7 +549,7 @@ EmdipsOutput emdipsL3(const vector<Example>& demos,
 
     cout << "----- " << transition.first << "->";
     cout << transition.second << " -----" << endl;
-    cout << "Target accuracy: " << min_accuracy[t] << endl;
+    cout << "Target log likelihood: < " << max_error[t] << endl;
 
     unordered_set<Example> yes;
     unordered_set<Example> no;
@@ -557,40 +557,38 @@ EmdipsOutput emdipsL3(const vector<Example>& demos,
     cout << "Num transitions (pos): " << yes.size() << endl;
     cout << "Num transitions (neg): " << no.size() << endl;
 
-    float current_best = 0.0;
+    float current_best = -1;
     ast_ptr current_solution = nullptr;
     if(yes.size() == 0) {
-        current_best = 1.0;
+        current_best = 0.0;
         current_solution = make_shared<Bool>(Bool(false));
     } else if(no.size() == 0){
-        current_best = 1.0;
+        current_best = 0.0;
         current_solution = make_shared<Bool>(Bool(true));
     } else {
         for (const auto& sketch : sketches) {
-        std::chrono::steady_clock::time_point timerBegin = std::chrono::steady_clock::now();
+            std::chrono::steady_clock::time_point timerBegin = std::chrono::steady_clock::now();
 
-        // Attempt L2 Synthesis with current sketch.
-        // cout << "BEFORE EMDIPS" << endl;
-        pair<ast_ptr, float> new_solution = emdipsL2(sketch, examples, lib, transition, min_accuracy[t]);
-        // cout << "AFTER EMDIPS" << endl;
-        
-        if (new_solution.second > current_best) {
-            current_best = new_solution.second;
-            current_solution = new_solution.first;
-        }
-        if (FLAGS_debug) {
-            cout << "Score: " << new_solution.second << endl;
-            cout << "Solution: " << new_solution.first << endl;
-            std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
-            cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count()))/1000.0 << endl;
-            cout << "- - - - -" << endl;
-        }
-        if (current_best > min_accuracy[t] || current_best == 1) break;
+            // Attempt L2 Synthesis with current sketch.
+            pair<ast_ptr, float> new_solution = emdipsL2(sketch, examples, lib, transition, max_error[t]);
+            
+            if (current_best == -1 || new_solution.second < current_best) {
+                current_best = new_solution.second;
+                current_solution = new_solution.first;
+            }
 
+            if (FLAGS_debug) {
+                cout << "Error (Log likelihood): " << new_solution.second << endl;
+                cout << "Solution: " << new_solution.first << endl;
+                std::chrono::steady_clock::time_point timerEnd = std::chrono::steady_clock::now();
+                cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count()))/1000.0 << endl;
+                cout << "- - - - -" << endl;
+            }
+            if (current_best < max_error[t] || current_best == 0.0) break;
         }
     }
     // Write the solution out to a file.
-    cout << "Score: " << current_best << endl;
+    cout << "Error (Log likelihood): " << current_best << endl;
     cout << "Final Solution: " << current_solution << endl;
     ofstream output_file;
     output_file.open(output_name);
@@ -602,11 +600,11 @@ EmdipsOutput emdipsL3(const vector<Example>& demos,
     examples = FilterExamples(examples, transition);
     
     transition_solutions.push_back(current_solution);
-    accuracies.push_back(current_best);
+    log_likelihoods.push_back(current_best);
   }
   EmdipsOutput res;
   res.ast_vec = transition_solutions;
-  res.transition_accuracies = accuracies;
+  res.log_likelihoods = log_likelihoods;
   return res;
 }
 

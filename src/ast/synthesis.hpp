@@ -16,7 +16,7 @@ namespace AST {
 
     struct EmdipsOutput {
         std::vector<ast_ptr> ast_vec;
-        std::vector<float> transition_accuracies;
+        std::vector<float> log_likelihoods;
     };
 
     ast_ptr  PredicateL2(const std::vector<Example>& examples,
@@ -44,7 +44,7 @@ namespace AST {
         const std::vector<std::pair<std::string, std::string>>& transitions,
         const std::vector<ast_ptr> lib,
         const int sketch_depth,
-        const std::vector<float> min_accuracy,
+        const std::vector<float> max_error,
         const std::string& output_path);
 
     void SRTR(const std::vector<Example>& demos,
