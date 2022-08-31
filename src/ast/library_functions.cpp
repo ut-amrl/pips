@@ -1,5 +1,6 @@
 #include "library_functions.hpp"
 
+#include <gflags/gflags.h>
 #include <Eigen/src/Core/Matrix.h>
 #include <cmath>
 #include <eigen3/Eigen/Core>
@@ -387,6 +388,25 @@ ast_ptr Logistic(ast_ptr x, ast_ptr x_0, ast_ptr k) {
   
   Num result(val, {0,0,0});
   return make_shared<Num>(result);
+}
+
+ast_ptr Flip(ast_ptr p, ast_ptr probabilistic){
+    ASSERT_TYPE(p, Type::NUM);
+    ASSERT_TYPE(probabilistic, Type::BOOL);
+
+    float p_cast = dynamic_pointer_cast<Num>(p)->value_;
+    if(p_cast < 0 || p_cast > 1){
+        cout << "Invalid probability passed to flip(), setting to bounds [0, 1]..." << endl;
+        p_cast = min(1.0f, max(0.0f, p_cast));
+    }
+
+    if(dynamic_pointer_cast<Bool>(probabilistic)->value_){
+        return make_shared<Bool>((float) rand() / RAND_MAX < p_cast);
+    } else {
+        Bool result(p_cast > 0.5);
+        return make_shared<Bool>(result);
+    }
+
 }
 
 ast_ptr StraightFreePathLength(ast_ptr v,

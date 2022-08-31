@@ -1,6 +1,8 @@
 #include <dlfcn.h>
 #include <gflags/gflags.h>
 #include <z3++.h>
+#include <eigen3/Eigen/Core>
+
 
 #include <fstream>
 #include <iomanip>

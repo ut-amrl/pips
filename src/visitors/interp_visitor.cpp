@@ -116,6 +116,8 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = Gte(left, right);
     } else if (op == "Lte") {
       result = Lte(left, right);
+    } else if (op == "Flip") {
+      result = Flip(left, right);
     } else {
       throw invalid_argument("unknown binary operation `" + op + "'");
     }

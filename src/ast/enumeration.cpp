@@ -253,7 +253,9 @@ vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
   vector<ast_ptr> feat = RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
   for(auto i = 0; i < feat.size(); i++){
     TernOp logistic(feat[i], make_shared<Num>(Num(0, {0, 0, 0})), make_shared<Num>(Num(0, {0, 0, 0})), "Logistic");
-    feat[i] = make_shared<TernOp>(logistic);
+    BinOp flip(make_shared<TernOp>(logistic), make_shared<Bool>(true), "Flip");
+
+    feat[i] = make_shared<BinOp>(flip);
   }
   return feat;
 }
