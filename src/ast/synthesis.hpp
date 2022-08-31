@@ -19,7 +19,7 @@ namespace AST {
         std::vector<float> log_likelihoods;
     };
 
-    ast_ptr  PredicateL2(const std::vector<Example>& examples,
+    ast_ptr PredicateL2(const std::vector<Example>& examples,
         const std::vector<ast_ptr>& ops,
         ast_ptr sketch,
         const std::pair<std::string, std::string>& transition,
@@ -39,6 +39,12 @@ namespace AST {
         const int sketch_depth,
         const float min_accuracy,
         const std::string& output_path);
+
+    ast_ptr LikelihoodPredicateL2(const std::vector<Example>& examples,
+        const std::vector<ast_ptr>& ops,
+        ast_ptr sketch,
+        const std::pair<std::string, std::string>& transition,
+        const double max_error, float* best_error);
     
     std::pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
         const std::vector<Example>& examples,

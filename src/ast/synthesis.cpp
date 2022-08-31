@@ -417,6 +417,102 @@ ast_ptr PredicateL2(
   return solution_cond;
 }
 
+CumulativeFunctionTimer likelihood_pred_l2("LikelihoodPredicateL2");
+ast_ptr LikelihoodPredicateL2(
+    const vector<Example>& examples, const vector<ast_ptr>& ops,
+    ast_ptr sketch, const pair<string,string>& transition,
+    const double max_error, float* best_error) {
+  CumulativeFunctionTimer::Invocation invoke(&likelihood_pred_l2);
+
+  const SymEntry out(transition.second);
+  const SymEntry in(transition.first);
+
+  // Get a list of the names of all the feature holes in the conditional,
+  // then store them in a vector because being able to access them in a
+  // consistent order and by index is important for something we do later.
+  const unordered_map<string, pair<Type, Dimension>> feature_hole_map = MapFeatureHoles(sketch);
+  vector<string> feature_holes;
+  for (const auto& p : feature_hole_map) {
+    feature_holes.push_back(p.first);
+  }
+  const size_t feature_hole_count = feature_holes.size();
+
+  // Split up all the examples into a "yes" set or a "no" set based on
+  // whether the result for the example matches the current example's
+  // behavior.
+  unordered_set<Example> yes;
+  unordered_set<Example> no;
+  SplitExamples(examples, transition, &yes, &no);
+
+  if (FLAGS_debug) {
+    cout << "Current Sketch: " << sketch << endl;
+  }
+
+  // Start iterating through possible models. index_iterator is explained
+  // seperately.
+  ast_ptr solution_cond = sketch;
+  float current_best =  -1;
+  if (feature_hole_count > 0) {
+
+    index_iterator c(ops.size(), feature_hole_count);
+    solution_cond = nullptr;
+    bool keep_searching = true;
+    int count = 0.0;
+
+    #pragma omp parallel
+    while (keep_searching) {
+      // Use the indices given to us by the iterator to select ops for filling
+      // our feature holes and create a model.
+      vector<size_t> op_indicies;
+      #pragma omp critical
+      {
+        if (c.has_next()) {
+          op_indicies = c.next();
+        } else {
+          keep_searching = false;
+          op_indicies = c.zeros();
+        }
+        count++;
+      }
+
+      ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+      if (filled != nullptr) {
+        const double log_likelihood = PredicateL1(filled, yes, no, false);
+        #pragma omp critical
+        {
+          if (keep_searching && log_likelihood <= max_error) {
+            keep_searching = false;
+            solution_cond = filled;
+            current_best = log_likelihood;
+          } else if (current_best == -1 || log_likelihood < current_best || (log_likelihood == current_best && filled->priority < solution_cond->priority) ) {
+            solution_cond = filled;
+            current_best = log_likelihood;
+          }
+        }
+      }
+    }
+  } else {
+    // Since no errors occured while creating the model, we can take the hole
+    // values from it and use them to fill the holes in a copy of the
+    // condition.
+    ast_ptr cond_copy = DeepCopyAST(sketch);
+    const double log_likelihood = PredicateL1(cond_copy, yes, no, false);
+    #pragma omp critical
+    {
+      if (log_likelihood <= current_best) {
+        solution_cond = cond_copy;
+        current_best = log_likelihood;
+      }
+    }
+  }
+
+  // Return the solution if one exists, otherwise return a nullptr.
+  if (solution_cond != nullptr) {
+    *best_error = current_best;
+  }
+  return solution_cond;
+}
+
 ast_ptr ldipsL2(ast_ptr candidate,
     const vector<Example>& examples,
     const vector<ast_ptr>& ops,
@@ -448,13 +544,13 @@ pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
     const float max_error) {
 
   // Find best performing completion of current sketch
-  float solved = -1;
+  float error = -1;
   ast_ptr solution =
-    PredicateL2(examples,
-        ops, candidate, transition, max_error, &solved);
+    LikelihoodPredicateL2(examples,
+        ops, candidate, transition, max_error, &error);
 
   Z3_reset_memory();
-  return pair<ast_ptr, float>(solution, solved);
+  return pair<ast_ptr, float>(solution, error);
 }
 
 vector<ast_ptr> ldipsL3(const vector<Example>& demos,
