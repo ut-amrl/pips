@@ -445,13 +445,13 @@ pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
     const vector<Example>& examples,
     const vector<ast_ptr>& ops,
     const pair<string, string>& transition,
-    const float min_accuracy) {
+    const float max_error) {
 
   // Find best performing completion of current sketch
-  float solved = 0.0;
+  float solved = -1;
   ast_ptr solution =
     PredicateL2(examples,
-        ops, candidate, transition, min_accuracy, &solved);
+        ops, candidate, transition, max_error, &solved);
 
   Z3_reset_memory();
   return pair<ast_ptr, float>(solution, solved);
