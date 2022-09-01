@@ -273,18 +273,91 @@ double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
 // Returns the log likelihood and modifies sketch to 
 double LikelihoodPredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
     const unordered_set<Example>& neg, const bool srtr) {
-  vector<bool> y_j(neg.size() + pos.size(), false);
-  fill_n(y_j.begin(), pos.size(), true);
+    // Generate y_j (tells us whether an example satisfied a transition)
+    vector<bool> y_j(neg.size() + pos.size(), false);
+    fill_n(y_j.begin(), pos.size(), true);
 
-//   for(int i = 0; i < y_j.size(); i++){
-//     cout << y_j[i] << " ";
-//   }
-//   cout << endl;
+    // Iterate through conjunctions/disjunctions
+    vector<char> clauses;
+    ast_ptr* pointer = &sketch;
+    vector<vector<float>> expressions;
+    while(pointer != nullptr){
+        bin_ptr op = dynamic_pointer_cast<BinOp>(*pointer);
 
-  cout << sketch << endl;
-  // Evaluate all examples on the sketch
-  vector<vector<float>> E_k;
-  return 0.0;
+        if(op == nullptr)
+            break;
+        
+        // Generate clauses array
+        if(op->op_ == "And") {
+            clauses.push_back('&');
+        } else if (op->op_ == "Or") {
+            clauses.push_back('|');
+        } else {
+            break;
+        }
+
+        // Evaluate all examples on the sketch
+        vector<float> E_k;
+        feature_ptr feature = dynamic_pointer_cast<Feature>(op->left_);
+        bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
+        tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
+        ast_ptr E = logistic->x_;
+        for(Example each: pos){
+            num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
+            E_k.push_back(res->value_);
+        }
+        for(Example each: neg){
+            num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
+            E_k.push_back(res->value_);
+        }
+        expressions.push_back(E_k);
+
+        // Next clause
+        pointer = &(op->right_);
+    }
+
+    // Evaluate all examples on the sketch
+    vector<float> E_k;
+    feature_ptr feature = dynamic_pointer_cast<Feature>(*pointer);
+    bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
+    tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
+    ast_ptr E = logistic->x_;
+    for(Example each: pos){
+        num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
+        E_k.push_back(res->value_);
+    }
+    for(Example each: neg){
+        num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
+        E_k.push_back(res->value_);
+    }
+    expressions.push_back(E_k);
+
+    // DEBUG
+    // for(int i = 0; i < clauses.size(); i++){
+    //     cout << clauses[i] << ", ";
+    // }
+    // cout << endl;
+
+    // for(int i = 0; i < y_j.size(); i++){
+    //     cout << y_j[i] << " ";
+    // }
+    // cout << endl;
+
+    // cout << sketch << endl;
+
+    // for(int i = 0; i < expressions.size(); i++){
+    //     cout << "\t";
+    //     for(int j = 0; j < expressions[i].size(); j++){
+    //         cout << expressions[i][j] << ", ";
+    //     }
+    //     cout << endl;
+    // }
+
+    // Call optimizer here
+
+    // Update log values
+
+    return 0.0;
 }
 
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
@@ -550,7 +623,6 @@ pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
     const vector<ast_ptr>& ops,
     const pair<string, string>& transition,
     const float max_error) {
-
   // Find best performing completion of current sketch
   float error = -1;
   ast_ptr solution =
