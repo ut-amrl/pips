@@ -26,8 +26,6 @@ using namespace std;
 using nlohmann::json;
 using AST::CheckModelAccuracy;
 
-DECLARE_uint32(sketch_depth);
-DECLARE_double(min_accuracy);
 DECLARE_bool(debug);
 
 namespace AST {
@@ -271,6 +269,24 @@ double PredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
   }
 }
 
+// Attempts to solve for the most likely assignment of real values for the logistic equation.
+// Returns the log likelihood and modifies sketch to 
+double LikelihoodPredicateL1(ast_ptr sketch, const unordered_set<Example>& pos,
+    const unordered_set<Example>& neg, const bool srtr) {
+  vector<bool> y_j(neg.size() + pos.size(), false);
+  fill_n(y_j.begin(), pos.size(), true);
+
+//   for(int i = 0; i < y_j.size(); i++){
+//     cout << y_j[i] << " ";
+//   }
+//   cout << endl;
+
+  cout << sketch << endl;
+  // Evaluate all examples on the sketch
+  vector<vector<float>> E_k;
+  return 0.0;
+}
+
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
     const vector<ast_ptr>& ops) {
   Model m;
@@ -280,6 +296,7 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
   // consistent order and by index is important for something we do later.
   const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
     MapFeatureHoles(sketch);
+
   vector<string> feature_holes;
   for (const auto& p : feature_hole_map) {
     feature_holes.push_back(p.first);
@@ -296,14 +313,7 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t>& indicies,
     const Dimension feature_hole_dims = feature_hole_info.second;
     const size_t index = indicies[i];
     const ast_ptr& op = ops[index];
-    // If the type of the selected op doesn't match, we can stop creating
-    // this model. Otherwise we added this op to the model.
-    if (op->type_ != feature_hole_type) {
-      break;
-    } else {
-      // const ast_ptr op_copy = DeepCopyAST(op);
-      m[feature_hole] = op;
-    }
+    m[feature_hole] = op;
   }
 
   // If after creating the model the number of filled holes is not the same
@@ -423,7 +433,6 @@ ast_ptr LikelihoodPredicateL2(
     ast_ptr sketch, const pair<string,string>& transition,
     const double max_error, float* best_error) {
   CumulativeFunctionTimer::Invocation invoke(&likelihood_pred_l2);
-
   const SymEntry out(transition.second);
   const SymEntry in(transition.first);
 
@@ -453,7 +462,6 @@ ast_ptr LikelihoodPredicateL2(
   ast_ptr solution_cond = sketch;
   float current_best =  -1;
   if (feature_hole_count > 0) {
-
     index_iterator c(ops.size(), feature_hole_count);
     solution_cond = nullptr;
     bool keep_searching = true;
@@ -477,7 +485,7 @@ ast_ptr LikelihoodPredicateL2(
 
       ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
       if (filled != nullptr) {
-        const double log_likelihood = PredicateL1(filled, yes, no, false);
+        const double log_likelihood = LikelihoodPredicateL1(filled, yes, no, false);
         #pragma omp critical
         {
           if (keep_searching && log_likelihood <= max_error) {

@@ -403,8 +403,7 @@ ast_ptr Flip(ast_ptr p, ast_ptr probabilistic){
     if(dynamic_pointer_cast<Bool>(probabilistic)->value_){
         return make_shared<Bool>((float) rand() / RAND_MAX < p_cast);
     } else {
-        Bool result(p_cast > 0.5);
-        return make_shared<Bool>(result);
+        return make_shared<Bool>(p_cast > 0.5);
     }
 
 }
