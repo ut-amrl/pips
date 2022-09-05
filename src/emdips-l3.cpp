@@ -28,7 +28,7 @@ DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
-DEFINE_double(target_score, 10, "What log likelihood should be achieved /what proportion of examples should be SAT to declare victory?");
+DEFINE_double(target_score, 10, "What log likelihood should be achieved / what proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");

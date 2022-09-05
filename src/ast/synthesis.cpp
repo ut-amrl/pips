@@ -307,7 +307,7 @@ namespace AST {
     }
 
     // Attempts to solve for the most likely assignment of real values for the
-    // logistic equation. Returns the log likelihood and modifies sketch to
+    // logistic equation. Returns the log likelihood and modifies sketch
     double LikelihoodPredicateL1(ast_ptr sketch, const unordered_set<Example> &pos,
                                 const unordered_set<Example> &neg,
                                 const bool srtr) {
@@ -388,49 +388,50 @@ namespace AST {
         vector<float> x_0_vals;
         float sol = 0.0;
 
-        // Arguments
-        pClauses = PyList_New(clauses.size());
-        for(int i = 0; i < clauses.size(); i++){
-            PyList_SetItem(pClauses, i, PyUnicode_FromString(&clauses[i]));
-        }
-        pY_j = PyList_New(y_j.size());
-        for(int i = 0; i < y_j.size(); i++){
-            PyList_SetItem(pY_j, i, (y_j[i] ? Py_True : Py_False));
-        }
-
-        pE_k = PyList_New(expressions.size());
-        for(int i = 0; i < expressions.size(); i++){
-            PyObject *subarr;
-            subarr = PyList_New(expressions[i].size());
-            for(int j = 0; j < expressions[i].size(); j++){
-                PyList_SetItem(subarr, j, PyFloat_FromDouble(expressions[i][j]));
+    #pragma omp critical
+        {
+            // Arguments
+            pClauses = PyList_New(clauses.size());
+            for(int i = 0; i < clauses.size(); i++){
+                PyList_SetItem(pClauses, i, clauses[i] == '&' ? PyLong_FromLong(0) : PyLong_FromLong(1));
             }
-            PyList_SetItem(pE_k, i,  subarr);
-        }
-        pArgs = PyTuple_Pack(3, pE_k, pY_j, pClauses);
-
-        if (!pArgs) {
-            fprintf(stderr, "Cannot convert argument\n");
-            return 1;
-        }
-
-        // Call function
-        pValue = PyObject_CallObject(pFunc, pArgs);
-
-        if (pValue != NULL && PyTuple_Check(pValue)) {
-            // Retrieve results
-            sol = PyFloat_AsDouble(PyTuple_GetItem(pValue, 0));
-            pValue = PyTuple_GetItem(pValue, 1);
-            for(int i = 0; i < PyList_Size(pValue) / 2; i++){
-                a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
+            pY_j = PyList_New(y_j.size());
+            for(int i = 0; i < y_j.size(); i++){
+                PyList_SetItem(pY_j, i, (y_j[i] ? Py_True : Py_False));
             }
-            for(int i = PyList_Size(pValue) / 2; i < PyList_Size(pValue); i++){
-                x_0_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
+
+            pE_k = PyList_New(expressions.size());
+            for(int i = 0; i < expressions.size(); i++){
+                PyObject *subarr;
+                subarr = PyList_New(expressions[i].size());
+                for(int j = 0; j < expressions[i].size(); j++){
+                    PyList_SetItem(subarr, j, PyFloat_FromDouble(expressions[i][j]));
+                }
+                PyList_SetItem(pE_k, i,  subarr);
             }
-        } else {
-            PyErr_Print();
-            fprintf(stderr,"Call failed\n");
-            return -1;
+            pArgs = PyTuple_Pack(3, pE_k, pY_j, pClauses);
+
+            if (!pArgs) {
+                fprintf(stderr, "Cannot convert argument\n");
+            }
+
+            // Call function
+            pValue = PyObject_CallObject(pFunc, pArgs);
+
+            if (pValue != NULL && PyTuple_Check(pValue)) {
+                // Retrieve results
+                sol = PyFloat_AsDouble(PyTuple_GetItem(pValue, 0));
+                pValue = PyTuple_GetItem(pValue, 1);
+                for(int i = 0; i < PyList_Size(pValue) / 2; i++){
+                    a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
+                }
+                for(int i = PyList_Size(pValue) / 2; i < PyList_Size(pValue); i++){
+                    x_0_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
+                }
+            } else {
+                PyErr_Print();
+                fprintf(stderr,"Call failed\n");
+            }
         }
 
         // Update log values
@@ -671,7 +672,6 @@ namespace AST {
                 }
             }
         }
-
         // Return the solution if one exists, otherwise return a nullptr.
         if (solution_cond != nullptr) {
             *best_error = current_best;

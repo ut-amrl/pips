@@ -39,9 +39,9 @@ def log_loss(x):
         likelihood = 1.0 / (1.0 + pow(math.e, - alpha[0] * (E_k[0][i] - x_0[0])))
         for j in range(len(clauses)):
             likelihood_j = 1.0 / (1.0 + pow(math.e, - alpha[j+1] * (E_k[0][i] - x_0[j+1])))
-            if(clauses[j] == '&'): # AND
+            if(clauses[j] == 0): # AND
                 likelihood = likelihood * likelihood_j
-            if(clauses[j] == '|'): # OR
+            if(clauses[j] == 1): # OR
                 likelihood = likelihood + likelihood_j - likelihood * likelihood_j
 
         # cap at some value to prevent rounding to 0/1 (can cause undefined behavior)
