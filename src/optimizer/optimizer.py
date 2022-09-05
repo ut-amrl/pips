@@ -144,8 +144,8 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
         # -------- Optimization ----------------------
 
         if(opt_method == 0):
-            res = optimize.minimize(log_loss, init, 
-                                    method='BFGS', options={'disp': True})
+            res = optimize.minimize(log_loss, init,
+                                    method='BFGS', options={'disp': print_debug, 'maxiter': 100})
         elif(opt_method == 1):
             res = optimize.basinhopping(log_loss, init,
                                     niter=200, T=40000.0,
