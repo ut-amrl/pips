@@ -260,19 +260,27 @@ namespace AST {
         int index = 0;
         while (pointer != nullptr) {
             bin_ptr op = dynamic_pointer_cast<BinOp>(*pointer);
+            bool stop_flag = false;
 
             if (op == nullptr || (op->op_ != "And" && op->op_ != "Or")) {
-                break;
+                stop_flag = true;
             }
 
             // Evaluate all examples on the sketch
-            feature_ptr feature = dynamic_pointer_cast<Feature>(op->left_);
+            feature_ptr feature;
+            if(stop_flag)
+                feature = dynamic_pointer_cast<Feature>(*pointer);
+            else
+                feature = dynamic_pointer_cast<Feature>(op->left_);
             bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
             tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
             logistic->a_ = make_shared<Num>(Num(a_vals[index], {0, 0, 0}));
             logistic->b_ = make_shared<Num>(Num(x_0_vals[index], {0, 0, 0}));
             index++;
 
+            if(stop_flag)
+                break;
+            
             // Next clause
             pointer = &(op->right_);
         }
@@ -313,21 +321,27 @@ namespace AST {
         vector<vector<float>> expressions;
         while (pointer != nullptr) {
             bin_ptr op = dynamic_pointer_cast<BinOp>(*pointer);
+            bool stop_flag = false;
 
-            if (op == nullptr) break;
-
-            // Generate clauses array
-            if (op->op_ == "And") {
-                clauses.push_back('&');
-            } else if (op->op_ == "Or") {
-                clauses.push_back('|');
-            } else {
-                break;
+            if (op == nullptr) stop_flag = true;
+            else {
+                // Generate clauses array
+                if (op->op_ == "And") {
+                    clauses.push_back('&');
+                } else if (op->op_ == "Or") {
+                    clauses.push_back('|');
+                } else {
+                    stop_flag = true;
+                }
             }
-
+            
             // Evaluate all examples on the sketch
             vector<float> E_k;
-            feature_ptr feature = dynamic_pointer_cast<Feature>(op->left_);
+            feature_ptr feature;
+            if(stop_flag)
+                feature = dynamic_pointer_cast<Feature>(*pointer);
+            else
+                feature = dynamic_pointer_cast<Feature>(op->left_);
             bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
             tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
             ast_ptr E = logistic->x_;
@@ -341,25 +355,12 @@ namespace AST {
             }
             expressions.push_back(E_k);
 
+            if(stop_flag)
+                break;
+            
             // Next clause
             pointer = &(op->right_);
         }
-
-        // Evaluate all examples on the sketch
-        vector<float> E_k;
-        feature_ptr feature = dynamic_pointer_cast<Feature>(*pointer);
-        bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
-        tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
-        ast_ptr E = logistic->x_;
-        for (Example each : pos) {
-            num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
-            E_k.push_back(res->value_);
-        }
-        for (Example each : neg) {
-            num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
-            E_k.push_back(res->value_);
-        }
-        expressions.push_back(E_k);
 
         // DEBUG
         // for(int i = 0; i < clauses.size(); i++){
