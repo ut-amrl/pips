@@ -777,10 +777,10 @@ namespace AST {
 
         // Initialize python support
         Py_Initialize();
-        PyRun_SimpleString("import sys; sys.path.insert(0, '../')");
+        PyRun_SimpleString("import sys, os; sys.path.insert(0, os.path.join('./', 'src/', 'optimizer'))");
 
         // File name
-        pName = PyUnicode_FromString((char*)"optimizer/optimizer");
+        pName = PyUnicode_FromString((char*)"optimizer");
 
         pModule = PyImport_Import(pName);
         Py_DECREF(pName);
