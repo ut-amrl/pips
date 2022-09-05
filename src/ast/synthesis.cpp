@@ -435,7 +435,6 @@ namespace AST {
 
         // Update log values
         sketch = FillLogHoles(sketch, a_vals, x_0_vals);
-        cout << "Current solution: " << sketch << endl;
 
         return sol;
     }
@@ -800,7 +799,6 @@ namespace AST {
             fprintf(stderr, "Failed to load optimization file");
         }
 
-
         vector<Example> examples = demos;
         // Enumerate possible sketches
         const auto sketches = EnumerateSketches(sketch_depth);
@@ -825,7 +823,7 @@ namespace AST {
                 continue;
             }
 
-            cout << "----- " << transition.first << "->";
+            cout << endl << endl << "----- " << transition.first << "->";
             cout << transition.second << " -----" << endl;
             cout << "Target log likelihood: < " << max_error[t] << endl;
 
