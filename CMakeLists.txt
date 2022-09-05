@@ -39,6 +39,7 @@ find_package(GTest REQUIRED)
 # find_package(GFlags REQUIRED)
 find_package(Threads REQUIRED)
 find_package(Z3 REQUIRED)
+find_package(PythonLibs REQUIRED)
 
 # Set final locations for binaries
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
@@ -54,6 +55,7 @@ include_directories(src/)
 add_subdirectory(submodules/amrl_shared_lib/)
 include_directories(submodules/amrl_shared_lib/)
 include_directories(submodules/)
+include_directories(${PYTHON_INCLUDE_DIRS})
 
 # Load Gflags from submodule
 add_subdirectory(submodules/gflags)
@@ -93,6 +95,7 @@ target_link_libraries(c++-pips-core Eigen3::Eigen)
 target_link_libraries(c++-pips-core nlohmann_json::nlohmann_json)
 target_link_libraries(c++-pips-core ${Z3_LIBRARIES})
 target_link_libraries(c++-pips-core ${libs})
+target_link_libraries(c++-pips-core ${PYTHON_LIBRARIES})
 
 # Add an executable for ldips-l3
 add_executable(ldips-l3 src/ldips-l3.cpp)
