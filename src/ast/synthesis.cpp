@@ -32,8 +32,7 @@ DECLARE_bool(debug);
 
 namespace AST {
 
-    PyObject *pName, *pModule, *pFunc, *pArgs, *pValue;
-    PyObject *pE_k, *pY_j, *pClauses;
+    PyObject *pName, *pModule, *pFunc;
 
     // Basically a breadth-first search of all combination of indices of the ops
     // vector starting at {0, 0, ..., 0}
@@ -388,54 +387,60 @@ namespace AST {
         vector<float> x_0_vals;
         float sol = 0.0;
 
-    #pragma omp critical
-        {
-            // Arguments
-            pClauses = PyList_New(clauses.size());
-            for(int i = 0; i < clauses.size(); i++){
-                PyList_SetItem(pClauses, i, clauses[i] == '&' ? PyLong_FromLong(0) : PyLong_FromLong(1));
-            }
-            pY_j = PyList_New(y_j.size());
-            for(int i = 0; i < y_j.size(); i++){
-                PyList_SetItem(pY_j, i, (y_j[i] ? Py_True : Py_False));
-            }
+        PyObject *pClauses, *pY_j, *pE_k, *pArgs, *pValue;
+        // Arguments
+        pClauses = PyList_New(clauses.size());
+        for(int i = 0; i < clauses.size(); i++){
+            PyList_SetItem(pClauses, i, clauses[i] == '&' ? PyLong_FromLong(0) : PyLong_FromLong(1));
+        }
+        pY_j = PyList_New(y_j.size());
+        for(int i = 0; i < y_j.size(); i++){
+            PyList_SetItem(pY_j, i, (y_j[i] ? Py_True : Py_False));
+        }
 
-            pE_k = PyList_New(expressions.size());
-            for(int i = 0; i < expressions.size(); i++){
-                PyObject *subarr;
-                subarr = PyList_New(expressions[i].size());
-                for(int j = 0; j < expressions[i].size(); j++){
-                    PyList_SetItem(subarr, j, PyFloat_FromDouble(expressions[i][j]));
-                }
-                PyList_SetItem(pE_k, i,  subarr);
+        pE_k = PyList_New(expressions.size());
+        for(int i = 0; i < expressions.size(); i++){
+            PyObject *subarr;
+            subarr = PyList_New(expressions[i].size());
+            for(int j = 0; j < expressions[i].size(); j++){
+                PyList_SetItem(subarr, j, PyFloat_FromDouble(expressions[i][j]));
             }
-            pArgs = PyTuple_Pack(3, pE_k, pY_j, pClauses);
+            PyList_SetItem(pE_k, i,  subarr);
+        }
+        pArgs = PyTuple_Pack(3, pE_k, pY_j, pClauses);
 
-            if (!pArgs) {
-                fprintf(stderr, "Cannot convert argument\n");
+        if (!pArgs) {
+            fprintf(stderr, "Cannot convert argument\n");
+        }
+
+        // Call function
+        pValue = PyObject_CallObject(pFunc, pArgs);
+
+        if (pValue != NULL && PyTuple_Check(pValue)) {
+            // Retrieve results
+            sol = PyFloat_AsDouble(PyTuple_GetItem(pValue, 0));
+            pValue = PyTuple_GetItem(pValue, 1);
+            for(int i = 0; i < PyList_Size(pValue) / 2; i++){
+                a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
             }
-
-            // Call function
-            pValue = PyObject_CallObject(pFunc, pArgs);
-
-            if (pValue != NULL && PyTuple_Check(pValue)) {
-                // Retrieve results
-                sol = PyFloat_AsDouble(PyTuple_GetItem(pValue, 0));
-                pValue = PyTuple_GetItem(pValue, 1);
-                for(int i = 0; i < PyList_Size(pValue) / 2; i++){
-                    a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
-                }
-                for(int i = PyList_Size(pValue) / 2; i < PyList_Size(pValue); i++){
-                    x_0_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
-                }
-            } else {
-                PyErr_Print();
-                fprintf(stderr,"Call failed\n");
+            for(int i = PyList_Size(pValue) / 2; i < PyList_Size(pValue); i++){
+                x_0_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
             }
+        } else {
+            PyErr_Print();
+            fprintf(stderr,"Call failed\n");
         }
 
         // Update log values
         sketch = FillLogHoles(sketch, a_vals, x_0_vals);
+
+        // Python cleanup
+
+        Py_DECREF(pArgs);
+        Py_DECREF(pValue);
+        Py_DECREF(pClauses);
+        Py_DECREF(pY_j);
+        Py_DECREF(pE_k);
 
         return sol;
     }
@@ -894,8 +899,6 @@ namespace AST {
         res.log_likelihoods = log_likelihoods;
 
         // Clean up python
-        Py_DECREF(pArgs);
-        Py_DECREF(pValue);
         Py_XDECREF(pFunc);
         Py_DECREF(pModule);
         Py_Finalize();
