@@ -413,8 +413,12 @@ namespace AST {
             fprintf(stderr, "Cannot convert argument\n");
         }
 
+    #pragma omp critical 
+    {
         // Call function
         pValue = PyObject_CallObject(pFunc, pArgs);
+    }
+        
 
         if (pValue != NULL && PyTuple_Check(pValue)) {
             // Retrieve results
