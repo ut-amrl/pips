@@ -434,14 +434,6 @@ namespace AST {
         // Update log values
         sketch = FillLogHoles(sketch, a_vals, x_0_vals);
 
-        // Python cleanup
-
-        Py_DECREF(pArgs);
-        Py_DECREF(pValue);
-        Py_DECREF(pClauses);
-        Py_DECREF(pY_j);
-        Py_DECREF(pE_k);
-
         return sol;
     }
 
