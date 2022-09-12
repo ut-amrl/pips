@@ -372,7 +372,6 @@ namespace AST {
         // }
         // cout << endl;
 
-        // cout << sketch << endl;
 
         // for(int i = 0; i < expressions.size(); i++){
         //     cout << "\t";
@@ -435,8 +434,13 @@ namespace AST {
             fprintf(stderr,"Call failed\n");
         }
 
+        // cout << "Empty: " << sketch << endl;
+        
         // Update log values
         sketch = FillLogHoles(sketch, a_vals, x_0_vals);
+
+        // cout << "Sketch: " << sketch << endl;
+        // cout << "\n" << endl;
 
         return sol;
     }
@@ -638,6 +642,7 @@ namespace AST {
                     }
                     count++;
                 }
+
 
                 ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
                 if (filled != nullptr) {
