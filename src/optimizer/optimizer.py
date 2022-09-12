@@ -11,14 +11,25 @@ import json
 
 # TODO
 # how to weight all examples equally, so as not to bias towards the ones with high / extreme values
+# or just control the range of examples during data collection
 # deal with integer overflow in loss function (results in nan loss)
+# use log-likelihoods as soon as possible, and use log operations when possible to eliminate integer overflow
 # optimization methods are highly dependent on initial guess
+# for most applications starting at 0 as the center of the log function is probably best?
+# or is it cheating because that's the only constant in this specific simulation 
+# calculate ideal log-likelihood for each ASP transition
+# bounds for basin hopping and BFGS is broken (maybe my fault)
+# for some reason ACC->CON works when I do it manually (with local BFGS starting at x_0 = 0) but not when PIPS
+# maybe has to do with choosing the samples? that is the only difference
+# in this manual test i take all the transitions compared to PIPS only taking from the window
+# maybe just expand window idk
 
 # ------- Parameters -----------------------------
-opt_method = 2
+opt_method = 0
 enumerateSigns = True
-print_debug = True
+print_debug = False
 
+start_x_0_at_0 = True
 max_spread = 10.0
 min_spread = 0.1
 bounds_extension = 0.1
@@ -44,7 +55,7 @@ def log_loss(x):
     log_loss = 0
     for i in range(len(y_j)):
         likelihood = 0
-        if(-alpha[0] * (E_k[0][i] - x_0[0]) > 100):     # deal with overflow
+        if(-alpha[0] * (E_k[0][i] - x_0[0]) > 100):     # deal with overflow - do this better
             likelihood = 1e-16
         else:
             likelihood = 1.0 / (1.0 + pow(math.e, - alpha[0] * (E_k[0][i] - x_0[0])))
@@ -140,7 +151,8 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
             alpha_init = np.zeros(len(E_k))
         
         x_0_init = [sum(expression)/len(expression) for expression in E_k]
-        # x_0_init = [0.0, 0.0]
+        if start_x_0_at_0:
+            x_0_init = [0.0, 0.0]
         init = np.concatenate((alpha_init, x_0_init))
         print_with_padding("Initial values", "|")
         debug(init)
@@ -174,7 +186,7 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
                                     take_step=step_obj, callback=print_fun, seed=rng)
         elif(opt_method == 2):
             res = optimize.dual_annealing(log_loss, bounds, x0=init, 
-                                            maxiter=50, initial_temp=5000, 
+                                            maxiter=50, initial_temp=50000, 
                                             visit=3.0, accept=-5, 
                                             minimizer_kwargs=minimizer_kwargs)
         elif(opt_method == 3):
@@ -205,33 +217,40 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
 
 # --------------------- testing -------------------------------------------
 
+def dist_traveled(v, dec):
+    return - v * v / (2 * dec)
+
 def main():
 
     f = open('examples/emdips/out/data.json')
     data = json.load(f)
     E_k_test = []
     y_j_test = []
-    clauses_test = [1]
+    clauses_test = [0]
     arr_a = []
     arr_b = []
     for row in data:
         if(row['start']['value'] == 'ACC'):
             y_j_test.append(row['output']['value'] == 'CON')
             arr_a.append(row['v']['value'] - row['vMax']['value'])
-            arr_b.append(row['v']['value'] - row['vMax']['value'])
+            arr_b.append(dist_traveled(row['v']['value'], row['decMax']['value']) + row['x']['value'] - row['target']['value'])
 
     E_k_test = [arr_a, arr_b]
 
     f.close()
 
     run_optimizer(E_k_test, y_j_test, clauses_test)
+
     # global E_k, y_j, clauses
     # E_k = E_k_test
     # y_j = y_j_test
     # clauses = clauses_test
 
     # print("supposed")
-    # print(log_loss([1, 1, 0, 0]))
+    # print(log_loss([1, -1, 0.1, 0]))
+    # print(log_loss([1, -1, 0, 0]))
+    # print(log_loss([2, -2, 0, 0]))
+    # print(log_loss([10, -10, 0, 0]))
 
 if __name__ == "__main__":
     main()
