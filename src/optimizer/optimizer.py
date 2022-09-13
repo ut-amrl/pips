@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import math
-
 from scipy import optimize
+from scipy import special as sp
+
+import math
 import warnings
 import time
-
 import json
 
 # TODO
@@ -54,33 +54,21 @@ def log_loss(x):
 
     log_loss = 0
     for i in range(len(y_j)):
-        likelihood = 0
-        if(-alpha[0] * (E_k[0][i] - x_0[0]) > 100):     # deal with overflow - do this better
-            likelihood = 1e-16
-        else:
-            likelihood = 1.0 / (1.0 + pow(math.e, - alpha[0] * (E_k[0][i] - x_0[0])))
+        log_likelihood = - sp.logsumexp([0, - alpha[0] * (E_k[0][i] - x_0[0])])
+
         for j in range(len(clauses)):
-            likelihood_j = 0
-            if(- alpha[j+1] * (E_k[j+1][i] - x_0[j+1]) > 100):
-                likelihood_j = 1e-16
-            else:
-                likelihood_j = 1.0 / (1.0 + pow(math.e, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])))
-            if(clauses[j] == 0): # AND
-                likelihood = likelihood * likelihood_j
-            if(clauses[j] == 1): # OR
-                likelihood = likelihood + likelihood_j - likelihood * likelihood_j
+            log_likelihood_j = - sp.logsumexp([0, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])])
 
-        # cap at some value to prevent rounding to 0/1 (can cause undefined behavior)
-        likelihood = max(likelihood, 1e-16)
-        likelihood = min(likelihood, 1 - (1e-16))
-
+            if clauses[j] == 0:
+                log_likelihood += log_likelihood_j
+            if clauses[j] == 1:
+                log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
+            
         if y_j[i]:
-            log_loss -= math.log(likelihood) # cap at small value to prevent undefined behavior
+            log_loss -= log_likelihood
         else:
-            log_loss -= math.log(1 - likelihood)
+            log_loss -= sp.logsumexp([0, log_likelihood], b=[1, -1])
     return log_loss
-
-
 
 # ------- helper functions ----------------------
 def lr(l): # list range
@@ -231,7 +219,7 @@ def main():
     arr_b = []
     for row in data:
         if(row['start']['value'] == 'ACC'):
-            y_j_test.append(row['output']['value'] == 'CON')
+            y_j_test.append(int(row['output']['value'] == 'CON'))
             arr_a.append(row['v']['value'] - row['vMax']['value'])
             arr_b.append(dist_traveled(row['v']['value'], row['decMax']['value']) + row['x']['value'] - row['target']['value'])
 
@@ -239,18 +227,18 @@ def main():
 
     f.close()
 
-    run_optimizer(E_k_test, y_j_test, clauses_test)
+    # run_optimizer(E_k_test, y_j_test, clauses_test)
 
-    # global E_k, y_j, clauses
-    # E_k = E_k_test
-    # y_j = y_j_test
-    # clauses = clauses_test
+    global E_k, y_j, clauses
+    E_k = E_k_test
+    y_j = y_j_test
+    clauses = clauses_test
 
-    # print("supposed")
-    # print(log_loss([1, -1, 0.1, 0]))
-    # print(log_loss([1, -1, 0, 0]))
-    # print(log_loss([2, -2, 0, 0]))
-    # print(log_loss([10, -10, 0, 0]))
+    print("supposed")
+    print(log_loss([1, -1, 0.1, 0]))
+    print(log_loss([1, -1, 0, 0]))
+    print(log_loss([2, -2, 0, 0]))
+    print(log_loss([10, -10, 0, 0]))
 
 if __name__ == "__main__":
     main()
