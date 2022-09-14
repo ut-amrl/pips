@@ -394,7 +394,7 @@ namespace AST {
         }
         pY_j = PyList_New(y_j.size());
         for(int i = 0; i < y_j.size(); i++){
-            PyList_SetItem(pY_j, i, (y_j[i] ? Py_True : Py_False));
+            PyList_SetItem(pY_j, i, (y_j[i] ? PyLong_FromLong(1) : PyLong_FromLong(0)));
         }
 
         pE_k = PyList_New(expressions.size());
