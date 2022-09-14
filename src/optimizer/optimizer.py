@@ -12,8 +12,6 @@ import json
 # TODO
 # how to weight all examples equally, so as not to bias towards the ones with high / extreme values
 # or just control the range of examples during data collection
-# deal with integer overflow in loss function (results in nan loss)
-# use log-likelihoods as soon as possible, and use log operations when possible to eliminate integer overflow
 # optimization methods are highly dependent on initial guess
 # for most applications starting at 0 as the center of the log function is probably best?
 # or is it cheating because that's the only constant in this specific simulation 
@@ -57,17 +55,20 @@ def log_loss(x):
         log_likelihood = - sp.logsumexp([0, - alpha[0] * (E_k[0][i] - x_0[0])])
 
         for j in range(len(clauses)):
+            # Calculate likelihood for this clause
             log_likelihood_j = - sp.logsumexp([0, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])])
 
-            if clauses[j] == 0:
-                log_likelihood += log_likelihood_j
-            if clauses[j] == 1:
+            if clauses[j] == 0: # AND: multiply likelihoods
+                log_likelihood += log_likelihood_j 
+            if clauses[j] == 1: # OR: add likelihoods
                 log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
-            
-        if y_j[i]:
+        
+        # Compute total log loss
+        if y_j[i]:  # Satisfied transition
             log_loss -= log_likelihood
-        else:
+        else:       # Unsatisfied transition
             log_loss -= sp.logsumexp([0, log_likelihood], b=[1, -1])
+
     return log_loss
 
 # ------- helper functions ----------------------
@@ -135,7 +136,7 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
         for i in range(len(E_k)):
             alpha_init.append(1 if (signs & (1 << i)) else -1)
 
-        if not enumerateSigns:
+        if not enumerateSigns: # initialize to 0s if not iterating over signs
             alpha_init = np.zeros(len(E_k))
         
         x_0_init = [sum(expression)/len(expression) for expression in E_k]
