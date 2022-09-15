@@ -25,11 +25,10 @@ import json
 # ------- Parameters -----------------------------
 opt_method = 0
 enumerateSigns = True
-print_debug = False
+print_debug = True
 
-start_x_0_at_0 = True
+initial_values = 0 # 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
 max_spread = 10.0
-min_spread = 0.1
 bounds_extension = 0.1
 print_warnings = False
 print_padding = 30
@@ -39,11 +38,6 @@ print_padding = 30
 # 1: basin hopping
 # 2: dual annealing
 # 3: DIRECT
-
-# ------- Variable declarations -----------------------------
-E_k = []
-y_j = []
-clauses = []
 
 # -------- objective function --------------------
 def log_loss(x):
@@ -71,6 +65,7 @@ def log_loss(x):
 
     return log_loss
 
+
 # ------- helper functions ----------------------
 def lr(l): # list range
     return max(l)-min(l)
@@ -82,9 +77,70 @@ def debug(str):
 def print_with_padding(label, value):
     debug((label+" ").ljust(print_padding, "-")+" "+str(value))
 
-# --------- optimizer -----------------------------
+# ---------- Callback ------------------------
+def print_fun(x, f, accepted):
+    # debug("at minimum %.4f accepted %d" % (f, int(accepted)))
+    # debug("with parameters: ")
+    # debug(x)
+    return
+
+# ---------- Bounds ------------------------
+class Bounds:
+    def __init__(self, xmin, xmax):
+        self.xmax = np.array(xmax)
+        self.xmin = np.array(xmin)
+    def __call__(self, **kwargs):
+        x = kwargs["x_new"]
+        tmax = bool(np.all(x <= self.xmax))
+        tmin = bool(np.all(x >= self.xmin))
+        return tmax and tmin
+
+# --------- Stepping (basin hopping) -------------------------
+class TakeStep:
+    def __init__(self, stepsize=0.5):
+        self.stepsize = stepsize
+        self.rng = np.random.default_rng()
+    def __call__(self, x):
+        mid = len(x) // 2
+        s = self.stepsize
+        x[:mid] += self.rng.uniform(-s, s, x[:mid].shape)
+        x[mid:] += self.rng.uniform(-100*s, 100*s, x[mid:].shape)
+        # x += (np.random.randint(2, size=x.shape)-0.5)*2
+        return x
+
+# ---------- Optimizer ------------------------
+
+# Runs the optimizer, given some initial parameters
+def run_optimizer_from_initial(init):
+    if(opt_method == 0):
+        res = optimize.minimize(log_loss, init,
+                                method='BFGS', options={'disp': print_debug, 'maxiter': 100})
+    elif(opt_method == 1):
+        res = optimize.basinhopping(log_loss, init,
+                                niter=100, T=100.0,
+                                minimizer_kwargs=minimizer_kwargs, accept_test=bounds_obj, 
+                                take_step=step_obj, callback=print_fun)
+    elif(opt_method == 2):
+        res = optimize.dual_annealing(log_loss, bounds, x0=init, 
+                                        maxiter=50, initial_temp=50000, 
+                                        visit=3.0, accept=-5, 
+                                        minimizer_kwargs=minimizer_kwargs)
+    elif(opt_method == 3):
+        res = optimize.direct(log_loss, bounds_arr, maxiter=10000)
+    else:
+        sys.exit("Please use a valid optimization method")
+
+    print_with_padding("Optimal parameters", "|")
+    debug(res.x)
+    print_with_padding("Num iterations", res.nfev)
+    print_with_padding("Minimum value", res.fun)
+    debug("")
+
+    return res
+
+# Handles initialization and enumeration, then calls the optimizer
 def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
-    global E_k, y_j, clauses
+    global E_k, y_j, clauses, minimizer_kwargs, step_obj, bounds, bounsd_arr, bounds_obj
     E_k = E_k_loc
     y_j = y_j_loc
     clauses = clauses_loc
@@ -93,114 +149,75 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
         warnings.filterwarnings('ignore')
 
     minimizer_kwargs = {"method": "BFGS"}
-    rng = np.random.default_rng()
-
-
-    class Bounds:
-        def __init__(self, xmin, xmax):
-            self.xmax = np.array(xmax)
-            self.xmin = np.array(xmin)
-        def __call__(self, **kwargs):
-            x = kwargs["x_new"]
-            tmax = bool(np.all(x <= self.xmax))
-            tmin = bool(np.all(x >= self.xmin))
-            return tmax and tmin
-    
-    # --------- Stepping (basin hopping) -------------------------
-    class TakeStep:
-        def __init__(self, stepsize=0.5):
-            self.stepsize = stepsize
-            self.rng = np.random.default_rng()
-        def __call__(self, x):
-            mid = len(x) // 2
-            s = self.stepsize
-            x[:mid] += self.rng.uniform(-s, s, x[:mid].shape)
-            x[mid:] += self.rng.uniform(-100*s, 100*s, x[mid:].shape)
-            # x += (np.random.randint(2, size=x.shape)-0.5)*2
-            return x
-
     step_obj = TakeStep()
 
-    # ---------- Callback ------------------------
-    def print_fun(x, f, accepted):
-        # debug("at minimum %.4f accepted %d" % (f, int(accepted)))
-        # debug("with parameters: ")
-        # debug(x)
-        return
+    # ---------- Bounds --------------------
+    alpha_bounds = [(-max_spread, max_spread) for expression in E_k]
 
+    x_0_bounds = [(min(expression)-lr(expression)*bounds_extension, max(expression)+0.000001+lr(expression)*bounds_extension) for expression in E_k]
+    bounds = np.concatenate((alpha_bounds, x_0_bounds))
+    bounds_lower = [b[0] for b in bounds]
+    bounds_upper = [b[1] for b in bounds]
+    print_with_padding("Bounds", "|")
+    debug(bounds)
+    bounds_obj = Bounds(bounds_lower, bounds_upper)
+    bounds_arr = optimize.Bounds(bounds_lower, bounds_upper)
+
+    # ---------- Optimizer ------------------------
     bestRes = -1
-    for signs in range(pow(2, len(E_k))): # iterate over possible signs (corresponds to < and >)
+
+    for rand in range(max(1, initial_values)):
+
+        x_0_init = np.zeros(len(E_k))
+        if initial_values == 1:
+            x_0_init = [sum(expression)/len(expression) for expression in E_k]
+        if initial_values > 1:
+            print("D") # TO-DO
+
+        for signs in range(pow(2, len(E_k))): # iterate over possible signs (corresponds to < and >)
+            
+            # Initialization
+            alpha_init = []
+            for i in range(len(E_k)):
+                alpha_init.append(1 if (signs & (1 << i)) else -1)
+
+            if not enumerateSigns: # initialize to 0s if not iterating over signs
+                alpha_init = np.zeros(len(E_k))
+            
+            init = np.concatenate((alpha_init, x_0_init))
+            print_with_padding("Initial values", "|")
+            debug(init)
+
+            # Calling the optimizer
+            res = run_optimizer_from_initial(init)
+
+            # Store results
+            if bestRes == -1 or res.fun < bestRes.fun:
+                bestRes = res
+            
+            if not enumerateSigns:
+                break
         
-        # ---------- Initialization ------------
-        alpha_init = []
-        for i in range(len(E_k)):
-            alpha_init.append(1 if (signs & (1 << i)) else -1)
-
-        if not enumerateSigns: # initialize to 0s if not iterating over signs
-            alpha_init = np.zeros(len(E_k))
-        
-        x_0_init = [sum(expression)/len(expression) for expression in E_k]
-        if start_x_0_at_0:
-            x_0_init = [0.0, 0.0]
-        init = np.concatenate((alpha_init, x_0_init))
-        print_with_padding("Initial values", "|")
-        debug(init)
-
-        # ---------- Bounds --------------------
-        alpha_bounds = []
-        for i in range(len(E_k)):
-            alpha_bounds.append((min_spread, max_spread) if (signs & (1 << i)) else (-max_spread, -min_spread))
-
-        if not enumerateSigns:
-            alpha_bounds = [(-max_spread, max_spread) for expression in E_k]
-
-        x_0_bounds = [(min(expression)-lr(expression)*bounds_extension, max(expression)+0.000001+lr(expression)*bounds_extension) for expression in E_k]
-        bounds = np.concatenate((alpha_bounds, x_0_bounds))
-        bounds_lower = [b[0] for b in bounds]
-        bounds_upper = [b[1] for b in bounds]
-        print_with_padding("Bounds", "|")
-        debug(bounds)
-        bounds_obj = Bounds(bounds_lower, bounds_upper)
-        bounds_arr = optimize.Bounds(bounds_lower, bounds_upper)
-
-        # -------- Optimization ----------------------
-
-        if(opt_method == 0):
-            res = optimize.minimize(log_loss, init,
-                                    method='BFGS', options={'disp': print_debug, 'maxiter': 1000})
-        elif(opt_method == 1):
-            res = optimize.basinhopping(log_loss, init,
-                                    niter=100, T=40000.0,
-                                    minimizer_kwargs=minimizer_kwargs, accept_test=bounds_obj, 
-                                    take_step=step_obj, callback=print_fun, seed=rng)
-        elif(opt_method == 2):
-            res = optimize.dual_annealing(log_loss, bounds, x0=init, 
-                                            maxiter=50, initial_temp=50000, 
-                                            visit=3.0, accept=-5, 
-                                            minimizer_kwargs=minimizer_kwargs)
-        elif(opt_method == 3):
-            res = optimize.direct(log_loss, bounds_arr, 
-                                    maxiter=10000)
-        else:
-            sys.exit("Please use a valid optimization method")
-
-        print_with_padding("Optimal parameters", "|")
-        debug(res.x)
-        print_with_padding("Num iterations", res.nfev)
-        print_with_padding("Minimum value", res.fun)
-        debug("")
-
-        if bestRes == -1 or res.fun < bestRes.fun:
-            bestRes = res
-        
-        if not enumerateSigns:
+        if initial_values <= 1:
             break
-    
+        
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
     print_with_padding("Minimum value", bestRes.fun)
 
     return (bestRes.fun, list(bestRes.x))
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -228,7 +245,7 @@ def main():
 
     f.close()
 
-    # run_optimizer(E_k_test, y_j_test, clauses_test)
+    run_optimizer(E_k_test, y_j_test, clauses_test)
 
     global E_k, y_j, clauses
     E_k = E_k_test
