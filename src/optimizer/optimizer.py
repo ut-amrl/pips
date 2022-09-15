@@ -3,6 +3,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy import optimize
 from scipy import special as sp
+from multiprocessing import Pool
+from itertools import repeat
 
 import math
 import warnings
@@ -25,7 +27,7 @@ import json
 # ------- Parameters -----------------------------
 opt_method = 0          # See below
 enumerateSigns = False  # Equivalent to enumerating over > and <
-print_debug = True      # Extra debugging info
+print_debug = False      # Extra debugging info
 
 initial_values = 5      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
 max_spread = 5.0        # Maximum absolute value of alpha (slope)
@@ -230,6 +232,14 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
     print_with_padding("Minimum value", bestRes.fun)
 
     return (bestRes.fun, list(bestRes.x))
+
+
+def run_optimizer_threads(E_k_arr, y_j, clauses_arr):
+    results = []
+    pool = Pool(len(E_k_arr))
+    results = pool.starmap(run_optimizer, zip(E_k_arr, repeat(y_j), clauses_arr))
+    print(results)
+    return results
 
 
 

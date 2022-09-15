@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
+#include <cfloat>
 
 #include "../submodules/amrl_shared_lib/util/timer.h"
 #include "enumeration.hpp"
@@ -29,6 +30,8 @@ using AST::CheckModelAccuracy;
 using nlohmann::json;
 
 DECLARE_bool(debug);
+
+#define N_CORES 5
 
 namespace AST {
 
@@ -307,106 +310,104 @@ namespace AST {
 
     // Attempts to solve for the most likely assignment of real values for the
     // logistic equation. Returns the log likelihood and modifies sketch
-    double LikelihoodPredicateL1(ast_ptr sketch, const unordered_set<Example> &pos,
+    vector<double> LikelihoodPredicateL1(vector<ast_ptr> sketches, const unordered_set<Example> &pos,
                                 const unordered_set<Example> &neg,
                                 const bool srtr) {
         // Generate y_j (tells us whether an example satisfied a transition)
         vector<bool> y_j(neg.size() + pos.size(), false);
         fill_n(y_j.begin(), pos.size(), true);
 
-        // Iterate through conjunctions/disjunctions
-        vector<char> clauses;
-        ast_ptr *pointer = &sketch;
-        vector<vector<float>> expressions;
-        while (pointer != nullptr) {
-            bin_ptr op = dynamic_pointer_cast<BinOp>(*pointer);
-            bool stop_flag = false;
+        vector<vector<char>> clauses_arr;
+        vector<vector<vector<float>>> expressions_arr;
+        for(ast_ptr sketch : sketches){
+            // Iterate through conjunctions/disjunctions
+            vector<char> clauses;
+            ast_ptr *pointer = &sketch;
+            vector<vector<float>> expressions;
+            while (pointer != nullptr) {
+                bin_ptr op = dynamic_pointer_cast<BinOp>(*pointer);
+                bool stop_flag = false;
 
-            if (op == nullptr) stop_flag = true;
-            else {
-                // Generate clauses array
-                if (op->op_ == "And") {
-                    clauses.push_back('&');
-                } else if (op->op_ == "Or") {
-                    clauses.push_back('|');
-                } else {
-                    stop_flag = true;
+                if (op == nullptr) stop_flag = true;
+                else {
+                    // Generate clauses array
+                    if (op->op_ == "And") {
+                        clauses.push_back('&');
+                    } else if (op->op_ == "Or") {
+                        clauses.push_back('|');
+                    } else {
+                        stop_flag = true;
+                    }
                 }
-            }
-            
-            // Evaluate all examples on the sketch
-            vector<float> E_k;
-            feature_ptr feature;
-            if(stop_flag)
-                feature = dynamic_pointer_cast<Feature>(*pointer);
-            else
-                feature = dynamic_pointer_cast<Feature>(op->left_);
-            bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
-            tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
-            ast_ptr E = logistic->x_;
-            for (Example each : pos) {
-                num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
-                E_k.push_back(res->value_);
-            }
-            for (Example each : neg) {
-                num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
-                E_k.push_back(res->value_);
-            }
-            expressions.push_back(E_k);
+                
+                // Evaluate all examples on the sketch
+                vector<float> E_k;
+                feature_ptr feature;
+                if(stop_flag)
+                    feature = dynamic_pointer_cast<Feature>(*pointer);
+                else
+                    feature = dynamic_pointer_cast<Feature>(op->left_);
+                bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
+                tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
+                ast_ptr E = logistic->x_;
+                for (Example each : pos) {
+                    num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
+                    E_k.push_back(res->value_);
+                }
+                for (Example each : neg) {
+                    num_ptr res = dynamic_pointer_cast<Num>(Interpret(E, each));
+                    E_k.push_back(res->value_);
+                }
+                expressions.push_back(E_k);
 
-            if(stop_flag)
-                break;
-            
-            // Next clause
-            pointer = &(op->right_);
+                if(stop_flag)
+                    break;
+                
+                // Next clause
+                pointer = &(op->right_);
+            }
+            clauses_arr.push_back(clauses);
+            expressions_arr.push_back(expressions);
         }
-
-        // DEBUG
-        // for(int i = 0; i < clauses.size(); i++){
-        //     cout << clauses[i] << ", ";
-        // }
-        // cout << endl;
-
-        // for(int i = 0; i < y_j.size(); i++){
-        //     cout << y_j[i] << " ";
-        // }
-        // cout << endl;
-
-
-        // for(int i = 0; i < expressions.size(); i++){
-        //     cout << "\t";
-        //     for(int j = 0; j < expressions[i].size(); j++){
-        //         cout << expressions[i][j] << ", ";
-        //     }
-        //     cout << endl;
-        // }
 
         // Call optimizer here
-        vector<float> a_vals;
-        vector<float> x_0_vals;
-        float sol = 0.0;
+        vector<vector<float>> a_vals_arr;
+        vector<vector<float>> x_0_vals_arr;
+        vector<double> sol_arr;
 
-        PyObject *pClauses, *pY_j, *pE_k, *pArgs, *pValue;
+        PyObject *pClauses_arr, *pY_j, *pE_k_arr, *pArgs, *pValue;
+
         // Arguments
-        pClauses = PyList_New(clauses.size());
-        for(int i = 0; i < clauses.size(); i++){
-            PyList_SetItem(pClauses, i, clauses[i] == '&' ? PyLong_FromLong(0) : PyLong_FromLong(1));
+        pClauses_arr = PyList_New(sketches.size());
+        for(int o=0; o<sketches.size(); o++){
+            vector<char> clauses = clauses_arr[o];
+            PyObject *pClauses = PyList_New(clauses.size());
+            for(int i = 0; i < clauses.size(); i++){
+                PyList_SetItem(pClauses, i, clauses[i] == '&' ? PyLong_FromLong(0) : PyLong_FromLong(1));
+            }
+            PyList_SetItem(pClauses_arr, o, pClauses); 
         }
+
         pY_j = PyList_New(y_j.size());
         for(int i = 0; i < y_j.size(); i++){
             PyList_SetItem(pY_j, i, (y_j[i] ? PyLong_FromLong(1) : PyLong_FromLong(0)));
         }
-
-        pE_k = PyList_New(expressions.size());
-        for(int i = 0; i < expressions.size(); i++){
-            PyObject *subarr;
-            subarr = PyList_New(expressions[i].size());
-            for(int j = 0; j < expressions[i].size(); j++){
-                PyList_SetItem(subarr, j, PyFloat_FromDouble(expressions[i][j]));
+        pE_k_arr = PyList_New(sketches.size());
+        for(int o=0; o<sketches.size(); o++){
+            vector<vector<float>> expressions = expressions_arr[o];
+            PyObject *pE_k = PyList_New(expressions.size());
+            for(int i = 0; i < expressions.size(); i++){
+                PyObject *subarr;
+                subarr = PyList_New(expressions[i].size());
+                for(int j = 0; j < expressions[i].size(); j++){
+                    PyList_SetItem(subarr, j, PyFloat_FromDouble(expressions[i][j]));
+                }
+                PyList_SetItem(pE_k, i,  subarr);
             }
-            PyList_SetItem(pE_k, i,  subarr);
+            PyList_SetItem(pE_k_arr, o, pE_k);
         }
-        pArgs = PyTuple_Pack(3, pE_k, pY_j, pClauses);
+
+        pArgs = PyTuple_Pack(3, pE_k_arr, pY_j, pClauses_arr);
 
         if (!pArgs) {
             fprintf(stderr, "Cannot convert argument\n");
@@ -421,14 +422,24 @@ namespace AST {
 
         if (pValue != NULL && PyTuple_Check(pValue)) {
             // Retrieve results
-            sol = PyFloat_AsDouble(PyTuple_GetItem(pValue, 0));
-            pValue = PyTuple_GetItem(pValue, 1);
-            for(int i = 0; i < PyList_Size(pValue) / 2; i++){
-                a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
+            for(int i=0; i<sketches.size(); i++){
+                PyObject* curExampleTuple = PyList_GetItem(pValue, i);
+                double sol = PyFloat_AsDouble(PyList_GetItem(curExampleTuple, 0));
+                PyObject* curExampleCoefs = PyList_GetItem(curExampleTuple, 1);
+                vector<float> a_vals;
+                vector<float> x_0_vals;
+                for(int j = 0; j < PyList_Size(curExampleCoefs) / 2; j++){
+                    a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(curExampleCoefs, j)));
+                }
+                for(int j = PyList_Size(curExampleCoefs) / 2; j < PyList_Size(curExampleCoefs); j++){
+                    x_0_vals.push_back(PyFloat_AsDouble(PyList_GetItem(curExampleCoefs, j)));
+                }
+                a_vals_arr.push_back(a_vals);
+                x_0_vals_arr.push_back(x_0_vals);
+                sol_arr.push_back(sol);
+                sketches[i] = FillLogHoles(sketches[i], a_vals, x_0_vals);
             }
-            for(int i = PyList_Size(pValue) / 2; i < PyList_Size(pValue); i++){
-                x_0_vals.push_back(PyFloat_AsDouble(PyList_GetItem(pValue, i)));
-            }
+
         } else {
             PyErr_Print();
             fprintf(stderr,"Call failed\n");
@@ -437,12 +448,8 @@ namespace AST {
         // cout << "Empty: " << sketch << endl;
         
         // Update log values
-        sketch = FillLogHoles(sketch, a_vals, x_0_vals);
-
-        // cout << "Sketch: " << sketch << endl;
-        // cout << "\n" << endl;
-
-        return sol;
+        cout << "Just did " << sketches.size() << " sketches" << endl;
+        return sol_arr;
     }
 
     ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies,
@@ -627,40 +634,51 @@ namespace AST {
             bool keep_searching = true;
             int count = 0.0;
 
+
     #pragma omp parallel
             while (keep_searching) {
                 // Use the indices given to us by the iterator to select ops for
                 // filling our feature holes and create a model.
-                vector<size_t> op_indicies;
+                vector<ast_ptr> arr_filled;
     #pragma omp critical
-                {
+                for(int i=0; i<N_CORES; i++) {
+                    vector<size_t> op_indicies;
                     if (c.has_next()) {
                         op_indicies = c.next();
+                        ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+                        arr_filled.push_back(filled);
                     } else {
                         keep_searching = false;
-                        op_indicies = c.zeros();
+                        break;
                     }
-                    count++;
                 }
 
+                vector<double> log_likelihoods = LikelihoodPredicateL1(arr_filled, yes, no, false);
 
-                ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
-                if (filled != nullptr) {
-                    const double log_likelihood =
-                        LikelihoodPredicateL1(filled, yes, no, false);
+                // best within the last NUM_CORES sketches
+                double best_log_likelihood = DBL_MAX;
+                ast_ptr best_filled;
+
+                for(int i=0; i<log_likelihoods.size(); i++){
+                    double d = log_likelihoods[i];
+                    if(d < best_log_likelihood) {
+                        best_log_likelihood = d;
+                        best_filled = arr_filled[i];
+                    }
+                }
+
     #pragma omp critical
-                    {
-                        if (keep_searching && log_likelihood <= max_error) {
-                            keep_searching = false;
-                            solution_cond = filled;
-                            current_best = log_likelihood;
-                        } else if (current_best == -1 ||
-                                log_likelihood < current_best ||
-                                (log_likelihood == current_best &&
-                                    filled->priority < solution_cond->priority)) {
-                            solution_cond = filled;
-                            current_best = log_likelihood;
-                        }
+                if(best_filled != nullptr) {
+                    if (keep_searching && best_log_likelihood <= max_error) {
+                        keep_searching = false;
+                        solution_cond = best_filled;
+                        current_best = best_log_likelihood;
+                    } else if (current_best == -1 ||
+                            best_log_likelihood < current_best ||
+                            (best_log_likelihood == current_best &&
+                                best_filled->priority < solution_cond->priority)) {
+                        solution_cond = best_filled;
+                        current_best = best_log_likelihood;
                     }
                 }
             }
@@ -793,7 +811,7 @@ namespace AST {
 
         if(pModule != NULL) {
             // Function name
-            pFunc = PyObject_GetAttrString(pModule, (char*)"run_optimizer");
+            pFunc = PyObject_GetAttrString(pModule, (char*)"run_optimizer_threads");
 
             if(!(pFunc && PyCallable_Check(pFunc))) {
                 if (PyErr_Occurred())
