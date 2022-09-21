@@ -25,10 +25,10 @@ import json
 # maybe just expand window idk
 
 # ------- Parameters -----------------------------
-opt_method = 0          # See below
+opt_method = 1          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
-print_debug = True      # Extra debugging info
-initial_values = 4      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
+print_debug = False      # Extra debugging info
+initial_values = 1      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
 num_cores = 16           # Number of processes to run in parallel
 max_spread = 5.0        # Maximum absolute value of alpha (slope)
 bounds_extension = 0.1  # Amount to search above and below extrema
@@ -42,7 +42,8 @@ print_padding = 30      # Print customization
 # 3: DIRECT
 
 # -------- objective function --------------------
-def log_loss(x):
+# not working for some reason, TODO fix
+def log_loss2(x):
     alpha = x[: len(x)//2]  # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]    # center of logistic function for each conditional structure
 
@@ -68,6 +69,40 @@ def log_loss(x):
     return log_loss
 
 
+
+def log_loss(x):
+    alpha = x[: len(x)//2] # values of alpha (slope) for each conditional structure
+    x_0 = x[len(x)//2 :] # center of logistic function for each conditional structure
+
+    log_loss = 0
+    for i in range(len(y_j)):
+        likelihood = 0
+        if(-alpha[0] * (E_k[0][i] - x_0[0]) > 100):     # deal with overflow - do this better
+            likelihood = 1e-16
+        else:
+            likelihood = 1.0 / (1.0 + pow(math.e, - alpha[0] * (E_k[0][i] - x_0[0])))
+        for j in range(len(clauses)):
+            likelihood_j = 0
+            if(- alpha[j+1] * (E_k[j+1][i] - x_0[j+1]) > 100):
+                likelihood_j = 1e-16
+            else:
+                likelihood_j = 1.0 / (1.0 + pow(math.e, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])))
+            if(clauses[j] == 0): # AND
+                likelihood = likelihood * likelihood_j
+            if(clauses[j] == 1): # OR
+                likelihood = likelihood + likelihood_j - likelihood * likelihood_j
+
+        # cap at some value to prevent rounding to 0/1 (can cause undefined behavior)
+        likelihood = max(likelihood, 1e-16)
+        likelihood = min(likelihood, 1 - (1e-16))
+
+        if y_j[i]:
+            log_loss -= math.log(likelihood) # cap at small value to prevent undefined behavior
+        else:
+            log_loss -= math.log(1 - likelihood)
+    return log_loss
+
+
 # ------- helper functions ----------------------
 def extension(l, r): # list range
     return (max(l, r) - min(l, r)) * bounds_extension
@@ -81,9 +116,9 @@ def print_with_padding(label, value):
 
 # ---------- Callback ------------------------
 def print_fun(x, f, accepted):
-    # debug("at minimum %.4f accepted %d" % (f, int(accepted)))
-    # debug("with parameters: ")
-    # debug(x)
+    debug("at minimum %.4f accepted %d" % (f, int(accepted)))
+    debug("with parameters: ")
+    debug(x)
     return
 
 # ---------- Bounds ------------------------
@@ -222,13 +257,14 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
             break
     
     print_with_padding("Initial values", "|")
-    debug(input)
+    debug(input[0])
     
     # Run optimizer in parallel
-    with Pool(num_cores) as p:
-        output = p.map(run_optimizer_from_initial, input)
+    # with Pool(num_cores) as p:
+    #     output = p.map(run_optimizer_from_initial, input)
     
-    bestRes = min(output, key=lambda i: i.fun)
+    # bestRes = min(output, key=lambda i: i.fun)
+    bestRes = run_optimizer_from_initial(input[0])
     
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
@@ -241,7 +277,6 @@ def run_optimizer_threads(E_k_arr, y_j, clauses_arr):
     results = []
     pool = Pool(len(E_k_arr))
     results = pool.starmap(run_optimizer, zip(E_k_arr, repeat(y_j), clauses_arr))
-    print(results)
     return results
 
 

@@ -57,7 +57,8 @@ namespace AST {
         const std::vector<ast_ptr> lib,
         const int sketch_depth,
         const std::vector<float> max_error,
-        const std::string& output_path);
+        const std::string& output_path,
+        const uint32_t N_CORES);
 
     void SRTR(const std::vector<Example>& demos,
         const std::vector<ast_ptr>& programs,

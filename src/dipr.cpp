@@ -32,6 +32,7 @@ DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_bool(debug, false, "Enable Debug Printing");
 
+
 using namespace AST;
 using namespace std;
 using Eigen::Vector2f;

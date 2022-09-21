@@ -33,6 +33,7 @@ DEFINE_bool(write_features, false, "Write all enumerated features to a file");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_bool(debug, true, "Enable Debug Printing");
+DEFINE_uint32(n_cores, 16, "Number of cores to use");
 
 using namespace AST;
 using namespace std;
@@ -121,5 +122,5 @@ int main(int argc, char* argv[]) {
 
   // Run L3 Synthesis
   emdipsL3(examples, transitions, ops, FLAGS_sketch_depth, min_accuracies,
-      FLAGS_out_dir);
+      FLAGS_out_dir, FLAGS_n_cores);
 }

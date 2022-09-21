@@ -30,8 +30,8 @@ using AST::CheckModelAccuracy;
 using nlohmann::json;
 
 DECLARE_bool(debug);
-
-#define N_CORES 5
+uint32_t N_CORES;
+uint32_t sketches_completed = 0;
 
 namespace AST {
 
@@ -313,6 +313,7 @@ namespace AST {
     vector<double> LikelihoodPredicateL1(vector<ast_ptr> sketches, const unordered_set<Example> &pos,
                                 const unordered_set<Example> &neg,
                                 const bool srtr) {
+
         // Generate y_j (tells us whether an example satisfied a transition)
         vector<bool> y_j(neg.size() + pos.size(), false);
         fill_n(y_j.begin(), pos.size(), true);
@@ -376,6 +377,7 @@ namespace AST {
         vector<double> sol_arr;
 
         PyObject *pClauses_arr, *pY_j, *pE_k_arr, *pArgs, *pValue;
+        
 
         // Arguments
         pClauses_arr = PyList_New(sketches.size());
@@ -420,14 +422,15 @@ namespace AST {
     }
         
 
-        if (pValue != NULL && PyTuple_Check(pValue)) {
+        if (pValue != NULL && PyList_Check(pValue)) {
             // Retrieve results
             for(int i=0; i<sketches.size(); i++){
                 PyObject* curExampleTuple = PyList_GetItem(pValue, i);
-                double sol = PyFloat_AsDouble(PyList_GetItem(curExampleTuple, 0));
-                PyObject* curExampleCoefs = PyList_GetItem(curExampleTuple, 1);
+                double sol = PyFloat_AsDouble(PyTuple_GetItem(curExampleTuple, 0));
+                PyObject* curExampleCoefs = PyTuple_GetItem(curExampleTuple, 1);
                 vector<float> a_vals;
                 vector<float> x_0_vals;
+                PyList_Check(curExampleCoefs);
                 for(int j = 0; j < PyList_Size(curExampleCoefs) / 2; j++){
                     a_vals.push_back(PyFloat_AsDouble(PyList_GetItem(curExampleCoefs, j)));
                 }
@@ -448,7 +451,8 @@ namespace AST {
         // cout << "Empty: " << sketch << endl;
         
         // Update log values
-        cout << "Just did " << sketches.size() << " sketches" << endl;
+        sketches_completed += sketches.size();
+        cout << "Transition total sketches completed: " << sketches_completed << endl;
         return sol_arr;
     }
 
@@ -729,6 +733,7 @@ namespace AST {
                                 const float max_error) {
         // Find best performing completion of current sketch
         float error = -1;
+        sketches_completed = 0;
         ast_ptr solution = LikelihoodPredicateL2(examples, ops, candidate,
                                                 transition, max_error, &error);
 
@@ -797,7 +802,10 @@ namespace AST {
                         const vector<pair<string, string>> &transitions,
                         const vector<ast_ptr> lib, const int sketch_depth,
                         const vector<float> max_error,
-                        const string &output_path) {
+                        const string &output_path,
+                        const uint32_t num_cores) {
+
+        N_CORES = num_cores;
 
         // Initialize python support
         Py_Initialize();
