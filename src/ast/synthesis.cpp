@@ -415,12 +415,8 @@ namespace AST {
             fprintf(stderr, "Cannot convert argument\n");
         }
 
-    #pragma omp critical 
-    {
         // Call function
         pValue = PyObject_CallObject(pFunc, pArgs);
-    }
-        
 
         if (pValue != NULL && PyList_Check(pValue)) {
             // Retrieve results
@@ -643,12 +639,10 @@ namespace AST {
             int count = 0.0;
 
 
-    #pragma omp parallel
             while (keep_searching) {
                 // Use the indices given to us by the iterator to select ops for
                 // filling our feature holes and create a model.
                 vector<ast_ptr> arr_filled;
-    #pragma omp critical
                 for(int i=0; i<batch_size; i++) {
                     vector<size_t> op_indicies;
                     if (c.has_next()) {
@@ -675,7 +669,6 @@ namespace AST {
                     }
                 }
 
-    #pragma omp critical
                 if(best_filled != nullptr) {
                     if (keep_searching && best_log_likelihood <= max_error) {
                         keep_searching = false;
@@ -696,12 +689,9 @@ namespace AST {
             // condition.
             ast_ptr cond_copy = DeepCopyAST(sketch);
             const double log_likelihood = PredicateL1(cond_copy, yes, no, false);
-    #pragma omp critical
-            {
-                if (log_likelihood <= current_best) {
-                    solution_cond = cond_copy;
-                    current_best = log_likelihood;
-                }
+            if (log_likelihood <= current_best) {
+                solution_cond = cond_copy;
+                current_best = log_likelihood;
             }
         }
         // Return the solution if one exists, otherwise return a nullptr.
