@@ -21,19 +21,19 @@
 #include "ast/synthesis.hpp"
 // #include "sketches/sketches.hpp"
 
-DEFINE_string(ex_file, "", "Examples file");
+DEFINE_string(ex_file, "examples/data.json", "Examples file");
 DEFINE_string(lib_file, "ops/emdips_test.json", "Operation library file");
 DEFINE_string(out_dir, "ref/dipsl3/", "Operation library file");
 DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
-DEFINE_uint32(sketch_depth, 3, "Maximum enumeration depth for sketch.");
+DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3, "Size of sliding window to subsample demonstrations with.");
 DEFINE_double(target_score, 10, "What log likelihood should be achieved / what proportion of examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_bool(debug, true, "Enable Debug Printing");
-DEFINE_uint32(n_cores, 16, "Number of cores to use");
+DEFINE_uint32(batch_size, 8, "Number of sketches to solve in one python call");
 
 using namespace AST;
 using namespace std;
@@ -122,5 +122,5 @@ int main(int argc, char* argv[]) {
 
   // Run L3 Synthesis
   emdipsL3(examples, transitions, ops, FLAGS_sketch_depth, min_accuracies,
-      FLAGS_out_dir, FLAGS_n_cores);
+      FLAGS_out_dir, FLAGS_batch_size);
 }

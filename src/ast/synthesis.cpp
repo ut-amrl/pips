@@ -30,8 +30,7 @@ using AST::CheckModelAccuracy;
 using nlohmann::json;
 
 DECLARE_bool(debug);
-uint32_t N_CORES;
-uint32_t sketches_completed = 0;
+uint32_t batch_size;
 
 namespace AST {
 
@@ -312,7 +311,8 @@ namespace AST {
     // logistic equation. Returns the log likelihood and modifies sketch
     vector<double> LikelihoodPredicateL1(vector<ast_ptr> sketches, const unordered_set<Example> &pos,
                                 const unordered_set<Example> &neg,
-                                const bool srtr) {
+                                const bool srtr,
+                                uint32_t& sketches_completed) {
 
         // Generate y_j (tells us whether an example satisfied a transition)
         vector<bool> y_j(neg.size() + pos.size(), false);
@@ -441,6 +441,11 @@ namespace AST {
                 x_0_vals_arr.push_back(x_0_vals);
                 sol_arr.push_back(sol);
                 sketches[i] = FillLogHoles(sketches[i], a_vals, x_0_vals);
+
+                // Debug solutions
+                if(FLAGS_debug){
+                    cout << "Sketch: " << sketches[i] << " has score " << sol_arr[i] << endl;
+                }
             }
 
         } else {
@@ -448,9 +453,6 @@ namespace AST {
             fprintf(stderr,"Call failed\n");
         }
 
-        // cout << "Empty: " << sketch << endl;
-        
-        // Update log values
         sketches_completed += sketches.size();
         cout << "Transition total sketches completed: " << sketches_completed << endl;
         return sol_arr;
@@ -606,6 +608,8 @@ namespace AST {
         const SymEntry out(transition.second);
         const SymEntry in(transition.first);
 
+        uint32_t sketches_completed=0;
+
         // Get a list of the names of all the feature holes in the conditional,
         // then store them in a vector because being able to access them in a
         // consistent order and by index is important for something we do later.
@@ -645,7 +649,7 @@ namespace AST {
                 // filling our feature holes and create a model.
                 vector<ast_ptr> arr_filled;
     #pragma omp critical
-                for(int i=0; i<N_CORES; i++) {
+                for(int i=0; i<batch_size; i++) {
                     vector<size_t> op_indicies;
                     if (c.has_next()) {
                         op_indicies = c.next();
@@ -657,7 +661,7 @@ namespace AST {
                     }
                 }
 
-                vector<double> log_likelihoods = LikelihoodPredicateL1(arr_filled, yes, no, false);
+                vector<double> log_likelihoods = LikelihoodPredicateL1(arr_filled, yes, no, false, sketches_completed);
 
                 // best within the last NUM_CORES sketches
                 double best_log_likelihood = DBL_MAX;
@@ -733,11 +737,9 @@ namespace AST {
                                 const float max_error) {
         // Find best performing completion of current sketch
         float error = -1;
-        sketches_completed = 0;
         ast_ptr solution = LikelihoodPredicateL2(examples, ops, candidate,
                                                 transition, max_error, &error);
 
-        Z3_reset_memory();
         return pair<ast_ptr, float>(solution, error);
     }
 
@@ -803,10 +805,10 @@ namespace AST {
                         const vector<ast_ptr> lib, const int sketch_depth,
                         const vector<float> max_error,
                         const string &output_path,
-                        const uint32_t num_cores) {
+                        const uint32_t b_size) {
 
-        N_CORES = num_cores;
-
+        batch_size = b_size;
+        
         // Initialize python support
         Py_Initialize();
         PyRun_SimpleString("import sys, os; sys.path.insert(0, os.path.join('./', 'src/', 'optimizer'))");

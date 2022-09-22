@@ -29,7 +29,7 @@ opt_method = 1          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = False      # Extra debugging info
 initial_values = 1      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
-num_cores = 16           # Number of processes to run in parallel
+num_cores = 4           # Number of processes to run in parallel
 max_spread = 5.0        # Maximum absolute value of alpha (slope)
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
