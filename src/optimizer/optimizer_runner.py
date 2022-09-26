@@ -24,7 +24,7 @@ E_k = [
 # assert abs(optimizer.log_loss([2, 25]) - 12) < 0.001
 # assert abs(optimizer.log_loss([4, 35]) - 24) < 0.001
 
-res = optimizer.run_optimizer(E_k, y_j, clauses)
+# res = optimizer.run_optimizer(None, E_k, y_j, clauses)
 # assert abs(res.x[1] - 30) < 0.05
 
 
@@ -33,13 +33,13 @@ res = optimizer.run_optimizer(E_k, y_j, clauses)
 
 clauses = [ 0 ] # (p_1 & p_2)
 y_j = [False, False, False, True, True, True, True, False, False, False, False] # whether or not each example satisfied the transition
-E_k = [ 
+E_k = [
     [-5, 0, 9, 11, 14, 15, 19, 21, 30, 40, 49],
     [-5, 0, 9, 11, 14, 15, 19, 21, 30, 40, 49],
 ] # value of E_k(s) for each example, for each predicate
 
 ### Tests
-res = optimizer.run_optimizer(E_k, y_j, clauses)
+# res = optimizer.run_optimizer(None, E_k, y_j, clauses)
 
 
 
@@ -78,9 +78,43 @@ clauses = [ 0 , 1 ]     # (p_1 & p_2) | p_3
 # assert abs(optimizer.log_loss([3, -3, 8, 10, 20, 50]) - .195) < 0.001
 # assert abs(optimizer.log_loss([ 9.17704836, -9.96464641,  9.30102843, 10.07471293, 20.03487693, 49.95211582]) - 0) < 0.001
 
+# start = time.perf_counter()
+# res = optimizer.run_optimizer(None, E_k, y_j, clauses)
+# end = time.perf_counter()
+
+# optimizer.print_with_padding("Time Elapsed", end-start)
+
+
+
+
+
+### Goal: synthesize (x > 10 && x < 20) || x > 50 IN PARALLEL, WITH DIFFERENT DATA
+# ---------- Define examples -------------------------------------
+y_j = [False, False, False, True, True, True, True, False, False, False, False, True, True, True] # whether or not each example satisfied the transition
+E_k = [
+    [ 
+        [-5, 0, 9, 11, 14, 15, 19, 21, 30, 40, 49, 51, 55, 70],
+        [-5, 0, 9, 11, 14, 15, 19, 21, 30, 40, 49, 51, 55, 70],
+        [-5, 0, 9, 11, 14, 15, 19, 21, 30, 40, 49, 51, 55, 70],
+    ], # without error
+    [
+        [-5, 0, 9, 11, 14, 35, 19, 21, 30, 40, 49, 51, 55, 70],
+        [-5, 0, 9, 11, 14, 35, 19, 21, 30, 40, 49, 51, 55, 70],
+        [-5, 0, 9, 11, 14, 35, 19, 21, 30, 40, 49, 51, 55, 70],
+    ] # with error
+]
+
+
+# ---------- Define equation ------------------------------------
+clauses = [     #  (p_1 & p_2) | p_3
+    [0, 1],
+    [0, 1]
+]
+
 start = time.perf_counter()
-res = optimizer.run_optimizer(E_k, y_j, clauses)
+res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
 end = time.perf_counter()
 
 optimizer.print_with_padding("Time Elapsed", end-start)
+
 

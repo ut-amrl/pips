@@ -3,8 +3,9 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from scipy import optimize
 from scipy import special as sp
-from multiprocessing import Pool
+import multiprocessing
 from itertools import repeat
+import functools
 
 import math
 import warnings
@@ -29,7 +30,7 @@ opt_method = 0          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = True      # Extra debugging info
 initial_values = 2      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
-num_cores = 1           # Number of processes to run in parallel
+num_cores = 4           # Number of processes to run in parallel
 max_spread = 5.0        # Maximum absolute value of alpha (slope)
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
@@ -67,6 +68,8 @@ def log_loss(x, E_k, y_j, clauses):
 
     return log_loss
 
+
+
 # ------- helper functions ----------------------
 def extension(l, r): # list range
     return (max(l, r) - min(l, r)) * bounds_extension
@@ -95,6 +98,7 @@ class Bounds:
         tmax = bool(np.all(x <= self.xmax))
         tmin = bool(np.all(x >= self.xmin))
         return tmax and tmin
+
 
 # Finds the minimum and maximum values where a change in state occurs
 def find_min_max(expression, y_j):
@@ -130,7 +134,8 @@ class TakeStep:
 # ---------- Optimizer ------------------------
 
 # Runs the optimizer, given some initial parameters
-def run_optimizer_from_initial(init, extra_args, bounds, bounds_arr, bounds_obj, step_obj):
+def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj, init):
+    extra_args = (E_k, y_j, clauses)
     minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
 
     if(opt_method == 0):        # Gradient descent - local optimization
@@ -160,9 +165,7 @@ def run_optimizer_from_initial(init, extra_args, bounds, bounds_arr, bounds_obj,
     return res
 
 # Handles initialization and enumeration, then calls the optimizer
-def run_optimizer(E_k, y_j, clauses):
-
-    extra_args = (E_k, y_j, clauses)
+def run_optimizer(queue, E_k, y_j, clauses):
     
     if(not print_warnings):
         warnings.filterwarnings('ignore')
@@ -223,23 +226,35 @@ def run_optimizer(E_k, y_j, clauses):
     debug(input)
     
     # Run optimizer in parallel
-    with Pool(num_cores) as p:
-        output = p.starmap(run_optimizer_from_initial, [(i, extra_args, bounds, bounds_arr, bounds_obj, step_obj) for i in input])
+    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj)
+    with multiprocessing.Pool(num_cores) as p:
+        output = p.map(partial_optimizer, input)
     
     bestRes = min(output, key=lambda i: i.fun)
-    # bestRes = run_optimizer_from_initial(input[0], extra_args, bounds, bounds_arr, bounds_obj, step_obj)
+    # bestRes = run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj, input[0])
     
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
     print_with_padding("Minimum value", bestRes.fun)
 
+    if (not queue is None):
+        queue.put((bestRes.fun, list(bestRes.x)))
     return (bestRes.fun, list(bestRes.x))
 
 
+# Run the optimizer on multiple expression examples in parallel
 def run_optimizer_threads(E_k_arr, y_j, clauses_arr):
+    q = multiprocessing.Queue()
+    processes = []
     results = []
-    pool = Pool(len(E_k_arr))
-    results = pool.starmap(run_optimizer, zip(E_k_arr, repeat(y_j), clauses_arr))
+    for i in range(len(E_k_arr)):
+        p = multiprocessing.Process(target=run_optimizer, args=(q, E_k_arr[i], y_j, clauses_arr[i]))
+        processes.append(p)
+        p.start()
+    for p in processes:
+        results.append(q.get())
+    for p in processes:
+        p.join()
     return results
 
 
@@ -275,7 +290,7 @@ if __name__ == '__main__':
 
     f.close()
 
-    run_optimizer(E_k_test, y_j_test, clauses_test)
+    run_optimizer(None, E_k_test, y_j_test, clauses_test)
 
     print("supposed")
     print(log_loss([1, -1, 0.1, 0], E_k_test, y_j_test, clauses_test))
