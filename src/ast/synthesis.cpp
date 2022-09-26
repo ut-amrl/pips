@@ -29,7 +29,7 @@ using namespace std;
 using AST::CheckModelAccuracy;
 using nlohmann::json;
 
-DECLARE_bool(debug);
+bool FLAGS_debug = false;
 uint32_t batch_size;
 
 namespace AST {

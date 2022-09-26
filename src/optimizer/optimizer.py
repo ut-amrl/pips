@@ -18,18 +18,18 @@ import json
 # for most applications starting at 0 as the center of the log function is probably best?
 # or is it cheating because that's the only constant in this specific simulation 
 # calculate ideal log-likelihood for each ASP transition
-# bounds for basin hopping and BFGS is broken (maybe my fault)
+# bounds for basin hopping and BFGS is broken
 # for some reason ACC->CON works when I do it manually (with local BFGS starting at x_0 = 0) but not when PIPS
 # maybe has to do with choosing the samples? that is the only difference
 # in this manual test i take all the transitions compared to PIPS only taking from the window
 # maybe just expand window idk
 
 # ------- Parameters -----------------------------
-opt_method = 1          # See below
+opt_method = 0          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
-print_debug = False      # Extra debugging info
-initial_values = 1      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
-num_cores = 4           # Number of processes to run in parallel
+print_debug = True      # Extra debugging info
+initial_values = 2      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
+num_cores = 1           # Number of processes to run in parallel
 max_spread = 5.0        # Maximum absolute value of alpha (slope)
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
@@ -42,8 +42,7 @@ print_padding = 30      # Print customization
 # 3: DIRECT
 
 # -------- objective function --------------------
-# not working for some reason, TODO fix
-def log_loss2(x):
+def log_loss(x, E_k, y_j, clauses):
     alpha = x[: len(x)//2]  # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]    # center of logistic function for each conditional structure
 
@@ -67,41 +66,6 @@ def log_loss2(x):
             log_loss -= sp.logsumexp([0, log_likelihood], b=[1, -1])
 
     return log_loss
-
-
-
-def log_loss(x):
-    alpha = x[: len(x)//2] # values of alpha (slope) for each conditional structure
-    x_0 = x[len(x)//2 :] # center of logistic function for each conditional structure
-
-    log_loss = 0
-    for i in range(len(y_j)):
-        likelihood = 0
-        if(-alpha[0] * (E_k[0][i] - x_0[0]) > 100):     # deal with overflow - do this better
-            likelihood = 1e-16
-        else:
-            likelihood = 1.0 / (1.0 + pow(math.e, - alpha[0] * (E_k[0][i] - x_0[0])))
-        for j in range(len(clauses)):
-            likelihood_j = 0
-            if(- alpha[j+1] * (E_k[j+1][i] - x_0[j+1]) > 100):
-                likelihood_j = 1e-16
-            else:
-                likelihood_j = 1.0 / (1.0 + pow(math.e, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])))
-            if(clauses[j] == 0): # AND
-                likelihood = likelihood * likelihood_j
-            if(clauses[j] == 1): # OR
-                likelihood = likelihood + likelihood_j - likelihood * likelihood_j
-
-        # cap at some value to prevent rounding to 0/1 (can cause undefined behavior)
-        likelihood = max(likelihood, 1e-16)
-        likelihood = min(likelihood, 1 - (1e-16))
-
-        if y_j[i]:
-            log_loss -= math.log(likelihood) # cap at small value to prevent undefined behavior
-        else:
-            log_loss -= math.log(1 - likelihood)
-    return log_loss
-
 
 # ------- helper functions ----------------------
 def extension(l, r): # list range
@@ -132,7 +96,8 @@ class Bounds:
         tmin = bool(np.all(x >= self.xmin))
         return tmax and tmin
 
-def find_min_max(expression):
+# Finds the minimum and maximum values where a change in state occurs
+def find_min_max(expression, y_j):
     
     lo = min(expression)
     lo_ind = np.argmin(expression)
@@ -165,9 +130,11 @@ class TakeStep:
 # ---------- Optimizer ------------------------
 
 # Runs the optimizer, given some initial parameters
-def run_optimizer_from_initial(init):
+def run_optimizer_from_initial(init, extra_args, bounds, bounds_arr, bounds_obj, step_obj):
+    minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
+
     if(opt_method == 0):        # Gradient descent - local optimization
-        res = optimize.minimize(log_loss, init,
+        res = optimize.minimize(log_loss, init, args=extra_args, 
                                 method='BFGS', options={'disp': print_debug, 'maxiter': 100})
     elif(opt_method == 1):      # Basin hopping - global optimization
         res = optimize.basinhopping(log_loss, init,
@@ -180,7 +147,7 @@ def run_optimizer_from_initial(init):
                                         visit=3.0, accept=-5, 
                                         minimizer_kwargs=minimizer_kwargs)
     elif(opt_method == 3):      # DIRECT - global optimization
-        res = optimize.direct(log_loss, bounds_arr, maxiter=10000)
+        res = optimize.direct(log_loss, bounds_arr, args=extra_args, maxiter=10000)
     else:
         sys.exit("Please use a valid optimization method")
 
@@ -193,16 +160,12 @@ def run_optimizer_from_initial(init):
     return res
 
 # Handles initialization and enumeration, then calls the optimizer
-def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
-    global E_k, y_j, clauses, minimizer_kwargs, step_obj, bounds, bounds_arr, bounds_obj
-    E_k = E_k_loc
-    y_j = y_j_loc
-    clauses = clauses_loc
+def run_optimizer(E_k, y_j, clauses):
 
+    extra_args = (E_k, y_j, clauses)
+    
     if(not print_warnings):
         warnings.filterwarnings('ignore')
-
-    minimizer_kwargs = {"method": "BFGS"}
 
     step_obj = TakeStep()
 
@@ -212,7 +175,7 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
     alpha_bounds = [(-max_spread, max_spread) for expression in E_k]
 
     # Bounds on x_0 : calculated from minimum/maximum and provided bounds extension
-    x_0_bounds = [find_min_max(expression) for expression in E_k]
+    x_0_bounds = [find_min_max(expression, y_j) for expression in E_k]
 
     # Setup bounds
     bounds = np.concatenate((alpha_bounds, x_0_bounds))
@@ -257,14 +220,14 @@ def run_optimizer(E_k_loc, y_j_loc, clauses_loc):
             break
     
     print_with_padding("Initial values", "|")
-    debug(input[0])
+    debug(input)
     
     # Run optimizer in parallel
-    # with Pool(num_cores) as p:
-    #     output = p.map(run_optimizer_from_initial, input)
+    with Pool(num_cores) as p:
+        output = p.starmap(run_optimizer_from_initial, [(i, extra_args, bounds, bounds_arr, bounds_obj, step_obj) for i in input])
     
-    # bestRes = min(output, key=lambda i: i.fun)
-    bestRes = run_optimizer_from_initial(input[0])
+    bestRes = min(output, key=lambda i: i.fun)
+    # bestRes = run_optimizer_from_initial(input[0], extra_args, bounds, bounds_arr, bounds_obj, step_obj)
     
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
@@ -314,13 +277,8 @@ if __name__ == '__main__':
 
     run_optimizer(E_k_test, y_j_test, clauses_test)
 
-    global E_k, y_j, clauses
-    E_k = E_k_test
-    y_j = y_j_test
-    clauses = clauses_test
-
     print("supposed")
-    print(log_loss([1, -1, 0.1, 0]))
-    print(log_loss([1, -1, 0, 0]))
-    print(log_loss([2, -2, 0, 0]))
-    print(log_loss([10, -10, 0, 0]))
+    print(log_loss([1, -1, 0.1, 0], E_k_test, y_j_test, clauses_test))
+    print(log_loss([1, -1, 0, 0], E_k_test, y_j_test, clauses_test))
+    print(log_loss([2, -2, 0, 0], E_k_test, y_j_test, clauses_test))
+    print(log_loss([10, -10, 0, 0], E_k_test, y_j_test, clauses_test))
