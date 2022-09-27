@@ -140,7 +140,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
 
     if(opt_method == 0):        # Gradient descent - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='BFGS', options={'disp': print_debug, 'maxiter': 100})
+                                method='BFGS', options={'maxiter': 50, 'disp': print_debug})
     elif(opt_method == 1):      # Basin hopping - global optimization
         res = optimize.basinhopping(log_loss, init,
                                 niter=100, T=100.0,
@@ -162,6 +162,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     print_with_padding("Minimum value", res.fun)
     debug("")
 
+    res.fun = np.nan_to_num(res.fun, nan=float("inf"))
     return res
 
 # Handles initialization and enumeration, then calls the optimizer
