@@ -1,7 +1,7 @@
 #include "synthesis.hpp"
 
 #include <gflags/gflags.h>
-#include <Python.h>
+#include "Python.h"
 
 #include <algorithm>
 #include <chrono>
@@ -29,12 +29,12 @@ using namespace std;
 using AST::CheckModelAccuracy;
 using nlohmann::json;
 
-bool FLAGS_debug = false;
+bool debug = false;
 uint32_t batch_size;
 
 namespace AST {
 
-    PyObject *pName, *pModule, *pFunc;
+    PyObject *pFunc;
 
     // Basically a breadth-first search of all combination of indices of the ops
     // vector starting at {0, 0, ..., 0}
@@ -439,7 +439,7 @@ namespace AST {
                 sketches[i] = FillLogHoles(sketches[i], a_vals, x_0_vals);
 
                 // Debug solutions
-                if(FLAGS_debug){
+                if(debug){
                     cout << "Sketch: " << sketches[i] << " has score " << sol_arr[i] << endl;
                 }
             }
@@ -525,7 +525,7 @@ namespace AST {
         unordered_set<Example> no;
         SplitExamples(examples, transition, &yes, &no);
 
-        if (FLAGS_debug) {
+        if (debug) {
             cout << "Current Sketch: " << sketch << endl;
         }
 
@@ -624,7 +624,7 @@ namespace AST {
         unordered_set<Example> no;
         SplitExamples(examples, transition, &yes, &no);
 
-        if (FLAGS_debug) {
+        if (debug) {
             cout << "Current Sketch: " << sketch << endl;
         }
 
@@ -766,7 +766,7 @@ namespace AST {
                     ldipsL2(sketch, examples, lib, transition, min_accuracy,
                             current_solution, &current_best);
                 if (current_best >= min_accuracy) break;
-                if (FLAGS_debug) {
+                if (debug) {
                     cout << "Score: " << current_best << endl;
                     cout << "Solution: " << current_solution << endl;
                     cout << "- - - - -" << endl;
@@ -795,33 +795,11 @@ namespace AST {
                         const vector<ast_ptr> lib, const int sketch_depth,
                         const vector<float> max_error,
                         const string &output_path,
-                        const uint32_t b_size) {
+                        const uint32_t b_size,
+                        PyObject* optimizer) {
 
         batch_size = b_size;
-        
-        // Initialize python support
-        Py_Initialize();
-        PyRun_SimpleString("import sys, os; sys.path.insert(0, os.path.join('./', 'src/', 'optimizer'))");
-
-        // File name
-        pName = PyUnicode_FromString((char*)"optimizer");
-
-        pModule = PyImport_Import(pName);
-        Py_DECREF(pName);
-
-        if(pModule != NULL) {
-            // Function name
-            pFunc = PyObject_GetAttrString(pModule, (char*)"run_optimizer_threads");
-
-            if(!(pFunc && PyCallable_Check(pFunc))) {
-                if (PyErr_Occurred())
-                    PyErr_Print();
-                fprintf(stderr, "Cannot find optimization function\n");
-            }
-        } else {
-            PyErr_Print();
-            fprintf(stderr, "Failed to load optimization file");
-        }
+        pFunc = optimizer;
 
         vector<Example> examples = demos;
         // Enumerate possible sketches
@@ -879,7 +857,7 @@ namespace AST {
                         current_solution = new_solution.first;
                     }
 
-                    if (FLAGS_debug) {
+                    if (debug) {
                         cout << "Error (Log likelihood): " << new_solution.second
                             << endl;
                         cout << "Solution: " << new_solution.first << endl;
@@ -916,11 +894,6 @@ namespace AST {
         EmdipsOutput res;
         res.ast_vec = transition_solutions;
         res.log_likelihoods = log_likelihoods;
-
-        // Clean up python
-        Py_XDECREF(pFunc);
-        Py_DECREF(pModule);
-        Py_Finalize();
 
         return res;
     }
@@ -967,7 +940,7 @@ namespace AST {
             // TODO(jaholtz) iterative over both sketches separately
             for (const auto &sketch : sketches) {
                 // Extend the Sketch
-                if (FLAGS_debug) {
+                if (debug) {
                     cout << "Pos: " << pos << " Neg: " << neg << endl;
                 }
                 ast_ptr candidate =
