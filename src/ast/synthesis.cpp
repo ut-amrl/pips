@@ -275,8 +275,8 @@ namespace AST {
                 feature = dynamic_pointer_cast<Feature>(op->left_);
             bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
             tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
-            logistic->a_ = make_shared<Num>(Num(a_vals[index], {0, 0, 0}));
-            logistic->b_ = make_shared<Num>(Num(x_0_vals[index], {0, 0, 0}));
+            logistic->a_ = make_shared<Num>(Num(x_0_vals[index], {0, 0, 0}));
+            logistic->b_ = make_shared<Num>(Num(a_vals[index], {0, 0, 0}));
             index++;
 
             if(stop_flag)
