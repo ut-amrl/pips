@@ -167,8 +167,8 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     return res
 
 # Handles initialization and enumeration, then calls the optimizer
-def run_optimizer(queue, E_k, y_j, clauses):
-    
+def run_optimizer(queue, index, E_k, y_j, clauses):
+
     if(not print_warnings):
         warnings.filterwarnings('ignore')
 
@@ -240,7 +240,8 @@ def run_optimizer(queue, E_k, y_j, clauses):
     print_with_padding("Minimum value", bestRes.fun)
 
     if (not queue is None):
-        queue.put((bestRes.fun, list(bestRes.x)))
+        queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
+
     return (bestRes.fun, list(bestRes.x))
 
 
@@ -248,15 +249,18 @@ def run_optimizer(queue, E_k, y_j, clauses):
 def run_optimizer_threads(E_k_arr, y_j, clauses_arr):
     q = multiprocessing.Queue()
     processes = []
-    results = []
     for i in range(len(E_k_arr)):
-        p = multiprocessing.Process(target=run_optimizer, args=(q, E_k_arr[i], y_j, clauses_arr[i]))
+        p = multiprocessing.Process(target=run_optimizer, args=(q, i, E_k_arr[i], y_j, clauses_arr[i]))
         processes.append(p)
         p.start()
+    
+    results = [None] * len(processes)
     for p in processes:
-        results.append(q.get())
+        tup = q.get()
+        results[tup[0]] = tup[1]
     for p in processes:
         p.join()
+
     return results
 
 

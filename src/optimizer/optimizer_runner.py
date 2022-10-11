@@ -111,10 +111,20 @@ clauses = [     #  (p_1 & p_2) | p_3
     [0, 1]
 ]
 
+# start = time.perf_counter()
+# res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
+# end = time.perf_counter()
+
+# optimizer.print_with_padding("Time Elapsed", end-start)
+
+
+E_k = [[14.0625, 16.0, 10.0, 66.66666412353516, 16.0, 10.0, 66.66666412353516, 14.0625]]
+y_j = [1, 1, 1, 0, 0, 0, 0, 0]
+clauses = []
+
+
 start = time.perf_counter()
-res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
+res = optimizer.run_optimizer(None, E_k, y_j, clauses)
 end = time.perf_counter()
 
 optimizer.print_with_padding("Time Elapsed", end-start)
-
-
