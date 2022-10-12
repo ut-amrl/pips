@@ -257,7 +257,8 @@ namespace AST {
     // Takes a sketch and fills in holes in logistic expressions with the constants provided
     ast_ptr FillLogHoles(ast_ptr sketch, vector<float> a_vals, vector<float> x_0_vals) {
         // Iterate through conjunctions/disjunctions
-        ast_ptr *pointer = &sketch;
+        ast_ptr filled = DeepCopyAST(sketch);
+        ast_ptr *pointer = &filled;
         int index = 0;
         while (pointer != nullptr) {
             bin_ptr op = dynamic_pointer_cast<BinOp>(*pointer);
@@ -275,8 +276,8 @@ namespace AST {
                 feature = dynamic_pointer_cast<Feature>(op->left_);
             bin_ptr flip = dynamic_pointer_cast<BinOp>(feature->current_value_);
             tern_ptr logistic = dynamic_pointer_cast<TernOp>(flip->left_);
-            logistic->a_ = make_shared<Num>(Num(x_0_vals[index], {0, 0, 0}));
-            logistic->b_ = make_shared<Num>(Num(a_vals[index], {0, 0, 0}));
+            logistic->a_ = make_shared<Num>(Num(x_0_vals.at(index), {0, 0, 0}));
+            logistic->b_ = make_shared<Num>(Num(a_vals.at(index), {0, 0, 0}));
             index++;
 
             if(stop_flag)
@@ -285,7 +286,7 @@ namespace AST {
             // Next clause
             pointer = &(op->right_);
         }
-        return sketch;
+        return filled;
     }
 
     // Attempts to solve for a satisfactory assignment of real values to
@@ -309,7 +310,7 @@ namespace AST {
 
     // Attempts to solve for the most likely assignment of real values for the
     // logistic equation. Returns the log likelihood and modifies sketch
-    vector<double> LikelihoodPredicateL1(vector<ast_ptr> sketches, const unordered_set<Example> &pos,
+    vector<double> LikelihoodPredicateL1(vector<ast_ptr>& sketches, const unordered_set<Example> &pos,
                                 const unordered_set<Example> &neg,
                                 const bool srtr,
                                 uint32_t& sketches_completed) {
@@ -810,9 +811,8 @@ namespace AST {
         }
         cout << endl << endl;
 
-        vector<ast_ptr> transition_solutions;
-
-        vector<float> log_likelihoods;
+        shared_ptr<vector<ast_ptr>> transition_solutions = make_shared<vector<ast_ptr>>();
+        shared_ptr<vector<float>> log_likelihoods = make_shared<vector<float>>();
 
         // For each input/output pair
         for (int t = 0; t < transitions.size(); t++) {
@@ -844,7 +844,8 @@ namespace AST {
                 current_best = 0.0;
                 current_solution = make_shared<Bool>(Bool(true));
             } else {
-                for (const auto &sketch : sketches) {
+                const auto sk = EnumerateSketches(sketch_depth);
+                for (const auto &sketch : sk) {
                     std::chrono::steady_clock::time_point timerBegin =
                         std::chrono::steady_clock::now();
 
@@ -884,12 +885,15 @@ namespace AST {
             output_file << std::setw(4) << output << std::endl;
             output_file.close();
 
+
             // Filter out Examples used by this transition
             examples = FilterExamples(examples, transition);
 
-            transition_solutions.push_back(current_solution);
-            log_likelihoods.push_back(current_best);
+            transition_solutions->push_back(current_solution);
+            log_likelihoods->push_back(current_best);
+
         }
+
         
         EmdipsOutput res;
         res.ast_vec = transition_solutions;

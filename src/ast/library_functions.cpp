@@ -384,6 +384,7 @@ ast_ptr Logistic(ast_ptr x, ast_ptr x_0, ast_ptr k) {
   float x_0_cast = dynamic_pointer_cast<Num>(x_0)->value_;
   float k_cast = dynamic_pointer_cast<Num>(k)->value_;
 
+
   float val = 1 / (1 + exp( -k_cast * (x_cast - x_0_cast) ));
   
   Num result(val, {0,0,0});

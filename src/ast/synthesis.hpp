@@ -16,8 +16,8 @@
 namespace AST {
 
     struct EmdipsOutput {
-        std::vector<ast_ptr> ast_vec;
-        std::vector<float> log_likelihoods;
+        std::shared_ptr<std::vector<ast_ptr>> ast_vec;
+        std::shared_ptr<std::vector<float>> log_likelihoods;
     };
 
     ast_ptr PredicateL2(const std::vector<Example>& examples,
