@@ -844,8 +844,7 @@ namespace AST {
                 current_best = 0.0;
                 current_solution = make_shared<Bool>(Bool(true));
             } else {
-                const auto sk = EnumerateSketches(sketch_depth);
-                for (const auto &sketch : sk) {
+                for (const auto &sketch : sketches) {
                     std::chrono::steady_clock::time_point timerBegin =
                         std::chrono::steady_clock::now();
 
