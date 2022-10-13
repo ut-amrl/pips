@@ -113,6 +113,12 @@ namespace AST {
         return CheckModelAccuracy(pred, yes, no, pos, neg);
     }
 
+    // Function to calculate prior based on program complexity
+    float CalculatePrior(int feature_hole_count) {
+        return feature_hole_count * 0.05; // Simple linear relationship
+        // return 0;
+    }
+
     // Utility function that converts a Z3 model (solutions for parameter holes)
     // into a C++ unordered_map associating the names of parameter holes with
     // floats.
@@ -697,7 +703,7 @@ namespace AST {
         }
         // Return the solution if one exists, otherwise return a nullptr.
         if (solution_cond != nullptr) {
-            *best_error = current_best;
+            *best_error = current_best + CalculatePrior(feature_hole_count);
         }
         return solution_cond;
     }
