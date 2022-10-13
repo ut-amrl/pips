@@ -623,6 +623,7 @@ namespace AST {
             feature_holes.push_back(p.first);
         }
         const size_t feature_hole_count = feature_holes.size();
+        const float prior = CalculatePrior(feature_hole_count);
 
         // Split up all the examples into a "yes" set or a "no" set based on
         // whether the result for the example matches the current example's
@@ -675,7 +676,7 @@ namespace AST {
                 }
 
                 if(best_filled != nullptr) {
-                    if (keep_searching && best_log_likelihood <= max_error) {
+                    if (keep_searching && best_log_likelihood + prior <= max_error) {
                         keep_searching = false;
                         solution_cond = best_filled;
                         current_best = best_log_likelihood;
@@ -703,7 +704,7 @@ namespace AST {
         }
         // Return the solution if one exists, otherwise return a nullptr.
         if (solution_cond != nullptr) {
-            *best_error = current_best + CalculatePrior(feature_hole_count);
+            *best_error = current_best + prior;
         }
         return solution_cond;
     }
@@ -871,13 +872,7 @@ namespace AST {
                         cout << "Solution: " << new_solution.first << endl;
                         std::chrono::steady_clock::time_point timerEnd =
                             std::chrono::steady_clock::now();
-                        cout << "Time Elapsed: "
-                            << ((float)(std::chrono::duration_cast<
-                                            std::chrono::milliseconds>(timerEnd -
-                                                                        timerBegin)
-                                            .count())) /
-                                    1000.0
-                            << endl;
+                        cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count())) / 1000.0 << endl;
                         cout << "- - - - -" << endl;
                     }
                     if (current_best < max_error[t] || current_best == 0.0) break;
