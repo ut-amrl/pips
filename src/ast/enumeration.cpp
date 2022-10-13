@@ -414,6 +414,23 @@ void SplitExamples(const vector<Example>& examples,
   }
 }
 
+void SplitExamplesVector(const vector<Example>& examples,
+    pair<string, string> transition,
+    vector<Example>* yes, vector<Example>* no) {
+  // Split up all the examples into a "yes" set or a "no" set based on
+  // whether the result for the example matches the current example's
+  // behavior.
+  string out = transition.second;
+  string in = transition.first;
+  for (const Example& example : examples) {
+    if (example.result_ == out && example.start_ == in) {
+      yes->push_back(example);
+    } else if (example.start_ == in) {
+      no->push_back(example);
+    }
+  }
+}
+
 vector<Example> FilterExamples(const vector<Example>& examples,
     pair<string, string> transition) {
   vector<Example> copy;

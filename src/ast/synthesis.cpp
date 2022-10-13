@@ -310,8 +310,8 @@ namespace AST {
 
     // Attempts to solve for the most likely assignment of real values for the
     // logistic equation. Returns the log likelihood and modifies sketch
-    vector<double> LikelihoodPredicateL1(vector<ast_ptr>& sketches, const unordered_set<Example> &pos,
-                                const unordered_set<Example> &neg,
+    vector<double> LikelihoodPredicateL1(vector<ast_ptr>& sketches, const vector<Example> &pos,
+                                const vector<Example> &neg,
                                 const bool srtr,
                                 uint32_t& sketches_completed) {
 
@@ -621,13 +621,11 @@ namespace AST {
         // Split up all the examples into a "yes" set or a "no" set based on
         // whether the result for the example matches the current example's
         // behavior.
-        unordered_set<Example> yes;
-        unordered_set<Example> no;
-        SplitExamples(examples, transition, &yes, &no);
+        vector<Example> yes;
+        vector<Example> no;
+        SplitExamplesVector(examples, transition, &yes, &no);
 
-        if (debug) {
-            cout << "Current Sketch: " << sketch << endl;
-        }
+        cout << "Current Sketch: " << sketch << endl;
 
         // Start iterating through possible models. index_iterator is explained
         // seperately.
@@ -688,12 +686,14 @@ namespace AST {
             // Since no errors occured while creating the model, we can take the
             // hole values from it and use them to fill the holes in a copy of the
             // condition.
-            ast_ptr cond_copy = DeepCopyAST(sketch);
-            const double log_likelihood = PredicateL1(cond_copy, yes, no, false);
-            if (log_likelihood <= current_best) {
-                solution_cond = cond_copy;
-                current_best = log_likelihood;
-            }
+            // ast_ptr cond_copy = DeepCopyAST(sketch);
+            // const double log_likelihood = PredicateL1(cond_copy, yes, no, false);
+            // if (log_likelihood <= current_best) {
+            //     solution_cond = cond_copy;
+            //     current_best = log_likelihood;
+            // }
+            cout << "Running unreachable code!" << endl;
+            exit(1);
         }
         // Return the solution if one exists, otherwise return a nullptr.
         if (solution_cond != nullptr) {
@@ -825,13 +825,15 @@ namespace AST {
                 continue;
             }
 
+            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+
             cout << endl << endl << "----- " << transition.first << "->";
             cout << transition.second << " -----" << endl;
             cout << "Target log likelihood: < " << max_error[t] << endl;
 
-            unordered_set<Example> yes;
-            unordered_set<Example> no;
-            SplitExamples(examples, transition, &yes, &no);
+            vector<Example> yes;
+            vector<Example> no;
+            SplitExamplesVector(examples, transition, &yes, &no);
             cout << "Num transitions (pos): " << yes.size() << endl;
             cout << "Num transitions (neg): " << no.size() << endl;
 
@@ -884,13 +886,15 @@ namespace AST {
             output_file << std::setw(4) << output << std::endl;
             output_file.close();
 
-
             // Filter out Examples used by this transition
             examples = FilterExamples(examples, transition);
 
             transition_solutions->push_back(current_solution);
             log_likelihoods->push_back(current_best);
 
+            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+            cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
+            cout << "- - - - -" << endl;
         }
 
         

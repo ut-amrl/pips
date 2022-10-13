@@ -103,6 +103,10 @@ void SplitExamples(const std::vector<Example>& examples,
     std::pair<std::string, std::string> transition,
     std::unordered_set<Example>* yes, std::unordered_set<Example>* no);
 
+void SplitExamplesVector(const std::vector<Example>& examples,
+    std::pair<std::string, std::string> transition,
+    std::vector<Example>* yes, std::vector<Example>* no);
+
 float ScorePredicate(ast_ptr pred,
     const std::pair<std::string, std::string>& transition,
     const std::vector<Example>& examples, float* pos, float* neg);

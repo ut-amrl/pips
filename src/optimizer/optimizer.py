@@ -26,7 +26,7 @@ import json
 # maybe just expand window idk
 
 # ------- Parameters -----------------------------
-opt_method = 0          # See below
+opt_method = 1          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = False      # Extra debugging info
 initial_values = 2      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
@@ -37,10 +37,11 @@ print_warnings = False  # Debugging info
 print_padding = 30      # Print customization
 
 # optimization method
-# 0: local
-# 1: basin hopping
-# 2: dual annealing
-# 3: DIRECT
+# 0: local (BFGS)
+# 1: local (L-BFGS-B)
+# 2: basin hopping
+# 3: dual annealing
+# 4: DIRECT
 
 # -------- objective function --------------------
 def log_loss(x, E_k, y_j, clauses):
@@ -138,27 +139,30 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     extra_args = (E_k, y_j, clauses)
     minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
 
-    if(opt_method == 0):        # Gradient descent - local optimization
+    if(opt_method == 0):        # BFGS (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='BFGS', options={'maxiter': 50, 'disp': print_debug})
-    elif(opt_method == 1):      # Basin hopping - global optimization
+                                method='BFGS', options={'maxiter': 100, 'disp': print_debug})
+    elif(opt_method == 1):      # L-BFGS-B (Gradient descent) - local optimization
+        res = optimize.minimize(log_loss, init, args=extra_args, 
+                                method='L-BFGS-B', options={'maxiter': 10, 'disp': print_debug})
+    elif(opt_method == 2):      # Basin hopping - global optimization
         res = optimize.basinhopping(log_loss, init,
                                 niter=100, T=100.0,
                                 minimizer_kwargs=minimizer_kwargs, accept_test=bounds_obj, 
                                 take_step=step_obj, callback=print_fun)
-    elif(opt_method == 2):      # Dual annealing - global optimization
+    elif(opt_method == 3):      # Dual annealing - global optimization
         res = optimize.dual_annealing(log_loss, bounds, x0=init, 
                                         maxiter=50, initial_temp=50000, 
                                         visit=3.0, accept=-5, 
                                         minimizer_kwargs=minimizer_kwargs)
-    elif(opt_method == 3):      # DIRECT - global optimization
+    elif(opt_method == 4):      # DIRECT - global optimization
         res = optimize.direct(log_loss, bounds_arr, args=extra_args, maxiter=10000)
     else:
         sys.exit("Please use a valid optimization method")
 
     print_with_padding("Optimal parameters", "|")
     debug(res.x)
-    print_with_padding("Num iterations", res.nfev)
+    print_with_padding("Num iterations", res.nit)
     print_with_padding("Minimum value", res.fun)
     debug("")
 
