@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <cfloat>
+#include <cassert>
 
 #include "../submodules/amrl_shared_lib/util/timer.h"
 #include "enumeration.hpp"
@@ -569,15 +570,17 @@ namespace AST {
     EmdipsOutput emdipsL3(const vector<Example> &demos,
                     const vector<pair<string, string>> &transitions,
                     const vector<ast_ptr> &sketches,
+                    const vector<ast_ptr> &current_solutions,
                     const vector<float> &max_error,
                     const string &output_path,
                     const uint32_t batch_size,
+                    const bool use_current_sol,
                     PyObject* pFunc) {
 
         vector<Example> examples = demos;
 
-        shared_ptr<vector<ast_ptr>> transition_solutions = make_shared<vector<ast_ptr>>();
-        shared_ptr<vector<float>> log_likelihoods = make_shared<vector<float>>();
+        vector<ast_ptr> transition_solutions;
+        vector<float> log_likelihoods;
 
         for (int t = 0; t < transitions.size(); t++) {
             const auto &transition = transitions[t];
@@ -614,31 +617,46 @@ namespace AST {
                 const SymEntry out(transition.second);
                 const SymEntry in(transition.first);
 
-                int ind = 0;
-                while(ind < sketches.size()){
-                    int last = ind;
-                    vector<ast_ptr> batch;
-                    for(; ind < last + batch_size && ind < sketches.size(); ind++){
-                        batch.push_back(sketches[ind]);
+                if(use_current_sol){
+                    assert(current_solutions.size() == transitions.size() && "Current solutions and transitions are not the same size!");
+
+                    vector<ast_ptr> sketch;
+                    sketch.push_back(current_solutions[t]);
+                    current_solution = sketch[0];
+
+                    if(sketch[0]->type_ == BOOL){
+                        current_best = DBL_MAX;
+                    } else {
+                        vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
+                        current_best = log_likelihoods[0];
                     }
-
-                    vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
-
-                    // cout << "Batch: " << last << endl;
-                    for(int i = 0; i < log_likelihoods.size(); i++){
-                        // cout << batch[i] << ": " << log_likelihoods[i] << endl;
-                        if(current_best == -1 || log_likelihoods[i] < current_best){
-                            current_best = log_likelihoods[i];
-                            current_solution = batch[i];
+                    
+                } else {
+                    int ind = 0;
+                    while(ind < sketches.size()){
+                        int last = ind;
+                        vector<ast_ptr> batch;
+                        for(; ind < last + batch_size && ind < sketches.size(); ind++){
+                            batch.push_back(sketches[ind]);
                         }
+
+                        vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
+
+                        // cout << "Batch: " << last << endl;
+                        for(int i = 0; i < log_likelihoods.size(); i++){
+                            // cout << batch[i] << ": " << log_likelihoods[i] << endl;
+                            if(current_best == -1 || log_likelihoods[i] < current_best){
+                                current_best = log_likelihoods[i];
+                                current_solution = batch[i];
+                            }
+                        }
+                        // cout << endl << endl;
+
+                        if(current_best < max_error[t])
+                            break;
                     }
-
-                    // cout << endl << endl;
-
-                    if(current_best < max_error[t])
-                        break;
-
                 }
+                
             }
 
             // Write the solution out to a file.
@@ -653,8 +671,8 @@ namespace AST {
             // Filter out Examples used by this transition
             examples = FilterExamples(examples, transition);
 
-            transition_solutions->push_back(current_solution);
-            log_likelihoods->push_back(current_best);
+            transition_solutions.push_back(current_solution);
+            log_likelihoods.push_back(current_best);
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
@@ -664,6 +682,16 @@ namespace AST {
         EmdipsOutput res { transition_solutions, log_likelihoods };
 
         return res;
+    }
+
+    EmdipsOutput emdipsL3(const vector<Example> &demos,
+        const vector<pair<string, string>> &transitions,
+        const vector<ast_ptr>& sketches,
+        const vector<float>& max_error,
+        const string &output_path,
+        const uint32_t batch_size,
+        PyObject* pFunc) {
+        return emdipsL3(demos, transitions, sketches, vector<ast_ptr>(), max_error, output_path, batch_size, false, pFunc);
     }
 
     void DIPR(const vector<Example> &demos, const vector<ast_ptr> &programs,

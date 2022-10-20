@@ -18,8 +18,8 @@ using namespace std;
 namespace AST {
 
     struct EmdipsOutput {
-        shared_ptr<vector<ast_ptr>> ast_vec;
-        shared_ptr<vector<float>> log_likelihoods;
+        vector<ast_ptr> ast_vec;
+        vector<float> log_likelihoods;
     };
 
     ast_ptr PredicateL2(const vector<Example>& examples,
@@ -42,6 +42,16 @@ namespace AST {
         const int sketch_depth,
         const float min_accuracy,
         const string& output_path);
+
+    EmdipsOutput emdipsL3(const vector<Example> &demos,
+        const vector<pair<string, string>> &transitions,
+        const vector<ast_ptr>& sketches,
+        const vector<ast_ptr>& current_solutions,
+        const vector<float>& max_error,
+        const string &output_path,
+        const uint32_t batch_size,
+        const bool use_current_sol,
+        PyObject* pFunc);
 
     EmdipsOutput emdipsL3(const vector<Example> &demos,
         const vector<pair<string, string>> &transitions,
