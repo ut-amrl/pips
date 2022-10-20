@@ -606,32 +606,33 @@ namespace AST {
 
             float current_best = -1;
             ast_ptr current_solution = nullptr;
-            if (yes.size() == 0) {
-                current_best = 0.0;
-                current_solution = make_shared<Bool>(Bool(false));
-            } else if (no.size() == 0) {
-                current_best = 0.0;
-                current_solution = make_shared<Bool>(Bool(true));
-            } else {
-                
-                const SymEntry out(transition.second);
-                const SymEntry in(transition.first);
 
-                if(use_current_sol){
-                    assert(current_solutions.size() == transitions.size() && "Current solutions and transitions are not the same size!");
+            if(use_current_sol){
+                assert(current_solutions.size() == transitions.size() && "Current solutions and transitions are not the same size!");
 
-                    vector<ast_ptr> sketch;
-                    sketch.push_back(current_solutions[t]);
-                    current_solution = sketch[0];
+                vector<ast_ptr> sketch;
+                sketch.push_back(current_solutions[t]);
+                current_solution = sketch[0];
 
-                    if(sketch[0]->type_ == BOOL){
-                        current_best = DBL_MAX;
-                    } else {
-                        vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
-                        current_best = log_likelihoods[0];
-                    }
-                    
+                if(sketch[0]->type_ == BOOL){
+                    current_best = DBL_MAX;
                 } else {
+                    vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
+                    current_best = log_likelihoods[0];
+                }
+            } else {
+
+                if (yes.size() == 0) {
+                    current_best = 0.0;
+                    current_solution = make_shared<Bool>(Bool(false));
+                } else if (no.size() == 0) {
+                    current_best = 0.0;
+                    current_solution = make_shared<Bool>(Bool(true));
+                } else {
+                    
+                    const SymEntry out(transition.second);
+                    const SymEntry in(transition.first);
+
                     int ind = 0;
                     while(ind < sketches.size()){
                         int last = ind;
@@ -656,7 +657,6 @@ namespace AST {
                             break;
                     }
                 }
-                
             }
 
             // Write the solution out to a file.
