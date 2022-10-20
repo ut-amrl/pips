@@ -622,26 +622,18 @@ namespace AST {
                         batch.push_back(sketches[ind]);
                     }
 
-                    cout << "Before:" << endl;
-                    for(ast_ptr each: batch){
-                        cout << each << ", ";
-                    }
-                    cout << endl;
-
                     vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
 
-                    cout << "After:" << endl;
-                    for(ast_ptr each: batch){
-                        cout << each << ", ";
-                    }
-                    cout << endl;
-
+                    // cout << "Batch: " << last << endl;
                     for(int i = 0; i < log_likelihoods.size(); i++){
+                        // cout << batch[i] << ": " << log_likelihoods[i] << endl;
                         if(current_best == -1 || log_likelihoods[i] < current_best){
                             current_best = log_likelihoods[i];
                             current_solution = batch[i];
                         }
                     }
+
+                    // cout << endl << endl;
 
                     if(current_best < max_error[t])
                         break;
