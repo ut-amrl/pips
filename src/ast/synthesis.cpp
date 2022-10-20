@@ -33,8 +33,6 @@ uint32_t batch_size;
 
 namespace AST {
 
-    PyObject *pFunc;
-
     // Helper Function for scoring a candidate predicate given only a set
     // of examples and the desired transition
     float ScorePredicate(ast_ptr pred, const pair<string, string> &transition,
@@ -428,8 +426,8 @@ namespace AST {
     // logistic equation. Returns the log likelihood and modifies sketch
     vector<double> LikelihoodPredicateL1(vector<ast_ptr>& sketches, const vector<Example> &pos,
                                 const vector<Example> &neg,
-                                const bool srtr) {
-
+                                const bool srtr,
+                                PyObject* pFunc) {
         // Generate y_j (tells us whether an example satisfied a transition)
         vector<bool> y_j(neg.size() + pos.size(), false);
         fill_n(y_j.begin(), pos.size(), true);
@@ -437,7 +435,6 @@ namespace AST {
         vector<vector<char>> clauses_arr;
         vector<vector<vector<float>>> expressions_arr;
         for(ast_ptr sketch : sketches){
-            cout << sketch << endl;
             // Iterate through conjunctions/disjunctions
             vector<char> clauses;
             ast_ptr *pointer = &sketch;
@@ -457,7 +454,7 @@ namespace AST {
                         stop_flag = true;
                     }
                 }
-                
+                                
                 // Evaluate all examples on the sketch
                 vector<float> E_k;
                 feature_ptr feature;
@@ -625,13 +622,20 @@ namespace AST {
                         batch.push_back(sketches[ind]);
                     }
 
+                    cout << "Before:" << endl;
                     for(ast_ptr each: batch){
                         cout << each << ", ";
                     }
                     cout << endl;
 
-                    vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false);
-                
+                    vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
+
+                    cout << "After:" << endl;
+                    for(ast_ptr each: batch){
+                        cout << each << ", ";
+                    }
+                    cout << endl;
+
                     for(int i = 0; i < log_likelihoods.size(); i++){
                         if(current_best == -1 || log_likelihoods[i] < current_best){
                             current_best = log_likelihoods[i];
