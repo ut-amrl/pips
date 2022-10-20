@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
         accuracies.push_back(FLAGS_target_score);
     }
 
-    EmdipsOutput eo = emdipsL3(examples, transitions, all_sketches, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, pFunc);
+    EmdipsOutput eo = emdipsL3(examples, transitions, all_sketches, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, INT_MAX, pFunc);
 
     cout << "---- Number of Features Enumerated ----" << endl;
     cout << ops.size() << endl << endl;

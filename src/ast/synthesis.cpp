@@ -569,11 +569,12 @@ namespace AST {
 
     EmdipsOutput emdipsL3(const vector<Example> &demos,
                     const vector<pair<string, string>> &transitions,
-                    const vector<ast_ptr> &sketches,
-                    const vector<ast_ptr> &current_solutions,
+                    vector<ast_ptr> &sketches,
+                    vector<ast_ptr> &current_solutions,
                     const vector<float> &max_error,
                     const string &output_path,
                     const uint32_t batch_size,
+                    const uint32_t max_enum,
                     const bool use_current_sol,
                     PyObject* pFunc) {
 
@@ -632,9 +633,31 @@ namespace AST {
                     
                     const SymEntry out(transition.second);
                     const SymEntry in(transition.first);
+                    
+                    // cout << "Before: " << endl;
+                    // for(ast_ptr each: sketches){
+                    //     cout << each << endl;
+                    // }
+                    // cout << endl << endl;
+
+                    ast_ptr base =  make_shared<Bool>(true);
+                    if(current_solutions.size() == transitions.size()){
+                        base = current_solutions[t];
+                    }
+
+                    // Custom comparison function
+                    sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
+                        return a->priority > b->priority;
+                    });
+
+                    // cout << "After: " << endl;
+                    // for(ast_ptr each: sketches){
+                    //     cout << each << endl;
+                    // }
+                    // cout << endl << endl;
 
                     int ind = 0;
-                    while(ind < sketches.size()){
+                    while(ind < min((uint32_t) sketches.size(), max_enum)){
                         int last = ind;
                         vector<ast_ptr> batch;
                         for(; ind < last + batch_size && ind < sketches.size(); ind++){
@@ -686,12 +709,15 @@ namespace AST {
 
     EmdipsOutput emdipsL3(const vector<Example> &demos,
         const vector<pair<string, string>> &transitions,
-        const vector<ast_ptr>& sketches,
+        vector<ast_ptr>& sketches,
         const vector<float>& max_error,
         const string &output_path,
         const uint32_t batch_size,
+        const uint32_t max_enum,
         PyObject* pFunc) {
-        return emdipsL3(demos, transitions, sketches, vector<ast_ptr>(), max_error, output_path, batch_size, false, pFunc);
+
+        vector<ast_ptr> current_solutions;
+        return emdipsL3(demos, transitions, sketches, current_solutions, max_error, output_path, batch_size, max_enum, false, pFunc);
     }
 
     void DIPR(const vector<Example> &demos, const vector<ast_ptr> &programs,

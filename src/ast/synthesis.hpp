@@ -45,20 +45,22 @@ namespace AST {
 
     EmdipsOutput emdipsL3(const vector<Example> &demos,
         const vector<pair<string, string>> &transitions,
-        const vector<ast_ptr>& sketches,
-        const vector<ast_ptr>& current_solutions,
+        vector<ast_ptr>& sketches,
+        vector<ast_ptr>& current_solutions,
         const vector<float>& max_error,
         const string &output_path,
         const uint32_t batch_size,
+        const uint32_t max_enum,
         const bool use_current_sol,
         PyObject* pFunc);
 
     EmdipsOutput emdipsL3(const vector<Example> &demos,
         const vector<pair<string, string>> &transitions,
-        const vector<ast_ptr>& sketches,
+        vector<ast_ptr>& sketches,
         const vector<float>& max_error,
         const string &output_path,
         const uint32_t batch_size,
+        const uint32_t max_enum,
         PyObject* pFunc);
 
     void SRTR(const vector<Example>& demos,
