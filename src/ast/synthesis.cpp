@@ -18,7 +18,6 @@
 #include "enumeration.hpp"
 #include "gflags/gflags_declare.h"
 #include "parsing.hpp"
-#include "utils/nd_bool_array.hpp"
 #include "visitors/deepcopy_visitor.hpp"
 #include "visitors/fillhole_visitor.hpp"
 #include "visitors/interp_visitor.hpp"
@@ -35,68 +34,6 @@ uint32_t batch_size;
 namespace AST {
 
     PyObject *pFunc;
-
-    // Basically a breadth-first search of all combination of indices of the ops
-    // vector starting at {0, 0, ..., 0}
-    class index_iterator {
-    public:
-        index_iterator(size_t op_count, size_t holes_to_fill)
-            : op_count_(op_count),
-            holes_to_fill_(holes_to_fill),
-            visited_(nd_bool_array(
-                vector<size_t>(holes_to_fill_, op_count_))) {  // :^)
-            // Some checks to make sure what we're doing is sensible.
-            if (op_count_ == 0) {
-                throw std::invalid_argument("no ops!");
-            }
-            if (holes_to_fill_ == 0) {
-                throw std::invalid_argument("no holes to fill!");
-            }
-
-            // make the initial list of however many 0s
-            vector<size_t> initial_coords;
-            for (size_t i = 0; i < holes_to_fill_; ++i) {
-                initial_coords.push_back(0);
-            }
-
-            // Add it to the queue to start BFS
-            indicies_.push(initial_coords);
-        }
-
-        vector<size_t> next() {
-            // Get the current lowest priority index list
-            vector<size_t> current = indicies_.front();
-            indicies_.pop();
-
-            // Add neighbors of this index list to the queue
-            for (size_t i = 0; i < holes_to_fill_; ++i) {
-                // if we've reached an edge, don't do anything
-                if (current[i] == op_count_ - 1) {
-                    continue;
-                }
-
-                // Copy current index list, increase one index by 1, add it to the
-                // queue, and mark it as visited so it's not added again.
-                vector<size_t> copy = current;
-                copy[i] += 1;
-                if (!visited_.get(copy)) {
-                    indicies_.push(copy);
-                    visited_.set(copy, true);
-                }
-            }
-            return current;
-        }
-
-        bool has_next() const { return !indicies_.empty(); }
-
-        vector<size_t> zeros() const { return vector<size_t>(holes_to_fill_, 0); }
-
-    private:
-        const size_t op_count_;
-        const size_t holes_to_fill_;
-        std::queue<vector<size_t>> indicies_;
-        nd_bool_array visited_;
-    };
 
     // Helper Function for scoring a candidate predicate given only a set
     // of examples and the desired transition
@@ -314,12 +251,184 @@ namespace AST {
         }
     }
 
+    CumulativeFunctionTimer pred_l2("PredicateL2");
+    ast_ptr PredicateL2(const vector<Example> &examples, const vector<ast_ptr> &ops,
+                        ast_ptr sketch, const pair<string, string> &transition,
+                        const double min_accuracy, float *solved) {
+        CumulativeFunctionTimer::Invocation invoke(&pred_l2);
+
+        const SymEntry out(transition.second);
+        const SymEntry in(transition.first);
+
+        // Get a list of the names of all the feature holes in the conditional,
+        // then store them in a vector because being able to access them in a
+        // consistent order and by index is important for something we do later.
+        const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+            MapFeatureHoles(sketch);
+        vector<string> feature_holes;
+        for (const auto &p : feature_hole_map) {
+            feature_holes.push_back(p.first);
+        }
+        const size_t feature_hole_count = feature_holes.size();
+
+        // Split up all the examples into a "yes" set or a "no" set based on
+        // whether the result for the example matches the current example's
+        // behavior.
+        unordered_set<Example> yes;
+        unordered_set<Example> no;
+        SplitExamples(examples, transition, &yes, &no);
+
+        if (debug) {
+            cout << "Current Sketch: " << sketch << endl;
+        }
+
+        // Start iterating through possible models. index_iterator is explained
+        // seperately.
+        ast_ptr solution_cond = sketch;
+        float current_best = 0.0;
+        if (feature_hole_count > 0) {
+            index_iterator c(ops.size(), feature_hole_count);
+            solution_cond = nullptr;
+            bool keep_searching = true;
+            int count = 0.0;
+
+    #pragma omp parallel
+            while (keep_searching) {
+                // Use the indices given to us by the iterator to select ops for
+                // filling our feature holes and create a model.
+                vector<size_t> op_indicies;
+    #pragma omp critical
+                {
+                    if (c.has_next()) {
+                        op_indicies = c.next();
+                    } else {
+                        keep_searching = false;
+                        op_indicies = c.zeros();
+                    }
+                    count++;
+                }
+
+                ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+                if (filled != nullptr) {
+                    const double sat_ratio = PredicateL1(filled, yes, no, false);
+    #pragma omp critical
+                    {
+                        if (keep_searching && sat_ratio >= min_accuracy) {
+                            keep_searching = false;
+                            solution_cond = filled;
+                            current_best = sat_ratio;
+                        } else if (sat_ratio > current_best ||
+                                sat_ratio == current_best &&
+                                    filled->priority < solution_cond->priority) {
+                            solution_cond = filled;
+                            current_best = sat_ratio;
+                        }
+                    }
+                }
+            }
+        } else {
+            // Since no errors occured while creating the model, we can take the
+            // hole values from it and use them to fill the holes in a copy of the
+            // condition.
+            ast_ptr cond_copy = DeepCopyAST(sketch);
+            const double sat_ratio = PredicateL1(cond_copy, yes, no, false);
+    #pragma omp critical
+            {
+                if (sat_ratio >= current_best) {
+                    solution_cond = cond_copy;
+                    current_best = sat_ratio;
+                }
+            }
+        }
+
+        // Return the solution if one exists, otherwise return a nullptr.
+        if (solution_cond != nullptr) {
+            *solved = current_best;
+        }
+        return solution_cond;
+    }
+
+    ast_ptr ldipsL2(ast_ptr candidate, const vector<Example> &examples,
+                    const vector<ast_ptr> &ops,
+                    const pair<string, string> &transition,
+                    const float min_accuracy, ast_ptr best_program,
+                    float *best_score) {
+        // Find best performing completion of current sketch
+        float solved = 0.0;
+        ast_ptr solution = PredicateL2(examples, ops, candidate, transition,
+                                    min_accuracy, &solved);
+
+        // Keep if beats best performing solution.
+        if (solved > *best_score) {
+            *best_score = solved;
+            best_program = solution;
+        }
+        Z3_reset_memory();
+        return best_program;
+    }
+
+    vector<ast_ptr> ldipsL3(const vector<Example> &demos,
+                            const vector<pair<string, string>> &transitions,
+                            const vector<ast_ptr> lib, const int sketch_depth,
+                            const float min_accuracy, const string &output_path) {
+        vector<Example> examples = demos;
+        // Enumerate possible sketches
+        const auto sketches = EnumerateSketches(sketch_depth);
+        cout << "Number of sketches: " << sketches.size() << endl;
+
+        vector<ast_ptr> transition_solutions;
+
+        // For each input/output pair
+        for (const auto &transition : transitions) {
+            // Skipping already synthesized conditions, allows for very basic
+            // checkpointing.
+            const string output_name =
+                output_path + transition.first + "_" + transition.second + ".json";
+            if (ExistsFile(output_name)) {
+                continue;
+            }
+            // if (transition.first != "GoAlone" || transition.second != "Pass") {
+            // continue;
+            // }
+            cout << "----- " << transition.first << "->";
+            cout << transition.second << " -----" << endl;
+            float current_best = 0.0;
+            ast_ptr current_solution = nullptr;
+            for (const auto &sketch : sketches) {
+                // Attempt L2 Synthesis with current sketch.
+                current_solution =
+                    ldipsL2(sketch, examples, lib, transition, min_accuracy,
+                            current_solution, &current_best);
+                if (current_best >= min_accuracy) break;
+                if (debug) {
+                    cout << "Score: " << current_best << endl;
+                    cout << "Solution: " << current_solution << endl;
+                    cout << "- - - - -" << endl;
+                }
+            }
+            // Write the solution out to a file.
+            cout << "Score: " << current_best << endl;
+            cout << "Final Solution: " << current_solution << endl;
+            ofstream output_file;
+            output_file.open(output_name);
+            const json output = current_solution->ToJson();
+            output_file << std::setw(4) << output << std::endl;
+            output_file.close();
+
+            // Filter out Examples used by this transition
+            examples = FilterExamples(examples, transition);
+
+            cout << endl;
+            transition_solutions.push_back(current_solution);
+        }
+        return transition_solutions;
+    }
+
     // Attempts to solve for the most likely assignment of real values for the
     // logistic equation. Returns the log likelihood and modifies sketch
     vector<double> LikelihoodPredicateL1(vector<ast_ptr>& sketches, const vector<Example> &pos,
                                 const vector<Example> &neg,
-                                const bool srtr,
-                                uint32_t& sketches_completed) {
+                                const bool srtr) {
 
         // Generate y_j (tells us whether an example satisfied a transition)
         vector<bool> y_j(neg.size() + pos.size(), false);
@@ -328,6 +437,7 @@ namespace AST {
         vector<vector<char>> clauses_arr;
         vector<vector<vector<float>>> expressions_arr;
         for(ast_ptr sketch : sketches){
+            cout << sketch << endl;
             // Iterate through conjunctions/disjunctions
             vector<char> clauses;
             ast_ptr *pointer = &sketch;
@@ -456,372 +566,22 @@ namespace AST {
             fprintf(stderr,"Call failed\n");
         }
 
-        sketches_completed += sketches.size();
-        cout << "Transition total sketches completed: " << sketches_completed << endl;
         return sol_arr;
     }
 
-    ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies,
-                            const vector<ast_ptr> &ops) {
-        Model m;
-
-        // Get a list of the names of all the feature holes in the conditional,
-        // then store them in a vector because being able to access them in a
-        // consistent order and by index is important for something we do later.
-        const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
-            MapFeatureHoles(sketch);
-
-        vector<string> feature_holes;
-        for (const auto &p : feature_hole_map) {
-            feature_holes.push_back(p.first);
-        }
-        const size_t feature_hole_count = feature_holes.size();
-
-        // For every feature hole...
-        for (size_t i = 0; i < feature_hole_count; ++i) {
-            // Get the name of a feature hole to fill and a possible value for it.
-            const string &feature_hole = feature_holes[i];
-            const pair<Type, Dimension> feature_hole_info =
-                feature_hole_map.at(feature_hole);
-            const Type feature_hole_type = feature_hole_info.first;
-            const Dimension feature_hole_dims = feature_hole_info.second;
-            const size_t index = indicies[i];
-            const ast_ptr &op = ops[index];
-            m[feature_hole] = op;
-        }
-
-        // If after creating the model the number of filled holes is not the same
-        // as the number of holes that ought to be filled (indicating a type
-        // error), we can give up and try the next model.
-        if (m.size() != feature_hole_count) {
-            return nullptr;
-        }
-
-        // Since no errors occured while creating the model, we can take the hole
-        // values from it and use them to fill the holes in a copy of the
-        // condition.
-        ast_ptr filled = DeepCopyAST(sketch);
-        filled->priority = FillHoles(filled, m);
-        return filled;
-    }
-
-    CumulativeFunctionTimer pred_l2("PredicateL2");
-    ast_ptr PredicateL2(const vector<Example> &examples, const vector<ast_ptr> &ops,
-                        ast_ptr sketch, const pair<string, string> &transition,
-                        const double min_accuracy, float *solved) {
-        CumulativeFunctionTimer::Invocation invoke(&pred_l2);
-
-        const SymEntry out(transition.second);
-        const SymEntry in(transition.first);
-
-        // Get a list of the names of all the feature holes in the conditional,
-        // then store them in a vector because being able to access them in a
-        // consistent order and by index is important for something we do later.
-        const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
-            MapFeatureHoles(sketch);
-        vector<string> feature_holes;
-        for (const auto &p : feature_hole_map) {
-            feature_holes.push_back(p.first);
-        }
-        const size_t feature_hole_count = feature_holes.size();
-
-        // Split up all the examples into a "yes" set or a "no" set based on
-        // whether the result for the example matches the current example's
-        // behavior.
-        unordered_set<Example> yes;
-        unordered_set<Example> no;
-        SplitExamples(examples, transition, &yes, &no);
-
-        if (debug) {
-            cout << "Current Sketch: " << sketch << endl;
-        }
-
-        // Start iterating through possible models. index_iterator is explained
-        // seperately.
-        ast_ptr solution_cond = sketch;
-        float current_best = 0.0;
-        if (feature_hole_count > 0) {
-            index_iterator c(ops.size(), feature_hole_count);
-            solution_cond = nullptr;
-            bool keep_searching = true;
-            int count = 0.0;
-
-    #pragma omp parallel
-            while (keep_searching) {
-                // Use the indices given to us by the iterator to select ops for
-                // filling our feature holes and create a model.
-                vector<size_t> op_indicies;
-    #pragma omp critical
-                {
-                    if (c.has_next()) {
-                        op_indicies = c.next();
-                    } else {
-                        keep_searching = false;
-                        op_indicies = c.zeros();
-                    }
-                    count++;
-                }
-
-                ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
-                if (filled != nullptr) {
-                    const double sat_ratio = PredicateL1(filled, yes, no, false);
-    #pragma omp critical
-                    {
-                        if (keep_searching && sat_ratio >= min_accuracy) {
-                            keep_searching = false;
-                            solution_cond = filled;
-                            current_best = sat_ratio;
-                        } else if (sat_ratio > current_best ||
-                                sat_ratio == current_best &&
-                                    filled->priority < solution_cond->priority) {
-                            solution_cond = filled;
-                            current_best = sat_ratio;
-                        }
-                    }
-                }
-            }
-        } else {
-            // Since no errors occured while creating the model, we can take the
-            // hole values from it and use them to fill the holes in a copy of the
-            // condition.
-            ast_ptr cond_copy = DeepCopyAST(sketch);
-            const double sat_ratio = PredicateL1(cond_copy, yes, no, false);
-    #pragma omp critical
-            {
-                if (sat_ratio >= current_best) {
-                    solution_cond = cond_copy;
-                    current_best = sat_ratio;
-                }
-            }
-        }
-
-        // Return the solution if one exists, otherwise return a nullptr.
-        if (solution_cond != nullptr) {
-            *solved = current_best;
-        }
-        return solution_cond;
-    }
-
-    CumulativeFunctionTimer likelihood_pred_l2("LikelihoodPredicateL2");
-    ast_ptr LikelihoodPredicateL2(const vector<Example> &examples,
-                                const vector<ast_ptr> &ops, ast_ptr sketch,
-                                const pair<string, string> &transition,
-                                const double max_error, float *best_error) {
-        CumulativeFunctionTimer::Invocation invoke(&likelihood_pred_l2);
-        const SymEntry out(transition.second);
-        const SymEntry in(transition.first);
-
-        uint32_t sketches_completed=0;
-
-        // Get a list of the names of all the feature holes in the conditional,
-        // then store them in a vector because being able to access them in a
-        // consistent order and by index is important for something we do later.
-        const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
-            MapFeatureHoles(sketch);
-        vector<string> feature_holes;
-        for (const auto &p : feature_hole_map) {
-            feature_holes.push_back(p.first);
-        }
-        const size_t feature_hole_count = feature_holes.size();
-        const float prior = CalculatePrior(feature_hole_count);
-
-        // Split up all the examples into a "yes" set or a "no" set based on
-        // whether the result for the example matches the current example's
-        // behavior.
-        vector<Example> yes;
-        vector<Example> no;
-        SplitExamplesVector(examples, transition, &yes, &no);
-
-        cout << "Current Sketch: " << sketch << endl;
-
-        // Start iterating through possible models. index_iterator is explained
-        // seperately.
-        ast_ptr solution_cond = sketch;
-        float current_best = -1;
-        if (feature_hole_count > 0) {
-            index_iterator c(ops.size(), feature_hole_count);
-            solution_cond = nullptr;
-            bool keep_searching = true;
-            int count = 0.0;
-
-
-            while (keep_searching) {
-                // Use the indices given to us by the iterator to select ops for
-                // filling our feature holes and create a model.
-                vector<ast_ptr> arr_filled;
-                for(int i=0; i<batch_size; i++) {
-                    vector<size_t> op_indicies;
-                    if (c.has_next()) {
-                        op_indicies = c.next();
-                        ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
-                        arr_filled.push_back(filled);
-                    } else {
-                        keep_searching = false;
-                        break;
-                    }
-                }
-
-                vector<double> log_likelihoods = LikelihoodPredicateL1(arr_filled, yes, no, false, sketches_completed);
-
-                // best within the last NUM_CORES sketches
-                double best_log_likelihood = DBL_MAX;
-                ast_ptr best_filled;
-
-                for(int i=0; i<log_likelihoods.size(); i++){
-                    double d = log_likelihoods[i];
-                    if(d < best_log_likelihood) {
-                        best_log_likelihood = d;
-                        best_filled = arr_filled[i];
-                    }
-                }
-
-                if(best_filled != nullptr) {
-                    if (keep_searching && best_log_likelihood + prior <= max_error) {
-                        keep_searching = false;
-                        solution_cond = best_filled;
-                        current_best = best_log_likelihood;
-                    } else if (current_best == -1 ||
-                            best_log_likelihood < current_best ||
-                            (best_log_likelihood == current_best &&
-                                best_filled->priority < solution_cond->priority)) {
-                        solution_cond = best_filled;
-                        current_best = best_log_likelihood;
-                    }
-                }
-            }
-        } else {
-            // Since no errors occured while creating the model, we can take the
-            // hole values from it and use them to fill the holes in a copy of the
-            // condition.
-            // ast_ptr cond_copy = DeepCopyAST(sketch);
-            // const double log_likelihood = PredicateL1(cond_copy, yes, no, false);
-            // if (log_likelihood <= current_best) {
-            //     solution_cond = cond_copy;
-            //     current_best = log_likelihood;
-            // }
-            cout << "Running unreachable code!" << endl;
-            exit(1);
-        }
-        // Return the solution if one exists, otherwise return a nullptr.
-        if (solution_cond != nullptr) {
-            *best_error = current_best + prior;
-        }
-        return solution_cond;
-    }
-
-    ast_ptr ldipsL2(ast_ptr candidate, const vector<Example> &examples,
-                    const vector<ast_ptr> &ops,
-                    const pair<string, string> &transition,
-                    const float min_accuracy, ast_ptr best_program,
-                    float *best_score) {
-        // Find best performing completion of current sketch
-        float solved = 0.0;
-        ast_ptr solution = PredicateL2(examples, ops, candidate, transition,
-                                    min_accuracy, &solved);
-
-        // Keep if beats best performing solution.
-        if (solved > *best_score) {
-            *best_score = solved;
-            best_program = solution;
-        }
-        Z3_reset_memory();
-        return best_program;
-    }
-
-    pair<ast_ptr, float> emdipsL2(ast_ptr candidate,
-                                const vector<Example> &examples,
-                                const vector<ast_ptr> &ops,
-                                const pair<string, string> &transition,
-                                const float max_error) {
-        // Find best performing completion of current sketch
-        float error = -1;
-        ast_ptr solution = LikelihoodPredicateL2(examples, ops, candidate,
-                                                transition, max_error, &error);
-
-        return pair<ast_ptr, float>(solution, error);
-    }
-
-    vector<ast_ptr> ldipsL3(const vector<Example> &demos,
-                            const vector<pair<string, string>> &transitions,
-                            const vector<ast_ptr> lib, const int sketch_depth,
-                            const float min_accuracy, const string &output_path) {
-        vector<Example> examples = demos;
-        // Enumerate possible sketches
-        const auto sketches = EnumerateSketches(sketch_depth);
-        cout << "Number of sketches: " << sketches.size() << endl;
-
-        vector<ast_ptr> transition_solutions;
-
-        // For each input/output pair
-        for (const auto &transition : transitions) {
-            // Skipping already synthesized conditions, allows for very basic
-            // checkpointing.
-            const string output_name =
-                output_path + transition.first + "_" + transition.second + ".json";
-            if (ExistsFile(output_name)) {
-                continue;
-            }
-            // if (transition.first != "GoAlone" || transition.second != "Pass") {
-            // continue;
-            // }
-            cout << "----- " << transition.first << "->";
-            cout << transition.second << " -----" << endl;
-            float current_best = 0.0;
-            ast_ptr current_solution = nullptr;
-            for (const auto &sketch : sketches) {
-                // Attempt L2 Synthesis with current sketch.
-                current_solution =
-                    ldipsL2(sketch, examples, lib, transition, min_accuracy,
-                            current_solution, &current_best);
-                if (current_best >= min_accuracy) break;
-                if (debug) {
-                    cout << "Score: " << current_best << endl;
-                    cout << "Solution: " << current_solution << endl;
-                    cout << "- - - - -" << endl;
-                }
-            }
-            // Write the solution out to a file.
-            cout << "Score: " << current_best << endl;
-            cout << "Final Solution: " << current_solution << endl;
-            ofstream output_file;
-            output_file.open(output_name);
-            const json output = current_solution->ToJson();
-            output_file << std::setw(4) << output << std::endl;
-            output_file.close();
-
-            // Filter out Examples used by this transition
-            examples = FilterExamples(examples, transition);
-
-            cout << endl;
-            transition_solutions.push_back(current_solution);
-        }
-        return transition_solutions;
-    }
-
     EmdipsOutput emdipsL3(const vector<Example> &demos,
-                        const vector<pair<string, string>> &transitions,
-                        const vector<ast_ptr> lib, const int sketch_depth,
-                        const vector<float> max_error,
-                        const string &output_path,
-                        const uint32_t b_size,
-                        PyObject* optimizer) {
-
-        batch_size = b_size;
-        pFunc = optimizer;
+                    const vector<pair<string, string>> &transitions,
+                    const vector<ast_ptr> &sketches,
+                    const vector<float> &max_error,
+                    const string &output_path,
+                    const uint32_t batch_size,
+                    PyObject* pFunc) {
 
         vector<Example> examples = demos;
-        // Enumerate possible sketches
-        const auto sketches = EnumerateSketches(sketch_depth);
-        cout << "Number of sketches: " << sketches.size() << endl;
-        for (ast_ptr each : sketches) {
-            cout << each << endl;
-        }
-        cout << endl << endl;
 
         shared_ptr<vector<ast_ptr>> transition_solutions = make_shared<vector<ast_ptr>>();
         shared_ptr<vector<float>> log_likelihoods = make_shared<vector<float>>();
 
-        // For each input/output pair
         for (int t = 0; t < transitions.size(); t++) {
             const auto &transition = transitions[t];
             // Skipping already synthesized conditions, allows for very basic
@@ -853,31 +613,38 @@ namespace AST {
                 current_best = 0.0;
                 current_solution = make_shared<Bool>(Bool(true));
             } else {
-                for (const auto &sketch : sketches) {
-                    std::chrono::steady_clock::time_point timerBegin =
-                        std::chrono::steady_clock::now();
+                
+                const SymEntry out(transition.second);
+                const SymEntry in(transition.first);
 
-                    // Attempt L2 Synthesis with current sketch.
-                    pair<ast_ptr, float> new_solution =
-                        emdipsL2(sketch, examples, lib, transition, max_error[t]);
-
-                    if (current_best == -1 || new_solution.second < current_best) {
-                        current_best = new_solution.second;
-                        current_solution = new_solution.first;
+                int ind = 0;
+                while(ind < sketches.size()){
+                    int last = ind;
+                    vector<ast_ptr> batch;
+                    for(; ind < last + batch_size && ind < sketches.size(); ind++){
+                        batch.push_back(sketches[ind]);
                     }
 
-                    if (debug) {
-                        cout << "Error (Log likelihood): " << new_solution.second
-                            << endl;
-                        cout << "Solution: " << new_solution.first << endl;
-                        std::chrono::steady_clock::time_point timerEnd =
-                            std::chrono::steady_clock::now();
-                        cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(timerEnd - timerBegin).count())) / 1000.0 << endl;
-                        cout << "- - - - -" << endl;
+                    for(ast_ptr each: batch){
+                        cout << each << ", ";
                     }
-                    if (current_best < max_error[t] || current_best == 0.0) break;
+                    cout << endl;
+
+                    vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false);
+                
+                    for(int i = 0; i < log_likelihoods.size(); i++){
+                        if(current_best == -1 || log_likelihoods[i] < current_best){
+                            current_best = log_likelihoods[i];
+                            current_solution = batch[i];
+                        }
+                    }
+
+                    if(current_best < max_error[t])
+                        break;
+
                 }
             }
+
             // Write the solution out to a file.
             cout << "Error (Log likelihood): " << current_best << endl;
             cout << "Final Solution: " << current_solution << endl;
@@ -898,10 +665,7 @@ namespace AST {
             cout << "- - - - -" << endl;
         }
 
-        
-        EmdipsOutput res;
-        res.ast_vec = transition_solutions;
-        res.log_likelihoods = log_likelihoods;
+        EmdipsOutput res { transition_solutions, log_likelihoods };
 
         return res;
     }

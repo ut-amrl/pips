@@ -7,7 +7,6 @@
 #include <iostream>
 #include <memory>
 #include <ostream>
-#include <queue>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -19,7 +18,6 @@
 #include "../submodules/amrl_shared_lib/util/timer.h"
 #include "ast.hpp"
 #include "parsing.hpp"
-#include "utils/nd_bool_array.hpp"
 #include "visitors/deepcopy_visitor.hpp"
 #include "visitors/fillhole_visitor.hpp"
 #include "visitors/interp_visitor.hpp"
@@ -263,6 +261,98 @@ vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
   return RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
 }
 
+ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies,
+                        const vector<ast_ptr> &ops) {
+    Model m;
+
+    // Get a list of the names of all the feature holes in the conditional,
+    // then store them in a vector because being able to access them in a
+    // consistent order and by index is important for something we do later.
+    const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+        MapFeatureHoles(sketch);
+
+    vector<string> feature_holes;
+    for (const auto &p : feature_hole_map) {
+        feature_holes.push_back(p.first);
+    }
+    const size_t feature_hole_count = feature_holes.size();
+
+    // For every feature hole...
+    for (size_t i = 0; i < feature_hole_count; ++i) {
+        // Get the name of a feature hole to fill and a possible value for it.
+        const string &feature_hole = feature_holes[i];
+        const pair<Type, Dimension> feature_hole_info =
+            feature_hole_map.at(feature_hole);
+        const Type feature_hole_type = feature_hole_info.first;
+        const Dimension feature_hole_dims = feature_hole_info.second;
+        const size_t index = indicies[i];
+        const ast_ptr &op = ops[index];
+        m[feature_hole] = op;
+    }
+
+    // If after creating the model the number of filled holes is not the same
+    // as the number of holes that ought to be filled (indicating a type
+    // error), we can give up and try the next model.
+    if (m.size() != feature_hole_count) {
+        return nullptr;
+    }
+
+    // Since no errors occured while creating the model, we can take the hole
+    // values from it and use them to fill the holes in a copy of the
+    // condition.
+    ast_ptr filled = DeepCopyAST(sketch);
+    filled->priority = FillHoles(filled, m);
+    return filled;
+}
+
+void EnumerateL2(vector<ast_ptr>& full_sketches, vector<ast_ptr>& ops, ast_ptr sketch) {
+
+    // Get a list of the names of all the feature holes in the conditional,
+    // then store them in a vector because being able to access them in a
+    // consistent order and by index is important for something we do later.
+    const unordered_map<string, pair<Type, Dimension>> feature_hole_map =
+        MapFeatureHoles(sketch);
+    vector<string> feature_holes;
+    for (const auto &p : feature_hole_map) {
+        feature_holes.push_back(p.first);
+    }
+    const size_t feature_hole_count = feature_holes.size();
+
+    // Start iterating through possible models. index_iterator is explained
+    // separately.
+    ast_ptr solution_cond = sketch;
+    if (feature_hole_count > 0) {
+        index_iterator c(ops.size(), feature_hole_count);
+
+        vector<size_t> op_indicies;
+        while (c.has_next()) {
+            op_indicies = c.next();
+            ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+            full_sketches.push_back(filled);
+        }
+    }
+}
+
+CumulativeFunctionTimer enumerate_l3("EnumerateL3");
+vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth) {
+    CumulativeFunctionTimer::Invocation invoke(&enumerate_l3);
+
+    vector<ast_ptr> full_sketches;
+    // Enumerate possible sketches
+    const auto sketches = EnumerateSketches(sketch_depth);
+    cout << "Number of sketches: " << sketches.size() << endl;
+    for (ast_ptr each : sketches) {
+        cout << each << endl;
+    }
+    cout << endl << endl;
+
+    for (const auto &sketch : sketches) {
+        EnumerateL2(full_sketches, lib, sketch);
+    }
+
+    return full_sketches;
+}
+
 CumulativeFunctionTimer get_legal("GetLegalOperations");
 // TODO(jaholtz) clean up this function, optimize
 vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
@@ -451,6 +541,5 @@ vector<ast_ptr> RelativesOnly(const vector<ast_ptr>& ops) {
   }
   return output;
 }
-
 
 }  // namespace AST

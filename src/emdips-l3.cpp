@@ -149,14 +149,25 @@ int main(int argc, char* argv[]) {
         cout << endl;
     }
 
+
+    vector<ast_ptr> all_sketches = EnumerateL3(ops, FLAGS_sketch_depth);
+    
+    cout << "Num total programs: " << all_sketches.size() << endl;
+    // for(ast_ptr each: all_sketches){
+    //     cout << each << endl;
+    // }
+
+    vector<float> accuracies;
+    for(int i = 0; i < transitions.size(); i++){
+        accuracies.push_back(FLAGS_target_score);
+    }
+
+    EmdipsOutput eo = emdipsL3(examples, transitions, all_sketches, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, pFunc);
+
     cout << "---- Number of Features Enumerated ----" << endl;
     cout << ops.size() << endl << endl;
     cout << endl;
 
-    // Run L3 Synthesis
-    emdipsL3(examples, transitions, ops, FLAGS_sketch_depth, min_accuracies,
-             FLAGS_out_dir, FLAGS_batch_size, pFunc);
-    
     // Clean up python
     Py_XDECREF(pFunc);
     Py_DECREF(pModule);
