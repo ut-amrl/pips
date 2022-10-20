@@ -214,7 +214,7 @@ vector<ast_ptr> RecEnumerateHelper(const vector<ast_ptr>& roots,
                                    int depth, vector<Signature>* signatures) {
   vector<ast_ptr> result = Enumerate(roots, inputs, library);
 
-  if (sig_pruning) {
+  if (sig_pruning && examples.size() > 0) {
     const vector<Signature> new_sigs = CalcSigs(result, examples);
     PruneFunctions(new_sigs, &result, signatures);
   }

@@ -101,6 +101,9 @@ struct FunctionEntry {
 
 ostream& operator<<(ostream& os, const FunctionEntry& fe);
 
+vector<Signature> CalcSigs(const vector<ast_ptr>& functions,
+                           const vector<Example>& examples);
+                           
 vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> input,
                                  const vector<FunctionEntry>& library);
 
@@ -113,6 +116,9 @@ ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
 vector<ast_ptr> Enumerate(const vector<ast_ptr>& roots,
                                const vector<ast_ptr>& inputs,
                                const vector<FunctionEntry>& library);
+
+void PruneFunctions(const vector<Signature>& new_sigs,
+                    vector<ast_ptr>* functions, vector<Signature>* sigs);
 
 vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
                                   const vector<ast_ptr>& inputs,
