@@ -160,6 +160,7 @@ ast_ptr DistTraveled(ast_ptr v1, ast_ptr a) {
   num_ptr vel1 = dynamic_pointer_cast<Num>(v1);
   num_ptr accel = dynamic_pointer_cast<Num>(a);
 
+  // Calculate distance traveled until rest, if the robot starts at velocity v1 and has deceleration a
   Num result( -(vel1->value_ * vel1->value_) / (2.0 * accel->value_), {1, 0, 0});
   return make_shared<Num>(result);
 }
@@ -384,7 +385,7 @@ ast_ptr Logistic(ast_ptr x, ast_ptr x_0, ast_ptr k) {
   float x_0_cast = dynamic_pointer_cast<Num>(x_0)->value_;
   float k_cast = dynamic_pointer_cast<Num>(k)->value_;
 
-
+  // Logistic equation
   float val = 1 / (1 + exp( -k_cast * (x_cast - x_0_cast) ));
   
   Num result(val, {0,0,0});
@@ -402,8 +403,10 @@ ast_ptr Flip(ast_ptr p, ast_ptr probabilistic){
     }
 
     if(dynamic_pointer_cast<Bool>(probabilistic)->value_){
+        // Perform a Bernoulli trial with probability p
         return make_shared<Bool>((float) rand() / RAND_MAX < p_cast);
     } else {
+        // Check against a threshold of 0.5 (not probabilistic)
         return make_shared<Bool>(p_cast > 0.5);
     }
 
