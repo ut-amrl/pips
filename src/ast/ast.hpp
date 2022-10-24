@@ -13,6 +13,8 @@
 #ifndef SRC_AST_HPP_
 #define SRC_AST_HPP_
 
+using nlohmann::json;
+
 namespace AST {
 
 enum Type { NODE, VAR, NUM, VEC, OP, BOOL, STATE };

@@ -194,7 +194,10 @@ ast_ptr AstFromJson(const json& input) {
   const string node_type = input["node"];
   Vec temp({0.0, 0.0}, {0, 0, 0});
   ast_ptr temp_ptr = make_shared<Vec>(temp);
-  if (node_type == "BinOp") {
+  if (node_type == "TernOp") {
+    TernOp node(temp_ptr, temp_ptr, temp_ptr, "Logistic");
+    return node.FromJson(input);
+  } else if (node_type == "BinOp") {
     BinOp node(temp_ptr, temp_ptr, "Plus");
     return node.FromJson(input);
   } else if (node_type == "UnOp") {
@@ -218,7 +221,7 @@ ast_ptr AstFromJson(const json& input) {
     Num node(0.0, {0, 0, 0});
     return node.FromJson(input);
   }
-  cout << "ERROR Loading from Json: Unrecognized Node Type" << endl;
+  cout << "ERROR Loading from Json: Unrecognized Node Type" << input << endl;
   return temp_ptr;
 }
 

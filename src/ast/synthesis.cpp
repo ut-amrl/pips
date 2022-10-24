@@ -210,7 +210,6 @@ namespace AST {
                 stop_flag = true;
             }
 
-            // Evaluate all examples on the sketch
             feature_ptr feature;
             if(stop_flag)
                 feature = dynamic_pointer_cast<Feature>(*pointer);
@@ -228,6 +227,7 @@ namespace AST {
             // Next clause
             pointer = &(op->right_);
         }
+
         return filled;
     }
 
@@ -608,17 +608,21 @@ namespace AST {
             float current_best = -1;
             ast_ptr current_solution = nullptr;
 
+            const SymEntry out(transition.second);
+            const SymEntry in(transition.first);
+                    
             if(use_current_sol){
                 assert(current_solutions.size() == transitions.size() && "Current solutions and transitions are not the same size!");
 
                 vector<ast_ptr> sketch;
                 sketch.push_back(current_solutions[t]);
-                current_solution = sketch[0];
 
                 if(sketch[0]->type_ == BOOL){
+                    current_solution = sketch[0];
                     current_best = DBL_MAX;
                 } else {
                     vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
+                    current_solution = sketch[0];
                     current_best = log_likelihoods[0];
                 }
             } else {
@@ -631,16 +635,13 @@ namespace AST {
                     current_solution = make_shared<Bool>(Bool(true));
                 } else {
                     
-                    const SymEntry out(transition.second);
-                    const SymEntry in(transition.first);
-                    
                     // cout << "Before: " << endl;
                     // for(ast_ptr each: sketches){
                     //     cout << each << endl;
                     // }
                     // cout << endl << endl;
 
-                    ast_ptr base =  make_shared<Bool>(true);
+                    ast_ptr base = make_shared<Bool>(true);
                     if(current_solutions.size() == transitions.size()){
                         base = current_solutions[t];
                     }
