@@ -4,6 +4,7 @@
 #include "Python.h"
 
 #include <algorithm>
+#include <random>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
@@ -650,6 +651,13 @@ namespace AST {
                     sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
                         return a->priority > b->priority;
                     });
+
+
+                    auto rng = std::default_random_engine {};
+                    shuffle(begin(sketches), end(sketches), rng);
+                    if(current_solutions[t]->type_ != BOOL){
+                        sketches.insert(sketches.begin(), 1, current_solutions[t]);
+                    }
 
                     // cout << "After: " << endl;
                     // for(ast_ptr each: sketches){
