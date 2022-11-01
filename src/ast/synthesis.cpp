@@ -622,12 +622,13 @@ namespace AST {
                     current_solution = sketch[0];
                     current_best = DBL_MAX;
                 } else {
+                    cout << "Using fixed program structure...\n";
+
                     vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
                     current_solution = sketch[0];
                     current_best = log_likelihoods[0];
                 }
             } else {
-
                 if (yes.size() == 0) {
                     current_best = 0.0;
                     current_solution = make_shared<Bool>(Bool(false));
@@ -635,7 +636,8 @@ namespace AST {
                     current_best = 0.0;
                     current_solution = make_shared<Bool>(Bool(true));
                 } else {
-                    
+                    cout << "Enumerating over " << max_enum << " random program structures...\n";
+
                     // cout << "Before: " << endl;
                     // for(ast_ptr each: sketches){
                     //     cout << each << endl;
