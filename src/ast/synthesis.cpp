@@ -596,15 +596,14 @@ namespace AST {
 
             std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
-            cout << endl << endl << "----- " << transition.first << "->";
-            cout << transition.second << " -----" << endl;
-            cout << "Target log likelihood: < " << max_error[t] << endl;
+            cout << endl << endl << "|--------- " << transition.first << "->";
+            cout << transition.second << " ---------" << endl;
+            cout << "| Target log likelihood: < " << max_error[t] << endl;
 
             vector<Example> yes;
             vector<Example> no;
             SplitExamplesVector(examples, transition, &yes, &no);
-            cout << "Num transitions (pos): " << yes.size() << endl;
-            cout << "Num transitions (neg): " << no.size() << endl;
+            cout << "| Num transitions (pos | neg): " << yes.size() << " | " << no.size() << endl;
 
             float current_best = -1;
             ast_ptr current_solution = nullptr;
@@ -622,13 +621,12 @@ namespace AST {
                     current_solution = sketch[0];
                     current_best = DBL_MAX;
                 } else {
-                    cout << "Using fixed program structure...\n";
-
                     vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
                     current_solution = sketch[0];
                     current_best = log_likelihoods[0];
                 }
             } else {
+
                 if (yes.size() == 0) {
                     current_best = 0.0;
                     current_solution = make_shared<Bool>(Bool(false));
@@ -636,8 +634,7 @@ namespace AST {
                     current_best = 0.0;
                     current_solution = make_shared<Bool>(Bool(true));
                 } else {
-                    cout << "Enumerating over " << max_enum << " random program structures...\n";
-
+                    
                     // cout << "Before: " << endl;
                     // for(ast_ptr each: sketches){
                     //     cout << each << endl;
@@ -694,8 +691,8 @@ namespace AST {
             }
 
             // Write the solution out to a file.
-            cout << "Error (Log likelihood): " << current_best << endl;
-            cout << "Final Solution: " << current_solution << endl;
+            cout << "| Error (Log likelihood): " << current_best << endl;
+            cout << "| Final Solution: " << current_solution << endl;
             ofstream output_file;
             output_file.open(output_name);
             const json output = current_solution->ToJson();
@@ -709,8 +706,8 @@ namespace AST {
             log_likelihoods.push_back(current_best);
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            cout << "Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
-            cout << "- - - - -" << endl;
+            cout << "| Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
+            cout << "|----------------------------" << endl;
         }
 
         EmdipsOutput res { transition_solutions, log_likelihoods };
