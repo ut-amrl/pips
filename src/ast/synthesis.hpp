@@ -47,11 +47,12 @@ namespace AST {
         const vector<pair<string, string>> &transitions,
         vector<ast_ptr>& sketches,
         vector<ast_ptr>& current_solutions,
+        vector<ast_ptr>& gt_truth,
         const vector<float>& max_error,
         const string &output_path,
         const uint32_t batch_size,
         const uint32_t max_enum,
-        const bool use_current_sol,
+        const bool use_gt,
         PyObject* pFunc);
 
     EmdipsOutput emdipsL3(const vector<Example> &demos,

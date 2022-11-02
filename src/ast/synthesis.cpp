@@ -572,11 +572,12 @@ namespace AST {
                     const vector<pair<string, string>> &transitions,
                     vector<ast_ptr> &sketches,
                     vector<ast_ptr> &current_solutions,
+                    vector<ast_ptr> &gt_truth,
                     const vector<float> &max_error,
                     const string &output_path,
                     const uint32_t batch_size,
                     const uint32_t max_enum,
-                    const bool use_current_sol,
+                    const bool use_gt,
                     PyObject* pFunc) {
 
         vector<Example> examples = demos;
@@ -611,11 +612,11 @@ namespace AST {
             const SymEntry out(transition.second);
             const SymEntry in(transition.first);
                     
-            if(use_current_sol){
-                assert(current_solutions.size() == transitions.size() && "Current solutions and transitions are not the same size!");
+            if(use_gt){
+                assert(gt_truth.size() == transitions.size() && "Current solutions and transitions are not the same size!");
 
                 vector<ast_ptr> sketch;
-                sketch.push_back(current_solutions[t]);
+                sketch.push_back(gt_truth[t]);
 
                 if(sketch[0]->type_ == BOOL){
                     current_solution = sketch[0];
@@ -654,8 +655,11 @@ namespace AST {
 
                     auto rng = std::default_random_engine {};
                     shuffle(begin(sketches), end(sketches), rng);
-                    if(current_solutions[t]->type_ != BOOL){
+                    if(current_solutions.size() == transitions.size() && current_solutions[t]->type_ != BOOL){
                         sketches.insert(sketches.begin(), 1, current_solutions[t]);
+                    }
+                    if(gt_truth.size() == transitions.size() && gt_truth[t]->type_ != BOOL){
+                        sketches.insert(sketches.begin(), 1, gt_truth[t]);
                     }
 
                     // cout << "After: " << endl;
@@ -676,7 +680,7 @@ namespace AST {
 
                         // cout << "Batch: " << last << endl;
                         for(int i = 0; i < log_likelihoods.size(); i++){
-                            // cout << batch[i] << ": " << log_likelihoods[i] << endl;
+                            cout << batch[i] << ": " << log_likelihoods[i] << endl;
                             if(current_best == -1 || log_likelihoods[i] < current_best){
                                 current_best = log_likelihoods[i];
                                 current_solution = batch[i];
@@ -725,7 +729,8 @@ namespace AST {
         PyObject* pFunc) {
 
         vector<ast_ptr> current_solutions;
-        return emdipsL3(demos, transitions, sketches, current_solutions, max_error, output_path, batch_size, max_enum, false, pFunc);
+        vector<ast_ptr> gt_truth;
+        return emdipsL3(demos, transitions, sketches, current_solutions, gt_truth, max_error, output_path, batch_size, max_enum, false, pFunc);
     }
 
     void DIPR(const vector<Example> &demos, const vector<ast_ptr> &programs,
