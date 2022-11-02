@@ -104,27 +104,46 @@ E_k = [
     ] # with error
 ]
 
-
 # ---------- Define equation ------------------------------------
-clauses = [     #  (p_1 & p_2) | p_3
-    [0, 1],
-    [0, 1]
-]
+# clauses = [     #  (p_1 & p_2) | p_3
+#     [0, 1],
+#     [0, 1]
+# ]
+
+# # start = time.perf_counter()
+# # res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
+# # end = time.perf_counter()
+
+# # optimizer.print_with_padding("Time Elapsed", end-start)
+
+
+# E_k = [[14.0625, 16.0, 10.0, 66.66666412353516, 16.0, 10.0, 66.66666412353516, 14.0625]]
+# y_j = [1, 1, 1, 0, 0, 0, 0, 0]
+# clauses = []
+
 
 # start = time.perf_counter()
-# res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
+# res = optimizer.run_optimizer(None, E_k, y_j, clauses)
 # end = time.perf_counter()
 
 # optimizer.print_with_padding("Time Elapsed", end-start)
 
 
-E_k = [[14.0625, 16.0, 10.0, 66.66666412353516, 16.0, 10.0, 66.66666412353516, 14.0625]]
-y_j = [1, 1, 1, 0, 0, 0, 0, 0]
-clauses = []
 
+# ---------- Define equation ------------------------------------
+
+
+E_k = [[
+    [0.02708911895751953, 0.03833961486816406, 0.024385452270507812, 0.03244590759277344, 0.028328895568847656, -4.976902008056641, -8.970062255859375, -8.970062255859375, -6.267465591430664, -8.970062255859375, -17.195091247558594, -8.543834686279297, -0.05526876449584961, -8.477081298828125, -79.5217514038086],
+    [-160.91123962402344, -22.499126434326172, -385.8686828613281, -13.063535690307617, -13.440653800964355, 1.3329696655273438, 2.4228591918945312, 2.4228591918945312, 2.3776493072509766, 2.4228591918945312, -202.93984985351562, -184.33224487304688, -162.83740234375, -47.60926818847656, -299.8950500488281]
+]]
+y_j = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+clauses = [[0]]
 
 start = time.perf_counter()
-res = optimizer.run_optimizer(None, E_k, y_j, clauses)
+# res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
 end = time.perf_counter()
+
+print(optimizer.log_loss([413, -0.11, 0, 172], E_k[0], y_j, clauses[0]))
 
 optimizer.print_with_padding("Time Elapsed", end-start)
