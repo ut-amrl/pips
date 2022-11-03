@@ -153,7 +153,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
                                 method='BFGS', options={'maxiter': 100, 'disp': False})
     elif(opt_method == 1):      # L-BFGS-B (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='L-BFGS-B', options={'maxiter': 50, 'disp': False})
+                                method='L-BFGS-B', options={'maxiter': 100, 'disp': False})
     elif(opt_method == 2):      # Basin hopping - global optimization
         res = optimize.basinhopping(log_loss, init,
                                 niter=100, T=100.0,
@@ -176,10 +176,10 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     debug("")
 
 
-    for i in range(int(len(res.x)/2)):
-        if abs(res.x[i])<min_spread:
-            res.x[i]=min_spread*np.sign(res.x[i])
-    res.fun = log_loss(res.x, E_k, y_j, clauses)
+    # for i in range(int(len(res.x)/2)):
+    #     if abs(res.x[i])<min_spread:
+    #         res.x[i]=min_spread*np.sign(res.x[i])
+    # res.fun = log_loss(res.x, E_k, y_j, clauses)
 
     # Remove NaNs and take the average
     res.fun = np.nan_to_num(res.fun, nan=float("inf")) / len(y_j)
