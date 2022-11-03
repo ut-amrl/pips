@@ -598,12 +598,12 @@ namespace AST {
 
             cout << endl << endl << "|--------- " << transition.first << "->";
             cout << transition.second << " ---------" << endl;
-            cout << "| Target log likelihood: < " << max_error[t] << endl;
+            cout << "| Target log likelihood: <" << max_error[t] << endl;
 
             vector<Example> yes;
             vector<Example> no;
             SplitExamplesVector(examples, transition, &yes, &no);
-            cout << "| Num transitions (pos | neg): " << yes.size() << " | " << no.size() << endl;
+            cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl;
 
             float current_best = -1;
             ast_ptr current_solution = nullptr;
@@ -634,12 +634,6 @@ namespace AST {
                     current_best = 0.0;
                     current_solution = make_shared<Bool>(Bool(true));
                 } else {
-                    
-                    // cout << "Before: " << endl;
-                    // for(ast_ptr each: sketches){
-                    //     cout << each << endl;
-                    // }
-                    // cout << endl << endl;
 
                     ast_ptr base = make_shared<Bool>(true);
                     if(current_solutions.size() == transitions.size()){
@@ -657,12 +651,6 @@ namespace AST {
                     if(current_solutions[t]->type_ != BOOL){
                         sketches.insert(sketches.begin(), 1, current_solutions[t]);
                     }
-
-                    // cout << "After: " << endl;
-                    // for(ast_ptr each: sketches){
-                    //     cout << each << endl;
-                    // }
-                    // cout << endl << endl;
 
                     int ind = 0;
                     while(ind < min((uint32_t) sketches.size(), max_enum)){
@@ -683,10 +671,12 @@ namespace AST {
                             }
                         }
                         // cout << endl << endl;
+                        cout << "*";
 
                         if(current_best < max_error[t])
                             break;
                     }
+                    cout << "\r";
                 }
             }
 

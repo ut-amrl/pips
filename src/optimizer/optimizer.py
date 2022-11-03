@@ -32,6 +32,7 @@ print_debug = False      # Extra debugging info
 initial_values = 4      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
 num_cores = 4           # Number of processes to run in parallel
 max_spread = 5.0        # Maximum absolute value of alpha (slope)
+min_spread = 1.0
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
 print_padding = 30      # Print customization
@@ -60,6 +61,7 @@ def log_loss(x, E_k, y_j, clauses):
                 log_likelihood += log_likelihood_j 
             if clauses[j] == 1: # OR: add likelihoods
                 log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
+
         
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
@@ -144,7 +146,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
                                 method='BFGS', options={'maxiter': 100, 'disp': False})
     elif(opt_method == 1):      # L-BFGS-B (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='L-BFGS-B', options={'maxiter': 10, 'disp': False})
+                                method='L-BFGS-B', options={'maxiter': 50, 'disp': False})
     elif(opt_method == 2):      # Basin hopping - global optimization
         res = optimize.basinhopping(log_loss, init,
                                 niter=100, T=100.0,
@@ -166,8 +168,15 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     print_with_padding("Minimum value", res.fun)
     debug("")
 
+
+    for i in range(int(len(res.x)/2)):
+        if abs(res.x[i])<min_spread:
+            res.x[i]=min_spread*np.sign(res.x[i])
+    res.fun = log_loss(res.x, E_k, y_j, clauses)
+
     # Remove NaNs and take the average
     res.fun = np.nan_to_num(res.fun, nan=float("inf")) / len(y_j)
+
     return res
 
 # Handles initialization and enumeration, then calls the optimizer
