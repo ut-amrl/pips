@@ -31,7 +31,7 @@ enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = False      # Extra debugging info
 initial_values = 4      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
 num_cores = 4           # Number of processes to run in parallel
-max_spread = 5.0        # Maximum absolute value of alpha (slope)
+max_spread = 100.0        # Maximum absolute value of alpha (slope)
 min_spread = 1.0
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
@@ -113,12 +113,19 @@ def find_min_max(expression, y_j):
 
     lo_diff = hi
     hi_diff = lo
-    for i in range(len(expression)):
+
+    for i in range(len(y_j)):
         if not (y_j[i] == y_j[lo_ind]):
             lo_diff = min(lo_diff, expression[i])
         if not (y_j[i] == y_j[hi_ind]):
             hi_diff = max(hi_diff, expression[i])
     
+    if lo_diff > hi_diff:
+        # Swap
+        temp_diff = lo_diff
+        lo_diff = hi_diff
+        hi_diff = temp_diff
+
     return (lo_diff - extension(lo_diff, hi_diff), hi_diff + extension(lo_diff, hi_diff))
 
 # --------- Stepping (basin hopping) -------------------------
