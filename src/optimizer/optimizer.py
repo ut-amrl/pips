@@ -14,25 +14,16 @@ import json
 
 # TODO
 # how to weight all examples equally, so as not to bias towards the ones with high / extreme values
-# or just control the range of examples during data collection
-# optimization methods are highly dependent on initial guess
-# for most applications starting at 0 as the center of the log function is probably best?
-# or is it cheating because that's the only constant in this specific simulation 
-# calculate ideal log-likelihood for each ASP transition
 # bounds for basin hopping and BFGS is broken
-# for some reason ACC->CON works when I do it manually (with local BFGS starting at x_0 = 0) but not when PIPS
-# maybe has to do with choosing the samples? that is the only difference
-# in this manual test i take all the transitions compared to PIPS only taking from the window
-# maybe just expand window idk
 
 # ------- Parameters -----------------------------
 opt_method = 1          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = False      # Extra debugging info
-initial_values = 4      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
+initial_values = 8      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = do all of the above, then enumerate over random initial guesses (use this to specify how many)
 num_cores = 4           # Number of processes to run in parallel
 max_spread = 100.0        # Maximum absolute value of alpha (slope)
-min_spread = 1.0
+min_spread = 0.1
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
 print_padding = 30      # Print customization
@@ -214,12 +205,14 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     # ---------- Optimizer ------------------------
     input = []
 
-    for _ in range(max(1, initial_values)):
+    for iter in range(max(1, initial_values)):
 
         # Initialization of x_0
-        x_0_init = np.zeros(len(E_k)) # Initialize to 0s
-        if initial_values == 1:       # Initialize to the average
-            x_0_init = [sum(expression)/len(expression) for expression in E_k]
+
+        if initial_values == 0 or iter == 0:
+            x_0_init = np.zeros(len(E_k)) # Initialize to 0s
+        elif initial_values == 1 or iter == 1:
+            x_0_init = [sum(expression)/len(expression) for expression in E_k] # Initialize to the average
         elif initial_values > 1:      # Initialize randomly 
             x_0_init = [np.random.uniform(bound[0], bound[1]) for bound in x_0_bounds]
 
@@ -228,7 +221,7 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
             # Initialization of alpha
             alpha_init = []
             for i in range(len(E_k)):
-                alpha_init.append(1 if (signs & (1 << i)) else -1)
+                alpha_init.append(0.1 if (signs & (1 << i)) else -0.1)
 
             if not enumerateSigns: # Initialize to 0 (don't iterate over signs)
                 alpha_init = np.zeros(len(E_k))
