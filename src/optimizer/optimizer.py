@@ -31,8 +31,8 @@ enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = False      # Extra debugging info
 initial_values = 4      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = enumerate over random initial guesses (use this to specify how many)
 num_cores = 4           # Number of processes to run in parallel
-max_spread = 100.0        # Maximum absolute value of alpha (slope)
-min_spread = 1.0
+# max_spread = 100.0        # Maximum absolute value of alpha (slope)
+min_spread = 0.5
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
 print_padding = 30      # Print customization
@@ -51,24 +51,22 @@ def log_loss(x, E_k, y_j, clauses):
 
     log_loss = 0
     for i in range(len(y_j)):
-        log_likelihood = - sp.logsumexp([0, - alpha[0] * (E_k[0][i] - x_0[0])])
+        log_likelihood = - sp.logsumexp([0, - 1.0/alpha[0] * (E_k[0][i] - x_0[0])])
 
         for j in range(len(clauses)):
             # Calculate likelihood for this clause
-            log_likelihood_j = - sp.logsumexp([0, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])])
+            log_likelihood_j = - sp.logsumexp([0, - 1.0/alpha[j+1] * (E_k[j+1][i] - x_0[j+1])])
 
             if clauses[j] == 0: # AND: multiply likelihoods
                 log_likelihood += log_likelihood_j 
             if clauses[j] == 1: # OR: add likelihoods
                 log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
-
         
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
             log_loss -= sp.logsumexp([0, log_likelihood], b=[1, -1])
-
     return log_loss
 
 
@@ -148,12 +146,14 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     extra_args = (E_k, y_j, clauses)
     minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
 
+    bounds_r = tuple([tuple(b) for b in bounds])
+
     if(opt_method == 0):        # BFGS (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
                                 method='BFGS', options={'maxiter': 100, 'disp': False})
     elif(opt_method == 1):      # L-BFGS-B (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='L-BFGS-B', options={'maxiter': 100, 'disp': False})
+                                method='L-BFGS-B', options={'maxiter': 100, 'disp': False, 'eps': 1e-2}, bounds=bounds_r, tol=1e-16)
     elif(opt_method == 2):      # Basin hopping - global optimization
         res = optimize.basinhopping(log_loss, init,
                                 niter=100, T=100.0,
@@ -197,13 +197,16 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     # ---------- Bounds --------------------
 
     # Bounds on alpha : defined by max_spread
-    alpha_bounds = [(-max_spread, max_spread) for expression in E_k]
+    # **** this is actually bounds for 1/alpha
+    alpha_bounds = [(-1.0/min_spread, 1.0/min_spread) for expression in E_k]
 
     # Bounds on x_0 : calculated from minimum/maximum and provided bounds extension
+    # x_0_bounds2 is infinity because we need some variables to be unbounded for LBFGS-B to work
     x_0_bounds = [find_min_max(expression, y_j) for expression in E_k]
+    x_0_bounds2 = [(-np.inf, np.inf) for expression in E_k]
 
     # Setup bounds
-    bounds = np.concatenate((alpha_bounds, x_0_bounds))
+    bounds = np.concatenate((alpha_bounds, x_0_bounds2))
     bounds_lower = [b[0] for b in bounds]
     bounds_upper = [b[1] for b in bounds]
     print_with_padding("Bounds", "|")
@@ -255,9 +258,15 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     bestRes = min(output, key=lambda i: i.fun)
     # bestRes = run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj, input[0])
     
+
+    for i in range(len(bestRes.x[: len(bestRes.x)//2])):
+        bestRes.x[i]=1.0/bestRes.x[i]
+
+
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
     print_with_padding("Minimum value", bestRes.fun)
+
 
     if (not queue is None):
         queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
