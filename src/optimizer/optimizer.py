@@ -20,13 +20,14 @@ import json
 opt_method = 1          # See below
 enumerateSigns = True   # Equivalent to enumerating over > and <
 print_debug = False      # Extra debugging info
-initial_values = 8      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = do all of the above, then enumerate over random initial guesses (use this to specify how many)
+initial_values = 10      # Initial values for x_0: 0 = all zeros, 1 = average, >1 = do all of the above, then enumerate over random initial guesses (use this to specify how many)
 num_cores = 4           # Number of processes to run in parallel
 # max_spread = 100.0        # Maximum absolute value of alpha (slope)
-min_spread = 0.5
+min_spread = 1.0
 bounds_extension = 0.1  # Amount to search above and below extrema
 print_warnings = False  # Debugging info
 print_padding = 30      # Print customization
+tt = 5                  # Max negative log likelihood that an example can contribute to the total log likelihood
 
 # optimization method
 # 0: local (BFGS)
@@ -36,7 +37,7 @@ print_padding = 30      # Print customization
 # 4: DIRECT
 
 # -------- objective function --------------------
-def log_loss(x, E_k, y_j, clauses):
+def log_loss(x, E_k, y_j, clauses, print_res=False):
     alpha = x[: len(x)//2]  # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]    # center of logistic function for each conditional structure
 
@@ -53,12 +54,21 @@ def log_loss(x, E_k, y_j, clauses):
             if clauses[j] == 1: # OR: add likelihoods
                 log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
         
+        # log_likelihood = -np.log(-log_likelihood)
+        if log_likelihood<-tt-.5:
+            log_likelihood=-tt
+        elif log_likelihood<-tt+.5:
+            log_likelihood=.5*math.pow((tt+.5+log_likelihood),2)-tt
+        log_likelihood-=(1e-9)
+            
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
             log_loss -= sp.logsumexp([0, log_likelihood], b=[1, -1])
-    return log_loss
+    if print_res:
+        print("overallLL "+str(log_loss))
+    return log_loss / len(y_j)
 
 
 
@@ -173,7 +183,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     # res.fun = log_loss(res.x, E_k, y_j, clauses)
 
     # Remove NaNs and take the average
-    res.fun = np.nan_to_num(res.fun, nan=float("inf")) / len(y_j)
+    res.fun = np.nan_to_num(res.fun, nan=float("inf"))
 
     return res
 
@@ -252,14 +262,25 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     # bestRes = run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj, input[0])
     
 
-    for i in range(len(bestRes.x[: len(bestRes.x)//2])):
-        bestRes.x[i]=1.0/bestRes.x[i]
 
 
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
     print_with_padding("Minimum value", bestRes.fun)
 
+    if(len(E_k)==1):
+        print("log loss with opt "+str(log_loss(bestRes.x, E_k, y_j, clauses, print_res=False)))
+        y = [1/10.0, 0]
+        print("log loss with test (alpha HI center 0) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+        y = [1/1.0, 0]
+        print("log loss with test (alpha LO center 0) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+        y = [1/10.0, -2]
+        print("log loss with test (alpha HI center -2) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+        y = [1/1.0, -2]
+        print("log loss with test (alpha LO center -2) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+
+    for i in range(len(bestRes.x[: len(bestRes.x)//2])):
+        bestRes.x[i]=1.0/bestRes.x[i]
 
     if (not queue is None):
         queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
