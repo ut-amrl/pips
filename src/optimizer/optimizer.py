@@ -12,9 +12,6 @@ import warnings
 import time
 import json
 
-# TODO
-# how to weight all examples equally, so as not to bias towards the ones with high / extreme values
-# bounds for basin hopping and BFGS is broken
 
 # ------- Parameters -----------------------------
 opt_method = 1          # See below
@@ -40,10 +37,10 @@ tt = 5                  # Max negative log likelihood that an example can contri
 def log_loss(x, E_k, y_j, clauses, print_res=False):
     alpha = x[: len(x)//2]  # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]    # center of logistic function for each conditional structure
-
     log_loss = 0
     for i in range(len(y_j)):
         log_likelihood = - sp.logsumexp([0, - 1.0/alpha[0] * (E_k[0][i] - x_0[0])])
+
 
         for j in range(len(clauses)):
             # Calculate likelihood for this clause
@@ -53,19 +50,28 @@ def log_loss(x, E_k, y_j, clauses, print_res=False):
                 log_likelihood += log_likelihood_j 
             if clauses[j] == 1: # OR: add likelihoods
                 log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
-        
-        # log_likelihood = -np.log(-log_likelihood)
-        if log_likelihood<-tt-.5:
-            log_likelihood=-tt
-        elif log_likelihood<-tt+.5:
-            log_likelihood=.5*math.pow((tt+.5+log_likelihood),2)-tt
-        log_likelihood-=(1e-9)
+
+            if print_res:
+                print("cl "+str(log_likelihood))
             
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
+            # Bound using hinge function
+            if log_likelihood<-tt-.5:
+                log_likelihood=-tt
+            elif log_likelihood<-tt+.5:
+                log_likelihood=.5*math.pow((tt+.5+log_likelihood),2)-tt
+            log_likelihood-=(1e-9)
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
-            log_loss -= sp.logsumexp([0, log_likelihood], b=[1, -1])
+            # Bound using hinge function
+            log_not = sp.logsumexp([0, log_likelihood], b=[1, -1])
+            if log_not<-tt-.5:
+                log_not=-tt
+            elif log_not<-tt+.5:
+                log_not=.5*math.pow((tt+.5+log_not),2)-tt
+            log_not-=(1e-9)
+            log_loss -= log_not
     if print_res:
         print("overallLL "+str(log_loss))
     return log_loss / len(y_j)
@@ -268,16 +274,22 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     debug(bestRes.x)
     print_with_padding("Minimum value", bestRes.fun)
 
-    if(len(E_k)==1):
-        print("log loss with opt "+str(log_loss(bestRes.x, E_k, y_j, clauses, print_res=False)))
-        y = [1/10.0, 0]
-        print("log loss with test (alpha HI center 0) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
-        y = [1/1.0, 0]
-        print("log loss with test (alpha LO center 0) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
-        y = [1/10.0, -2]
-        print("log loss with test (alpha HI center -2) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
-        y = [1/1.0, -2]
-        print("log loss with test (alpha LO center -2) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+    # if(len(E_k)==1):
+    #     print("log loss with opt "+str(log_loss(bestRes.x, E_k, y_j, clauses, print_res=False)))
+    #     y = [1/10.0, 0]
+    #     print("log loss with test (alpha HI center 0) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+    #     y = [1/1.0, 0]
+    #     print("log loss with test (alpha LO center 0) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+    #     y = [1/10.0, -2]
+    #     print("log loss with test (alpha HI center -2) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+    #     y = [1/1.0, -2]
+    #     print("log loss with test (alpha LO center -2) " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+    # if(len(E_k)==2):
+    #     y = [1/10.0, -1/2.0, 0, 0]
+    #     print("log loss with test 1 " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+    #     y = [1/10.0, 1/2.0, 0, 0]
+    #     print("log loss with test 2 " + str(log_loss(y, E_k, y_j, clauses, print_res=False)))
+
 
     for i in range(len(bestRes.x[: len(bestRes.x)//2])):
         bestRes.x[i]=1.0/bestRes.x[i]
