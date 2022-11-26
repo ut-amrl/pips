@@ -20,13 +20,13 @@ print_debug = False             # Extra debugging info
 initial_values = 8              # Initial values for x_0: 0 = all zeros, 1 = average, >1 = do all of the above, then enumerate over random initial guesses (use this to specify how many)
 num_cores = 4                   # Number of processes to run in parallel
 min_alpha = 1.0                 # lowest slope allowed
-initial_alpha = 10.0            # starting slope
+initial_alpha = 1.0            # starting slope
 bound_alpha = True              # whether to bound alpha (to ensure slope is not too low)
 bounds_extension = 0.1          # Amount to search above and below extrema
 print_warnings = False          # Debugging info
 print_padding = 30              # Print customization
 tt = 5                          # Max negative log likelihood that an example can contribute to the total log likelihood
-bound_likelihood = True         # Whether we bound the likelihood by tt
+bound_likelihood = False         # Whether we bound the likelihood by tt
 max_iter=100                    # Max number of iterations of a single optimization run
 
 # opt_method = optimization method
@@ -112,7 +112,7 @@ class Bounds:
         return tmax and tmin
 
 
-# Finds the minimum and maximum values where a change in state occurs
+# Finds the minimum and maximum values where a change in state occurs, plus some extension
 def find_min_max(expression, y_j):
     
     lo = min(expression)
@@ -147,7 +147,7 @@ class TakeStep:
         s = self.stepsize
         x[:mid] += self.rng.uniform(-s, s, x[:mid].shape)
         x[mid:] += self.rng.uniform(-100*s, 100*s, x[mid:].shape)
-        # x += (np.random.randint(2, size=x.shape)-0.5)*2
+        # x += (np.random.randint(2, size=x.shape)-0.5)*2 # Add some randomness (stochastic gradient descent)
         return x
 
 # ---------- Optimizer ------------------------
@@ -156,7 +156,6 @@ class TakeStep:
 def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj, init):
     extra_args = (E_k, y_j, clauses)
     minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
-    bounds_r = tuple([tuple(b) for b in bounds])
 
     if(opt_method == 0):        # BFGS (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
@@ -164,7 +163,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     elif(opt_method == 1):      # L-BFGS-B (Gradient descent) - local optimization
         if bound_alpha:
             res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='L-BFGS-B', options={'maxiter': max_iter, 'disp': False, 'eps': 1e-2}, bounds=bounds_r, tol=1e-16)
+                                method='L-BFGS-B', options={'maxiter': max_iter, 'disp': False, 'eps': 1e-2}, bounds=bounds, tol=1e-16)
         else:
             res = optimize.minimize(log_loss, init, args=extra_args, 
                                 method='L-BFGS-B', options={'maxiter': max_iter, 'disp': False})
@@ -213,19 +212,20 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     # Bounds on 1/alpha : defined by min_alpha
     alpha_bounds = [(-1.0/min_alpha, 1.0/min_alpha) for expression in E_k]
 
-    # x_0_bounds = Bounds on randomly initialized value for x_0: calculated from minimum/maximum and provided bounds extension
-    # x_0_bounds2= Bounds on x_0 itself: is infinity because we need some variables to be unbounded for LBFGS-B to work
-    x_0_bounds = [find_min_max(expression, y_j) for expression in E_k]
-    x_0_bounds2 = [(-np.inf, np.inf) for expression in E_k]
+    # Bounds on randomly initialized value for x_0: calculated from minimum/maximum and provided bounds extension
+    x_0_init_bounds = [find_min_max(expression, y_j) for expression in E_k]
+    # Bounds on x_0 itself during optimization: is infinity because we need some variables to be unbounded for LBFGS-B to work
+    x_0_bounds = [(-np.inf, np.inf) for expression in E_k]
 
     # Setup bounds
-    bounds = np.concatenate((alpha_bounds, x_0_bounds2))
+    bounds = np.concatenate((alpha_bounds, x_0_bounds))
     bounds_lower = [b[0] for b in bounds]
     bounds_upper = [b[1] for b in bounds]
-    print_with_padding("Bounds", "|")
-    debug(bounds)
     bounds_obj = Bounds(bounds_lower, bounds_upper)
     bounds_arr = optimize.Bounds(bounds_lower, bounds_upper)
+
+    print_with_padding("Bounds", "|")
+    debug(bounds)
 
     # ---------- Optimizer ------------------------
     input = []
@@ -239,7 +239,7 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
         elif initial_values == 1 or iter == 1:
             x_0_init = [sum(expression)/len(expression) for expression in E_k]          # Initialize to the average
         elif initial_values > 1:
-            x_0_init = [np.random.uniform(bound[0], bound[1]) for bound in x_0_bounds]  # Initialize randomly 
+            x_0_init = [np.random.uniform(bound[0], bound[1]) for bound in x_0_init_bounds]  # Initialize randomly 
 
         for signs in range(pow(2, len(E_k))): # iterate over possible signs for alpha
             
