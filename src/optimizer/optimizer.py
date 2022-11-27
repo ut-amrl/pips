@@ -20,7 +20,7 @@ print_debug = False             # Extra debugging info
 initial_values = 8              # Initial values for x_0: 0 = all zeros, 1 = average, >1 = do all of the above, then enumerate over random initial guesses (use this to specify how many)
 num_cores = 4                   # Number of processes to run in parallel
 min_alpha = 1.0                 # lowest slope allowed
-initial_alpha = 1.0            # starting slope
+initial_alpha = min_alpha       # starting slope
 bound_alpha = True              # whether to bound alpha (to ensure slope is not too low)
 bounds_extension = 0.1          # Amount to search above and below extrema
 print_warnings = False          # Debugging info
