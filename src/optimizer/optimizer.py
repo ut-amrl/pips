@@ -20,14 +20,18 @@ print_debug = False             # Extra debugging info
 initial_values = 8              # Initial values for x_0: 0 = all zeros, 1 = average, >1 = do all of the above, then enumerate over random initial guesses (use this to specify how many)
 num_cores = 4                   # Number of processes to run in parallel
 min_alpha = 1.0                 # lowest slope allowed
-initial_alpha = min_alpha       # starting slope
+initial_alpha = 1.0             # starting slope
 bound_alpha = True              # whether to bound alpha (to ensure slope is not too low)
 bounds_extension = 0.1          # Amount to search above and below extrema
 print_warnings = False          # Debugging info
 print_padding = 30              # Print customization
 tt = 5                          # Max negative log likelihood that an example can contribute to the total log likelihood
-bound_likelihood = False         # Whether we bound the likelihood by tt
-max_iter=100                    # Max number of iterations of a single optimization run
+bound_likelihood = False        # Whether we bound the likelihood by tt
+max_iter = 150                  # Max number of iterations of a single optimization run
+
+program_complexity_loss = 0     # adds L1 loss ( num_parameters * program_complexity_loss )
+alpha_loss = 0.2                # adds L2 loss ( 1/alpha * alpha_loss )
+x_0_loss = 0.001                # adds L1 loss ( x_0 * x_0_loss )
 
 # opt_method = optimization method
 # 0: local (BFGS)
@@ -47,6 +51,8 @@ def bound_ll(ll):
 def log_loss(x, E_k, y_j, clauses, print_res=False):
     alpha_inv = x[: len(x)//2]      # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
+
+    # Calculate log loss: based on data
     log_loss = 0
     for i in range(len(y_j)):
         # Calculate likelihood for base clause
@@ -67,18 +73,25 @@ def log_loss(x, E_k, y_j, clauses, print_res=False):
             # Bound using smooth hinge function
             if bound_likelihood:
                 log_likelihood=bound_ll(log_likelihood)
-            log_likelihood-=(1e-9)
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
             # Bound using smooth hinge function
             log_not = sp.logsumexp([0, log_likelihood], b=[1, -1])
             if bound_likelihood:
                 log_not=bound_ll(log_not)
-            log_not-=(1e-9)
             log_loss -= log_not
+    
     if print_res:
         print("overall LL "+str(log_loss))
-    return log_loss / len(y_j)
+
+    # Calculate parameter loss: based on prior
+    param_loss = len(x) * program_complexity_loss
+    for inv in alpha_inv:
+        param_loss += inv * inv * alpha_loss
+    for val in x_0:
+        param_loss += abs(val) * x_0_loss
+
+    return log_loss / len(y_j) + param_loss
 
 
 
