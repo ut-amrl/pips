@@ -72,7 +72,6 @@ E_k = [
 clauses = [ 0 , 1 ]     # (p_1 & p_2) | p_3
 
 ### ----------------- Tests ---------------------------------------
-print(optimizer.log_loss([0.5, -0.5, 1, 12, 18, 50], E_k, y_j, clauses))
 # assert abs(optimizer.log_loss([2, -2, 1, 12, 18, 50]) - 4.9155) < 0.001
 # assert abs(optimizer.log_loss([-1, -5, -1, 3, 18, 4]) - 176.66) < 0.001
 # assert abs(optimizer.log_loss([-0.09, 0.3, 0.3, 30, 3, 53]) - 6.7191) < 0.001
@@ -164,18 +163,7 @@ E_k = [[
     -0.2,
     1.2,
     -18.55,
-    -14.34,
-    -4,
-    -1.5,
-    -23.3,
-    -23.93,
-    -1.55,
-    -26.66,
-    -2.83,
-    -17.67,
-    -2.57,
-    -71.27,
-    -67.4],
+    -14.34],
     [29.34,
     10.55,
     15.815,
@@ -205,25 +193,14 @@ E_k = [[
     14,
     11.78,
     224.25,
-    89.3,
-    194.4,
-    185.2,
-    274,
-    278.55,
-    136.7,
-    293.4,
-    140.55,
-    212,
-    -0.9,
-    261.83,
-    221]
+    89.3]
 ]]
 y_j = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 clauses = [[1]]
 
-# start = time.perf_counter()
-# res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
-# print(res)
-# end = time.perf_counter()
+start = time.perf_counter()
+res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
+print(res)
+end = time.perf_counter()
 
-# optimizer.print_with_padding("Time Elapsed", end-start)
+optimizer.print_with_padding("Time Elapsed", end-start)

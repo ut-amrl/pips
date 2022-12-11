@@ -29,9 +29,12 @@ tt = 5                          # Max negative log likelihood that an example ca
 bound_likelihood = False        # Whether we bound the likelihood by tt
 max_iter = 150                  # Max number of iterations of a single optimization run
 
-program_complexity_loss = 0     # adds L1 loss ( num_parameters * program_complexity_loss )
+program_complexity_loss = 0.1   # adds L1 loss ( num_parameters * program_complexity_loss )
 alpha_loss = 0.2                # adds L2 loss ( 1/alpha * alpha_loss )
-x_0_loss = 0.001                # adds L1 loss ( x_0 * x_0_loss )
+x_0_loss = 0                    # adds L1 loss ( x_0 * x_0_loss )
+
+max_examples_yes = 50;         # Total number of examples to optimize over when transition is satisfied
+max_examples_no = 200;         # Total number of examples to optimize over when a transition is not satisfied
 
 # opt_method = optimization method
 # 0: local (BFGS)
@@ -40,15 +43,16 @@ x_0_loss = 0.001                # adds L1 loss ( x_0 * x_0_loss )
 # 3: dual annealing
 # 4: DIRECT
 
-def bound_ll(ll):
-    if ll<-tt-.5:
-        ll=-tt
-    elif ll<-tt+.5:
-        ll=.5*math.pow((tt+.5+ll),2)-tt
-    return ll
+def bound_ll(ll): # Doesn't need to be differentiable for now because it's not used in gradient descent
+    # if ll<-tt-.5:
+    #     ll=-tt
+    # elif ll<-tt+.5:
+    #     ll=.5*math.pow((tt+.5+ll),2)-tt
+    # return ll
+    return max(ll, -tt)
 
 # -------- objective function --------------------
-def log_loss(x, E_k, y_j, clauses, print_res=False):
+def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=bound_likelihood):
     alpha_inv = x[: len(x)//2]      # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
 
@@ -71,13 +75,13 @@ def log_loss(x, E_k, y_j, clauses, print_res=False):
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
             # Bound using smooth hinge function
-            if bound_likelihood:
+            if bounded:
                 log_likelihood=bound_ll(log_likelihood)
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
             # Bound using smooth hinge function
             log_not = sp.logsumexp([0, log_likelihood], b=[1, -1])
-            if bound_likelihood:
+            if bounded:
                 log_not=bound_ll(log_not)
             log_loss -= log_not
     
@@ -218,17 +222,37 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     if(not print_warnings):
         warnings.filterwarnings('ignore')
 
-    step_obj = TakeStep()
+    # Sampling: take a subset of the given expressions to optimize over
+    count_yes = 0
+    count_no = 0
+    E_k_subset = []
+    y_j_subset = []
+    for _ in range(0, len(E_k)):
+        E_k_subset.append([])
+    
+    for i in range(0, len(y_j)):
+        if y_j[i] and count_yes < max_examples_yes:
+            for ind in range(0, len(E_k)):
+                E_k_subset[ind].append(E_k[ind][i])
+            y_j_subset.append(y_j[i])
+            count_yes += 1
+        if not y_j[i] and count_no < max_examples_no:
+            for ind in range(0, len(E_k)):
+                E_k_subset[ind].append(E_k[ind][i])
+            y_j_subset.append(y_j[i])
+            count_no += 1
 
     # ---------- Bounds --------------------
+    # Custom step function
+    step_obj = TakeStep()
 
     # Bounds on 1/alpha : defined by min_alpha
-    alpha_bounds = [(-1.0/min_alpha, 1.0/min_alpha) for expression in E_k]
+    alpha_bounds = [(-1.0/min_alpha, 1.0/min_alpha) for expression in E_k_subset]
 
     # Bounds on randomly initialized value for x_0: calculated from minimum/maximum and provided bounds extension
-    x_0_init_bounds = [find_min_max(expression, y_j) for expression in E_k]
+    x_0_init_bounds = [find_min_max(expression, y_j_subset) for expression in E_k_subset]
     # Bounds on x_0 itself during optimization: is infinity because we need some variables to be unbounded for LBFGS-B to work
-    x_0_bounds = [(-np.inf, np.inf) for expression in E_k]
+    x_0_bounds = [(-np.inf, np.inf) for expression in E_k_subset]
 
     # Setup bounds
     bounds = np.concatenate((alpha_bounds, x_0_bounds))
@@ -240,7 +264,7 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     print_with_padding("Bounds", "|")
     debug(bounds)
 
-    # ---------- Optimizer ------------------------
+    # ---------- Initialization ------------------------
     input = []
 
     for iter in range(max(1, initial_values)):
@@ -248,21 +272,21 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
         # Initialization of x_0
 
         if initial_values == 0 or iter == 0:
-            x_0_init = np.zeros(len(E_k))                                               # Initialize to 0s
+            x_0_init = np.zeros(len(E_k_subset))                                               # Initialize to 0s
         elif initial_values == 1 or iter == 1:
-            x_0_init = [sum(expression)/len(expression) for expression in E_k]          # Initialize to the average
+            x_0_init = [sum(expression)/len(expression) for expression in E_k_subset]          # Initialize to the average
         elif initial_values > 1:
             x_0_init = [np.random.uniform(bound[0], bound[1]) for bound in x_0_init_bounds]  # Initialize randomly 
 
-        for signs in range(pow(2, len(E_k))): # iterate over possible signs for alpha
+        for signs in range(pow(2, len(E_k_subset))): # iterate over possible signs for alpha
             
             # Initialization of alpha
             alpha_init = []
-            for i in range(len(E_k)):
+            for i in range(len(E_k_subset)):
                 alpha_init.append(1.0/initial_alpha if (signs & (1 << i)) else -1.0/initial_alpha)
 
             if not enumerateSigns: # Initialize to 0 (don't iterate over signs)
-                alpha_init = np.zeros(len(E_k))
+                alpha_init = np.zeros(len(E_k_subset))
             
             init = np.concatenate((alpha_init, x_0_init))
 
@@ -279,7 +303,7 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     debug(input)
     
     # Run optimizer in parallel
-    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj)
+    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses, bounds, bounds_arr, bounds_obj, step_obj)
     with multiprocessing.Pool(num_cores) as p:
         output = p.map(partial_optimizer, input)
     
@@ -288,7 +312,9 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
 
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
-    print_with_padding("Minimum value", bestRes.fun)
+    print_with_padding("Minimum value - training set", bestRes.fun)
+    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False, True)
+    print_with_padding("Minimum value - validation set", bestRes.fun)
 
     # takes the inverse of inv_alpha to get alpha to pass into EMDIPS
     for i in range(len(bestRes.x[: len(bestRes.x)//2])):

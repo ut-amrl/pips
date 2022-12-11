@@ -604,6 +604,9 @@ namespace AST {
             vector<Example> yes;
             vector<Example> no;
             SplitExamplesVector(examples, transition, &yes, &no);
+            auto rng = default_random_engine {};
+            shuffle(begin(yes), std::end(yes), rng);
+            shuffle(begin(no), std::end(no), rng);
             cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl;
 
             float current_best = -1;
