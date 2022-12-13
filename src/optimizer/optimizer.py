@@ -44,7 +44,7 @@ max_examples_no = 200;         # Total number of examples to optimize over when 
 # 3: dual annealing
 # 4: DIRECT
 
-def bound_ll(ll): # Doesn't need to be differentiable for now because it's not used in gradient descent
+def bound_ll(ll): # Doesn't need to be differentiable because it's not used in gradient descent, only in the final loss calculation
     # if ll<-tt-.5:
     #     ll=-tt
     # elif ll<-tt+.5:
@@ -75,12 +75,10 @@ def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=bound_likelihood):
             
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
-            # Bound using smooth hinge function
             if bounded:
                 log_likelihood=bound_ll(log_likelihood)
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
-            # Bound using smooth hinge function
             log_not = sp.logsumexp([0, log_likelihood], b=[1, -1])
             if bounded:
                 log_not=bound_ll(log_not)
@@ -206,12 +204,6 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     print_with_padding("Num iterations", res.nit)
     print_with_padding("Minimum value", res.fun)
     debug("")
-
-
-    # for i in range(int(len(res.x)/2)):
-    #     if abs(res.x[i])<min_alpha:
-    #         res.x[i]=min_alpha*np.sign(res.x[i])
-    # res.fun = log_loss(res.x, E_k, y_j, clauses)
 
     # Remove NaNs
     res.fun = np.nan_to_num(res.fun, nan=float("inf"))
