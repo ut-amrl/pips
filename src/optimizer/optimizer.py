@@ -30,7 +30,8 @@ bound_likelihood = False        # Whether we bound the likelihood by tt
 max_iter = 150                  # Max number of iterations of a single optimization run
 
 program_complexity_loss = 0.1   # adds L1 loss ( num_parameters * program_complexity_loss )
-alpha_loss = 0.2                # adds L2 loss ( 1/alpha * alpha_loss )
+alpha_loss_lower = 0.2          # adds L2 loss ( 1/alpha^2 * alpha_loss_lower )
+alpha_loss_upper = 0.01         # adds L2 loss ( alpha^2 * alpha_loss_upper )
 x_0_loss = 0                    # adds L1 loss ( x_0 * x_0_loss )
 
 max_examples_yes = 50;         # Total number of examples to optimize over when transition is satisfied
@@ -91,7 +92,8 @@ def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=bound_likelihood):
     # Calculate parameter loss: based on prior
     param_loss = len(x) * program_complexity_loss
     for inv in alpha_inv:
-        param_loss += inv * inv * alpha_loss
+        param_loss += inv * inv * alpha_loss_lower
+        param_loss += 1.0/inv * 1.0/inv * alpha_loss_upper
     for val in x_0:
         param_loss += abs(val) * x_0_loss
 

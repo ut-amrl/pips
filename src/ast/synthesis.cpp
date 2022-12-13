@@ -599,7 +599,7 @@ namespace AST {
 
             cout << endl << endl << "|--------- " << transition.first << "->";
             cout << transition.second << " ---------" << endl;
-            cout << "| Target log likelihood: <" << max_error[t] << endl;
+            cout << "| Target loss: <" << max_error[t] << endl;
 
             vector<Example> yes;
             vector<Example> no;
@@ -688,7 +688,7 @@ namespace AST {
             }
 
             // Write the solution out to a file.
-            cout << "| Error (Log likelihood): " << current_best << endl;
+            cout << "| Final loss: " << current_best << endl;
             cout << "| Final Solution: " << current_solution << endl;
             ofstream output_file;
             output_file.open(output_name);
