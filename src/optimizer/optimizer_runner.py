@@ -204,3 +204,36 @@ print(res)
 end = time.perf_counter()
 
 optimizer.print_with_padding("Time Elapsed", end-start)
+
+
+
+
+# --------------------- testing -------------------------------------------
+
+def dist_traveled(v, dec):
+    return - v * v / (2 * dec)
+
+# f = open('examples/emdips/out/data.json')
+# data = json.load(f)
+# E_k_test = []
+# y_j_test = []
+# clauses_test = [0]
+# arr_a = []
+# arr_b = []
+# for row in data:
+#     if(row['start']['value'] == 'ACC'):
+#         y_j_test.append(int(row['output']['value'] == 'CON'))
+#         arr_a.append(row['v']['value'] - row['vMax']['value'])
+#         arr_b.append(dist_traveled(row['v']['value'], row['decMax']['value']) + row['x']['value'] - row['target']['value'])
+
+# E_k_test = [arr_a, arr_b]
+
+# f.close()
+
+# run_optimizer(None, E_k_test, y_j_test, clauses_test)
+
+# print("supposed")
+# print(log_loss([1, -1, 0.1, 0], E_k_test, y_j_test, clauses_test))
+# print(log_loss([1, -1, 0, 0], E_k_test, y_j_test, clauses_test))
+# print(log_loss([2, -2, 0, 0], E_k_test, y_j_test, clauses_test))
+# print(log_loss([10, -10, 0, 0], E_k_test, y_j_test, clauses_test))
