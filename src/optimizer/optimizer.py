@@ -25,7 +25,7 @@ bound_alpha = True              # whether to bound alpha (to ensure slope is not
 bounds_extension = 0.1          # Amount to search above and below extrema
 print_warnings = False          # Debugging info
 print_padding = 30              # Print customization
-tt = 5                          # Max negative log likelihood that an example can contribute to the total log likelihood
+tt = 20                         # Max negative log likelihood that an example can contribute to the total log likelihood
 bound_likelihood = False        # Whether we bound the likelihood by tt
 max_iter = 150                  # Max number of iterations of a single optimization run
 
