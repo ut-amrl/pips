@@ -198,11 +198,13 @@ typedef std::shared_ptr<Param> param_ptr;
 class Var : public AST {
  public:
   Var(const std::string& name, const Dimension& dims, const Type& type);
+  Var(const std::string& name, const Dimension& dims, const bool root);
   ast_ptr Accept(class Visitor* v);
   nlohmann::json ToJson();
   ast_ptr FromJson(const nlohmann::json&);
   bool operator==(const Var& other) const;
   const std::string name_;
+  const bool root_;
 
  private:
 };
