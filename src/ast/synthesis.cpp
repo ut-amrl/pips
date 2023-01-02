@@ -568,12 +568,14 @@ namespace AST {
         return sol_arr;
     }
 
-    EmdipsOutput emdipsL3(const vector<Example> &demos,
+    void emdipsL3(const vector<Example> &demos,
                     const vector<pair<string, string>> &transitions,
+                    vector<ast_ptr>& solution_preds,
+                    vector<float>& solution_loss,
                     vector<ast_ptr> &sketches,
                     vector<ast_ptr> &current_solutions,
                     vector<ast_ptr> &gt_truth,
-                    const vector<float> &max_error,
+                    const vector<float> max_error,
                     const string &output_path,
                     const uint32_t batch_size,
                     const uint32_t max_enum,
@@ -584,6 +586,9 @@ namespace AST {
 
         vector<ast_ptr> transition_solutions;
         vector<float> log_likelihoods;
+
+        solution_preds.clear();
+        solution_loss.clear();
 
         for (int t = 0; t < transitions.size(); t++) {
             const auto &transition = transitions[t];
@@ -699,21 +704,19 @@ namespace AST {
             // Filter out Examples used by this transition
             examples = FilterExamples(examples, transition);
 
-            transition_solutions.push_back(current_solution);
-            log_likelihoods.push_back(current_best);
+            solution_preds.push_back(current_solution);
+            solution_loss.push_back(current_best);
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             cout << "| Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
             cout << "|----------------------------" << endl;
         }
-
-        EmdipsOutput res { transition_solutions, log_likelihoods };
-
-        return res;
     }
 
-    EmdipsOutput emdipsL3(const vector<Example> &demos,
+    void emdipsL3(const vector<Example> &demos,
         const vector<pair<string, string>> &transitions,
+        vector<ast_ptr>& solution_preds,
+        vector<float>& solution_loss,
         vector<ast_ptr>& sketches,
         const vector<float>& max_error,
         const string &output_path,
@@ -723,7 +726,7 @@ namespace AST {
 
         vector<ast_ptr> current_solutions;
         vector<ast_ptr> gt_truth;
-        return emdipsL3(demos, transitions, sketches, current_solutions, gt_truth, max_error, output_path, batch_size, max_enum, false, pFunc);
+        emdipsL3(demos, transitions, solution_preds, solution_loss, sketches, current_solutions, gt_truth, max_error, output_path, batch_size, max_enum, false, pFunc);
     }
 
     void DIPR(const vector<Example> &demos, const vector<ast_ptr> &programs,

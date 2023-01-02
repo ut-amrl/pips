@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
     cout << endl;
 
     cout << "----Transitions----" << endl;
-    for (int i = 0; i < transitions.size(); i++) {
+    for (uint i = 0; i < transitions.size(); i++) {
         cout << transitions[i].first << "->" << transitions[i].second << endl;
     }
     cout << endl;
@@ -157,12 +157,10 @@ int main(int argc, char* argv[]) {
     //     cout << each << endl;
     // }
 
-    vector<float> accuracies;
-    for(int i = 0; i < transitions.size(); i++){
-        accuracies.push_back(FLAGS_target_score);
-    }
+    vector<ast_ptr> solution_preds;
+    vector<float> loss;
 
-    EmdipsOutput eo = emdipsL3(examples, transitions, all_sketches, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, INT_MAX, pFunc);
+    emdipsL3(examples, transitions, solution_preds, loss, all_sketches, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, INT_MAX, pFunc);
 
     cout << "---- Number of Features Enumerated ----" << endl;
     cout << ops.size() << endl << endl;
