@@ -21,7 +21,7 @@
 #include "visitors/print_visitor.hpp"
 
 DEFINE_string(ex_file, "examples/data.json", "Examples file");
-DEFINE_string(lib_file, "ops/emdips_test.json", "Operation library file");
+DEFINE_string(lib_file, "ops/emdips_operations.json", "Operation library file");
 DEFINE_string(out_dir, "ref/dipsl3/", "Operation library file");
 DEFINE_string(feature_file, "features.txt", "File to write features to");
 DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
