@@ -52,6 +52,7 @@ namespace AST {
 
     // Function to calculate prior based on program complexity
     float CalculatePrior(int feature_hole_count) {
+        // TODO: move program complexity loss calculations here
         return feature_hole_count * 0.05; // Simple linear relationship
         // return 0;
     }

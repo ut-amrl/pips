@@ -19,7 +19,7 @@ def hinge(likelihood): # Doesn't need to be differentiable because it's not used
     return max(likelihood, -OUTLIER_MAX)
 
 # -------- objective function --------------------
-def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=BOUND_LIKELIHOOD):
+def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=BOUND_LIKELIHOOD, use_prior=True):
     alpha_inv = x[: len(x)//2]      # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
 
@@ -54,12 +54,13 @@ def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=BOUND_LIKELIHOOD):
         print("overall LL "+str(log_loss))
 
     # Calculate parameter loss: based on prior
-    param_loss = len(x) * PROG_COMPLEXITY_LOSS
-    for inv in alpha_inv:
-        param_loss += inv * inv * ALPHA_LOSS_LOWER
-        param_loss += 1.0/inv * 1.0/inv * ALPHA_LOSS_UPPER
-    for val in x_0:
-        param_loss += abs(val) * X_0_LOSS
+    param_loss = 0
+    if use_prior:
+        for inv in alpha_inv:
+            param_loss += inv * inv * ALPHA_LOSS_LOWER
+            param_loss += 1.0/inv * 1.0/inv * ALPHA_LOSS_UPPER
+        for val in x_0:
+            param_loss += abs(val) * X_0_LOSS
 
     return log_loss / len(y_j) + param_loss
 
@@ -273,7 +274,8 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
     print_with_padding("Minimum value - training set", bestRes.fun)
-    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False, True)
+    # Run again with the validation set and no prior
+    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False, True, False)
     print_with_padding("Minimum value - validation set", bestRes.fun)
 
     # takes the inverse of inv_alpha to get alpha to pass into EMDIPS
