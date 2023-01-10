@@ -128,55 +128,55 @@ std::ostream& operator<<(std::ostream& stream, const Example& example) {
 }
 
 // Constructors
-AST::AST(const Dimension& dims, const Type& type) :
-  dims_(dims), type_(type), priority(-1), symbolic_(false) {
+AST::AST(const Dimension& dims, const Type& type, const int& complexity) :
+  dims_(dims), type_(type), complexity_(complexity), symbolic_(false) {
 }
 
-AST::AST(const Dimension& dims, const Type& type, const bool& symbolic) :
-  dims_(dims), type_(type), priority(-1), symbolic_(symbolic) {
+AST::AST(const Dimension& dims, const Type& type, const bool& symbolic, const int& complexity) :
+  dims_(dims), type_(type), complexity_(complexity), symbolic_(symbolic) {
 }
 
 AST::~AST(){};
 
 TernOp::TernOp(ast_ptr x, ast_ptr a, ast_ptr b, const string& op)
-    : AST({0, 0, 0}, OP), x_(x), a_(a), b_(b), op_(op) {}
+    : AST({0, 0, 0}, OP, 1 + x->complexity_ + a->complexity_ + b->complexity_), x_(x), a_(a), b_(b), op_(op) {}
 
 TernOp::TernOp(ast_ptr x, ast_ptr a, ast_ptr b, const string& op, const Type& type,
              const Dimension& dim)
-    : AST(dim, type), x_(x), a_(a), b_(b), op_(op) {}
+    : AST(dim, type, 1 + x->complexity_ + a->complexity_ + b->complexity_), x_(x), a_(a), b_(b), op_(op) {}
 
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op)
-    : AST({0, 0, 0}, OP), left_(left), right_(right), op_(op) {}
+    : AST({0, 0, 0}, OP, 1 + left->complexity_ + right->complexity_), left_(left), right_(right), op_(op) {}
 
 BinOp::BinOp(ast_ptr left, ast_ptr right, const string& op, const Type& type,
              const Dimension& dim)
-    : AST(dim, type), left_(left), right_(right), op_(op) {}
+    : AST(dim, type, 1 + left->complexity_ + right->complexity_), left_(left), right_(right), op_(op) {}
 
 UnOp::UnOp(ast_ptr input, const string& op)
-    : AST({0, 0, 0}, OP), input_(input), op_(op) {}
+    : AST({0, 0, 0}, OP, 1 + input->complexity_), input_(input), op_(op) {}
 
 UnOp::UnOp(ast_ptr input, const string& op, const Type& type,
            const Dimension& dim)
-    : AST(dim, type), input_(input), op_(op) {}
+    : AST(dim, type, 1 + input->complexity_), input_(input), op_(op) {}
 
 Feature::Feature(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type), name_(name) {}
+    : AST(dims, type, 1), name_(name) {}
 
 Var::Var(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type), name_(name), root_(false) {}
+    : AST(dims, type, 1), name_(name), root_(false) {}
 
 Var::Var(const string& name, const Dimension& dims, const bool root)
-    : AST(dims, NUM), name_(name), root_(root) {}
+    : AST(dims, NUM, 1), name_(name), root_(root) {}
 
 Param::Param(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type, true), name_(name) {}
+    : AST(dims, type, true, 1), name_(name) {}
 
-Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VEC), value_(value) {}
+Vec::Vec(Vector2f value, Vector3i dims) : AST(dims, VEC, 1), value_(value) {}
 
-Bool::Bool(const bool& value) : AST({0, 0, 0}, BOOL), value_(value) {}
+Bool::Bool(const bool& value) : AST({0, 0, 0}, BOOL, 1), value_(value) {}
 
 Num::Num(const float& value, const Dimension& dims)
-    : AST(dims, NUM), value_(value) {}
+    : AST(dims, NUM, 1), value_(value) {}
 
 // Necessary to get the automatic casting correct
 ast_ptr AST::Accept(class Visitor* v) { return v->Visit(this); }
@@ -324,6 +324,7 @@ ast_ptr Feature::FromJson(const json& input) {
   if (input["value"] != "null") {
     output.current_value_ = AstFromJson(input["value"]);
   }
+  output.complexity_ = output.current_value_->complexity_ - 5;  // Remove redundant complexity points from logistic and flip (not considered part of the feature)
   return make_shared<Feature>(output);
 }
 

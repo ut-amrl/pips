@@ -43,10 +43,10 @@ void ResetParams(ast_ptr ast) {
   ast->Accept(&mapper);
 }
 
-int FillHoles(ast_ptr& ast, const Model& model) {
+void FillHoles(ast_ptr& ast, const Model& model) {
   // If there are no holes that still need filling, work is done so exit.
   if (model.empty()) {
-    return 0;
+    return;
   }
 
   // Otherwise, just take the first (arbitrary) hole/value pair.
@@ -63,7 +63,7 @@ int FillHoles(ast_ptr& ast, const Model& model) {
   new_model.erase(hole_name);
 
   // Recursive call to fill another hole (if needed).
-  return hole_value->priority + FillHoles(ast, new_model);
+  FillHoles(ast, new_model);
 }
 
 ast_ptr FillHoles(const ast_ptr& ast, const Model& model) {
@@ -180,17 +180,20 @@ ast_ptr FillHole::Visit(TernOp* node){
     node->x_->Accept(this);
     node->a_->Accept(this);
     node->b_->Accept(this);
+    node->complexity_ = 1 + node->x_->complexity_ + node->a_->complexity_ + node->b_->complexity_;
     return make_shared<TernOp>(*node);
 }
 
 ast_ptr FillHole::Visit(BinOp* node) {
-  node->left_->Accept(this);
-  node->right_->Accept(this);
-  return make_shared<BinOp>(*node);
+    node->left_->Accept(this);
+    node->right_->Accept(this);
+    node->complexity_ = 1 + node->left_->complexity_ + node->right_->complexity_;
+    return make_shared<BinOp>(*node);
 }
 
 ast_ptr FillHole::Visit(UnOp* node) {
   node->input_->Accept(this);
+  node->complexity_ = 1 + node->input_->complexity_;
   return make_shared<UnOp>(*node);
 }
 
@@ -199,6 +202,8 @@ ast_ptr FillHole::Visit(Bool* node) { return make_shared<Bool>(*node); }
 ast_ptr FillHole::Visit(Feature* node) {
   if (node->name_ == target_name_ && node->current_value_ == nullptr) {
     node->current_value_ = new_value_;
+    node->complexity_ = new_value_->complexity_;
+    node->complexity_ -= 5; // Remove redundant complexity points from logistic and flip (not considered part of the feature)
   }
   if (node->current_value_ != nullptr) {
     node->current_value_->Accept(this);
@@ -213,6 +218,7 @@ ast_ptr FillHole::Visit(Param* node) {
     // node->current_value_ = Plus(node->current_value_, new_value_);
   } else if (node->name_ == target_name_) {
     node->current_value_ = new_value_;
+    node->complexity_ = new_value_->complexity_;
   }
   if (node->current_value_ != nullptr) {
     node->current_value_->Accept(this);

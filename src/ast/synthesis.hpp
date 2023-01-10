@@ -50,6 +50,7 @@ namespace AST {
         const uint32_t batch_size,
         const uint32_t max_enum,
         const bool use_gt,
+        const double complexity_loss,
         PyObject* pFunc);
 
     void emdipsL3(const vector<Example> &demos,
@@ -61,6 +62,7 @@ namespace AST {
         const string &output_path,
         const uint32_t batch_size,
         const uint32_t max_enum,
+        const double complexity_loss,
         PyObject* pFunc);
 
     void SRTR(const vector<Example>& demos,

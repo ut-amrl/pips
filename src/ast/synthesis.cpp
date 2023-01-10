@@ -51,10 +51,9 @@ namespace AST {
     }
 
     // Function to calculate prior based on program complexity
-    float CalculatePrior(int feature_hole_count) {
-        // TODO: move program complexity loss calculations here
-        return feature_hole_count * 0.05; // Simple linear relationship
-        // return 0;
+    float CalculatePrior(ast_ptr sketch, double complexity_loss) {
+        // Simple linear relationship
+        return sketch->complexity_ * complexity_loss;
     }
 
     // Utility function that converts a Z3 model (solutions for parameter holes)
@@ -318,9 +317,7 @@ namespace AST {
                             keep_searching = false;
                             solution_cond = filled;
                             current_best = sat_ratio;
-                        } else if (sat_ratio > current_best ||
-                                sat_ratio == current_best &&
-                                    filled->priority < solution_cond->priority) {
+                        } else if (sat_ratio > current_best) {
                             solution_cond = filled;
                             current_best = sat_ratio;
                         }
@@ -581,6 +578,7 @@ namespace AST {
                     const uint32_t batch_size,
                     const uint32_t max_enum,
                     const bool use_gt,
+                    const double complexity_loss,
                     PyObject* pFunc) {
 
         vector<Example> examples = demos;
@@ -652,9 +650,8 @@ namespace AST {
 
                     // Custom comparison function
                     sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
-                        return a->priority > b->priority;
+                        return a->complexity_ < b->complexity_; // TODO: figure out smarter enumeration method
                     });
-
 
                     auto rng = std::default_random_engine {};
                     shuffle(begin(sketches), end(sketches), rng);
@@ -675,16 +672,16 @@ namespace AST {
 
                         vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
 
-                        // cout << "Batch: " << last << endl;
                         for(int i = 0; i < log_likelihoods.size(); i++){
-                            cout << batch[i] << ": " << log_likelihoods[i] << endl;
+                            double prior = CalculatePrior(batch[i], complexity_loss);
+                            cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
+                            log_likelihoods[i] += prior;
+                            
                             if(current_best == -1 || log_likelihoods[i] < current_best){
                                 current_best = log_likelihoods[i];
                                 current_solution = batch[i];
                             }
                         }
-                        // cout << endl << endl;
-                        cout << "*";
 
                         if(current_best < max_error[t])
                             break;
@@ -723,11 +720,12 @@ namespace AST {
         const string &output_path,
         const uint32_t batch_size,
         const uint32_t max_enum,
+        const double complexity_loss,
         PyObject* pFunc) {
 
         vector<ast_ptr> current_solutions;
         vector<ast_ptr> gt_truth;
-        emdipsL3(demos, transitions, solution_preds, solution_loss, sketches, current_solutions, gt_truth, max_error, output_path, batch_size, max_enum, false, pFunc);
+        emdipsL3(demos, transitions, solution_preds, solution_loss, sketches, current_solutions, gt_truth, max_error, output_path, batch_size, max_enum, false, complexity_loss, pFunc);
     }
 
     void DIPR(const vector<Example> &demos, const vector<ast_ptr> &programs,

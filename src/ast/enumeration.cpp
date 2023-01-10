@@ -235,9 +235,6 @@ vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
                              const vector<FunctionEntry>& library, int depth,
                              vector<Signature>* signatures) {
   CumulativeFunctionTimer::Invocation invoke(&rec_enumerate_logistic);
-  for(ast_ptr each: roots){
-    each->priority = 1;
-  }
   vector<ast_ptr> feat = RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
   for(auto i = 0; i < feat.size(); i++){
     TernOp logistic(feat[i], make_shared<Num>(Num(0, {0, 0, 0})), make_shared<Num>(Num(0, {0, 0, 0})), "Logistic");
@@ -255,9 +252,6 @@ vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                              const vector<FunctionEntry>& library, int depth,
                              vector<Signature>* signatures) {
   CumulativeFunctionTimer::Invocation invoke(&rec_enumerate);
-  for(ast_ptr each: roots){
-    each->priority = 1;
-  }
   return RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
 }
 
@@ -301,7 +295,7 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies,
     // values from it and use them to fill the holes in a copy of the
     // condition.
     ast_ptr filled = DeepCopyAST(sketch);
-    filled->priority = FillHoles(filled, m);
+    FillHoles(filled, m);
     return filled;
 }
 
@@ -383,7 +377,6 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
         // output dimensions and types. Should be able to use the operations
         // themselves to infer these without needing to enumerate them all.
         UnOp result = UnOp(node, func.op_, func.output_type_, func.output_dim_);
-        result.priority = node->priority + 1;
         operations.push_back(make_shared<UnOp>(result));
       } else {
         // Binary Op, have to find some other argument.
@@ -398,11 +391,9 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> inputs,
             // Use the correct order of inputs
             if (in_index == 0) {
               BinOp result = BinOp(input, node, func.op_, func.output_type_, func.output_dim_);
-              result.priority = 1 + input->priority + node->priority;
               operations.push_back(make_shared<BinOp>(result));
             } else {
               BinOp result = BinOp(node, input, func.op_, func.output_type_, func.output_dim_);
-              result.priority = 1 + input->priority + node->priority;
               operations.push_back(make_shared<BinOp>(result));
             }
           }

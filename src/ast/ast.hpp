@@ -79,14 +79,14 @@ typedef Eigen::Vector3i Dimension;
 
 class AST {
  public:
-  AST(const Dimension& dims, const Type& type);
-  AST(const Dimension& dims, const Type& type, const bool& symbolic);
+  AST(const Dimension& dims, const Type& type, const int& complexity);
+  AST(const Dimension& dims, const Type& type, const bool& symbolic, const int& complexity);
   virtual std::shared_ptr<AST> Accept(class Visitor* v) = 0;
   virtual nlohmann::json ToJson() = 0;
   virtual std::shared_ptr<AST> FromJson(const nlohmann::json&) = 0;
   virtual ~AST() = 0;
   const Dimension dims_;
-  int priority = -1;
+  int complexity_;
   const Type type_;
   bool symbolic_;
 

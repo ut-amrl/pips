@@ -30,6 +30,7 @@ ast_ptr DeepCopy::Visit(TernOp* node) {
   node->b_->Accept(this);
   ast_ptr b = copy_;
   TernOp copy(x, a, b, node->op_, node->type_, node->dims_);
+  copy.complexity_ = node->complexity_;
   copy_ = make_shared<TernOp>(copy);
   return copy_;
 }
@@ -40,6 +41,7 @@ ast_ptr DeepCopy::Visit(BinOp* node) {
   node->right_->Accept(this);
   ast_ptr rhs = copy_;
   BinOp copy(lhs, rhs, node->op_, node->type_, node->dims_);
+  copy.complexity_ = node->complexity_;
   copy_ = make_shared<BinOp>(copy);
   return copy_;
 }
@@ -47,6 +49,7 @@ ast_ptr DeepCopy::Visit(BinOp* node) {
 ast_ptr DeepCopy::Visit(UnOp* node) {
   node->input_->Accept(this);
   UnOp copy(copy_, node->op_);
+  copy.complexity_ = node->complexity_;
   copy_ = make_shared<UnOp>(copy);
   return copy_;
 }
@@ -60,6 +63,7 @@ ast_ptr DeepCopy::Visit(Bool* node) {
 ast_ptr DeepCopy::Visit(Feature* node) {
   Feature copy(node->name_, node->dims_, node->type_);
   copy.current_value_ = DeepCopyAST(node->current_value_);
+  copy.complexity_ = node->complexity_;
   copy_ = make_shared<Feature>(copy);
   return copy_;
 }
@@ -73,6 +77,7 @@ ast_ptr DeepCopy::Visit(Num* node) {
 ast_ptr DeepCopy::Visit(Param* node) {
   Param copy(node->name_, node->dims_, node->type_);
   copy.current_value_ = DeepCopyAST(node->current_value_);
+  copy.complexity_ = node->complexity_;
   copy_ = make_shared<Param>(copy);
   return copy_;
 }
