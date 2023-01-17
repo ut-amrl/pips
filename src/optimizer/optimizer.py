@@ -184,25 +184,29 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
         warnings.filterwarnings('ignore')
 
     # Sampling: take a subset of the given expressions to optimize over
-    count_yes = 0
-    count_no = 0
     E_k_subset = []
     y_j_subset = []
     for _ in range(0, len(E_k)):
         E_k_subset.append([])
     
-    for i in range(0, len(y_j)):
-        if y_j[i] and count_yes < MAX_EX_YES:
-            for ind in range(0, len(E_k)):
-                E_k_subset[ind].append(E_k[ind][i])
-            y_j_subset.append(y_j[i])
-            count_yes += 1
-        if not y_j[i] and count_no < MAX_EX_NO:
-            for ind in range(0, len(E_k)):
-                E_k_subset[ind].append(E_k[ind][i])
-            y_j_subset.append(y_j[i])
-            count_no += 1
+    yes_count = float(np.count_nonzero(y_j))
+    no_count = float(len(y_j) - yes_count)
 
+    yes_count = np.ceil(yes_count * EX_SAMPLED / len(y_j))
+    no_count = np.ceil(no_count * EX_SAMPLED / len(y_j))
+
+    for i in range(0, len(y_j)):
+        if y_j[i] and yes_count > 0:
+            for ind in range(0, len(E_k)):
+                E_k_subset[ind].append(E_k[ind][i])
+            y_j_subset.append(y_j[i])
+            yes_count -= 1
+        if not y_j[i] and no_count > 0:
+            for ind in range(0, len(E_k)):
+                E_k_subset[ind].append(E_k[ind][i])
+            y_j_subset.append(y_j[i])
+            no_count -= 1
+    
     # ---------- Bounds --------------------
     # Custom step function
     step_obj = TakeStep()
@@ -290,6 +294,8 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
 
 # Run the optimizer on multiple expression examples in parallel
 def run_optimizer_threads(E_k_arr, y_j, clauses_arr):
+    if DEBUG:
+        print("| Sampling " + str(EX_SAMPLED) + " examples")
     q = multiprocessing.Queue()
     processes = []
     for i in range(len(E_k_arr)):
