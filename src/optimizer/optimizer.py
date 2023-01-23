@@ -14,6 +14,8 @@ import json
 
 from optimizer_settings import *
 
+# NUM_CORES * BATCH_SIZE = total number of cores used at once
+
 
 def hinge(likelihood): # Doesn't need to be differentiable because it's not used in gradient descent, only in the final loss calculation
     return max(likelihood, -OUTLIER_MAX)
@@ -45,7 +47,7 @@ def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=BOUND_LIKELIHOOD, us
                 log_likelihood=hinge(log_likelihood)
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
-            log_not = sp.logsumexp([0, log_likelihood], b=[1, -1])
+            log_not = sp.logsumexp([0, log_likelihood-(1E-10)], b=[1, -1])
             if bounded:
                 log_not=hinge(log_not)
             log_loss -= log_not
@@ -141,6 +143,9 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     extra_args = (E_k, y_j, clauses)
     minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
 
+    start = time.perf_counter()
+    debug("start opt "+str(init))
+
     if(OPT_METHOD == 0):        # BFGS (Gradient descent) - local optimization
         res = optimize.minimize(log_loss, init, args=extra_args, 
                                 method='BFGS', options={'maxiter': MAX_ITER, 'disp': False})
@@ -170,6 +175,10 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
     debug(res.x)
     print_with_padding("Num iterations", res.nit)
     print_with_padding("Minimum value", res.fun)
+
+    end = time.perf_counter()
+    debug("time: "+str(end-start))
+
     debug("")
 
     # Remove NaNs

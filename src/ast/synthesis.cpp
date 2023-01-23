@@ -666,7 +666,7 @@ namespace AST {
                     while(ind < min((uint32_t) sketches.size(), max_enum)){
                         int last = ind;
                         vector<ast_ptr> batch;
-                        for(; ind < last + batch_size && ind < sketches.size(); ind++){
+                        for(; ind < last + batch_size && ind < sketches.size() && ind < max_enum; ind++){
                             batch.push_back(sketches[ind]);
                         }
 
