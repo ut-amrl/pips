@@ -491,7 +491,6 @@ namespace AST {
         vector<double> sol_arr;
 
         PyObject *pClauses_arr, *pY_j, *pE_k_arr, *pArgs, *pValue;
-        
 
         // Arguments
         pClauses_arr = PyList_New(sketches.size());
@@ -571,20 +570,17 @@ namespace AST {
                     vector<ast_ptr>& solution_preds,
                     vector<float>& solution_loss,
                     vector<ast_ptr> &sketches,
-                    vector<ast_ptr> &current_solutions,
-                    vector<ast_ptr> &gt_truth,
+                    vector<ast_ptr> current_solutions,
+                    vector<ast_ptr>& gt_truth,
                     const vector<float> max_error,
                     const string &output_path,
                     const uint32_t batch_size,
                     const uint32_t max_enum,
-                    const bool use_gt,
+                    const bool enum_sketch,
                     const double complexity_loss,
                     PyObject* pFunc) {
 
         vector<Example> examples = demos;
-
-        vector<ast_ptr> transition_solutions;
-        vector<float> log_likelihoods;
 
         solution_preds.clear();
         solution_loss.clear();
@@ -618,35 +614,25 @@ namespace AST {
 
             const SymEntry out(transition.second);
             const SymEntry in(transition.first);
-                    
-            if(use_gt){
-                assert(gt_truth.size() == transitions.size() && "Current solutions and transitions are not the same size!");
 
+            if(false) { // TODO: revert
+            // if(current_solutions.size() != transitions.size()) { // No program exists yet for this transition                
+                // Start enumeration from scratch
+
+            } else { 
+                // Use the current best solution
                 vector<ast_ptr> sketch;
-                sketch.push_back(gt_truth[t]);
+                // sketch.push_back(current_solutions[t]); // TODO: revert
 
-                if(sketch[0]->type_ == BOOL){
-                    current_solution = sketch[0];
-                    current_best = DBL_MAX;
-                } else {
-                    vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
-                    current_solution = sketch[0];
-                    current_best = log_likelihoods[0];
-                }
-            } else {
+                if(enum_sketch) {
+                    // Enumerate sketches in a neighborhood of the current solution
 
-                if (yes.size() == 0) {
-                    current_best = 0.0;
-                    current_solution = make_shared<Bool>(Bool(false));
-                } else if (no.size() == 0) {
-                    current_best = 0.0;
-                    current_solution = make_shared<Bool>(Bool(true));
-                } else {
-
+                    // TODO: remove to just current_solutions[t]
                     ast_ptr base = make_shared<Bool>(true);
                     if(current_solutions.size() == transitions.size()){
                         base = current_solutions[t];
                     }
+                    // ast_ptr base = current_solutions[t];
 
                     // Custom comparison function
                     sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
@@ -655,7 +641,9 @@ namespace AST {
 
                     auto rng = std::default_random_engine {};
                     shuffle(begin(sketches), end(sketches), rng);
-                    if(current_solutions.size() == transitions.size() && current_solutions[t]->type_ != BOOL){
+
+                    // Preliminary testing. TODO: revert and remove both
+                    if(current_solutions.size() == transitions.size()){
                         sketches.insert(sketches.begin(), 1, current_solutions[t]);
                     }
                     if(gt_truth.size() == transitions.size() && gt_truth[t]->type_ != BOOL){
@@ -687,6 +675,12 @@ namespace AST {
                             break;
                     }
                     cout << "\r";
+                } else {
+                    // Use the current sketch only
+                    sketch.push_back(current_solutions[t]); // TODO: revert and remove
+                    vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
+                    current_solution = sketch[0];
+                    current_best = log_likelihoods[0];
                 }
             }
 
@@ -709,23 +703,6 @@ namespace AST {
             cout << "| Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
             cout << "|----------------------------" << endl;
         }
-    }
-
-    void emdipsL3(const vector<Example> &demos,
-        const vector<pair<string, string>> &transitions,
-        vector<ast_ptr>& solution_preds,
-        vector<float>& solution_loss,
-        vector<ast_ptr>& sketches,
-        const vector<float>& max_error,
-        const string &output_path,
-        const uint32_t batch_size,
-        const uint32_t max_enum,
-        const double complexity_loss,
-        PyObject* pFunc) {
-
-        vector<ast_ptr> current_solutions;
-        vector<ast_ptr> gt_truth;
-        emdipsL3(demos, transitions, solution_preds, solution_loss, sketches, current_solutions, gt_truth, max_error, output_path, batch_size, max_enum, false, complexity_loss, pFunc);
     }
 
     void DIPR(const vector<Example> &demos, const vector<ast_ptr> &programs,

@@ -43,25 +43,13 @@ namespace AST {
         vector<ast_ptr>& solution_preds,
         vector<float>& solution_loss,
         vector<ast_ptr>& sketches,
-        vector<ast_ptr>& current_solutions,
+        vector<ast_ptr> current_solutions,
         vector<ast_ptr>& gt_truth,
         const vector<float> max_error,
         const string &output_path,
         const uint32_t batch_size,
         const uint32_t max_enum,
-        const bool use_gt,
-        const double complexity_loss,
-        PyObject* pFunc);
-
-    void emdipsL3(const vector<Example> &demos,
-        const vector<pair<string, string>> &transitions,
-        vector<ast_ptr>& solution_preds,
-        vector<float>& solution_loss,
-        vector<ast_ptr>& sketches,
-        const vector<float>& max_error,
-        const string &output_path,
-        const uint32_t batch_size,
-        const uint32_t max_enum,
+        const bool enum_sketch,
         const double complexity_loss,
         PyObject* pFunc);
 

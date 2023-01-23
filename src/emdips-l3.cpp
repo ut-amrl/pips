@@ -160,7 +160,9 @@ int main(int argc, char* argv[]) {
     vector<ast_ptr> solution_preds;
     vector<float> loss;
 
-    emdipsL3(examples, transitions, solution_preds, loss, all_sketches, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, INT_MAX, 0.0, pFunc);
+    vector<ast_ptr> cur_sol;
+    vector<ast_ptr> gt_sol;
+    emdipsL3(examples, transitions, solution_preds, loss, all_sketches, cur_sol, gt_sol, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, INT_MAX, true, 0.0, pFunc);
 
     cout << "---- Number of Features Enumerated ----" << endl;
     cout << ops.size() << endl << endl;
