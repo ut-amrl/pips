@@ -572,9 +572,7 @@ namespace AST {
                     vector<ast_ptr> &sketches,
                     vector<ast_ptr> current_solutions,
                     vector<ast_ptr>& gt_truth,
-                    const vector<float> max_error,
                     const string &output_path,
-                    const uint32_t batch_size,
                     const uint32_t max_enum,
                     const bool enum_sketch,
                     const double complexity_loss,
@@ -599,7 +597,6 @@ namespace AST {
 
             cout << endl << endl << "|--------- " << transition.first << "->";
             cout << transition.second << " ---------" << endl;
-            cout << "| Target loss: <" << max_error[t] << endl;
 
             vector<Example> yes;
             vector<Example> no;
@@ -650,31 +647,24 @@ namespace AST {
                         sketches.insert(sketches.begin(), 1, gt_truth[t]);
                     }
 
-                    int ind = 0;
-                    while(ind < min((uint32_t) sketches.size(), max_enum)){
-                        int last = ind;
-                        vector<ast_ptr> batch;
-                        for(; ind < last + batch_size && ind < sketches.size() && ind < max_enum; ind++){
-                            batch.push_back(sketches[ind]);
-                        }
-
-                        vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
-
-                        for(int i = 0; i < log_likelihoods.size(); i++){
-                            double prior = CalculatePrior(batch[i], complexity_loss);
-                            cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
-                            log_likelihoods[i] += prior;
-                            
-                            if(current_best == -1 || log_likelihoods[i] < current_best){
-                                current_best = log_likelihoods[i];
-                                current_solution = batch[i];
-                            }
-                        }
-
-                        if(current_best < max_error[t])
-                            break;
+                    vector<ast_ptr> batch;
+                    for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
+                        batch.push_back(sketches[ind]);
                     }
-                    cout << "\r";
+
+                    vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
+
+                    for(int i = 0; i < log_likelihoods.size(); i++){
+                        double prior = CalculatePrior(batch[i], complexity_loss);
+                        cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
+                        log_likelihoods[i] += prior;
+                        
+                        if(current_best == -1 || log_likelihoods[i] < current_best){
+                            current_best = log_likelihoods[i];
+                            current_solution = batch[i];
+                        }
+                    }
+
                 } else {
                     // Use the current sketch only
                     sketch.push_back(current_solutions[t]); // TODO: revert and remove

@@ -28,14 +28,10 @@ DEFINE_uint32(feat_depth, 3, "Maximum enumeration depth for features.");
 DEFINE_uint32(sketch_depth, 2, "Maximum enumeration depth for sketch.");
 DEFINE_uint32(window_size, 3,
               "Size of sliding window to subsample demonstrations with.");
-DEFINE_double(target_score, 0.15,
-              "What log likelihood should be achieved / what proportion of "
-              "examples should be SAT to declare victory?");
 DEFINE_bool(write_features, false, "Write all enumerated features to a file");
 DEFINE_bool(dim_checking, true, "Should dimensions be checked?");
 DEFINE_bool(sig_pruning, true, "Should signature pruning be enabled?");
 DEFINE_bool(debug, true, "Enable Debug Printing");
-DEFINE_uint32(batch_size, 8, "Number of sketches to solve in one python call");
 
 using namespace AST;
 using namespace std;
@@ -46,8 +42,6 @@ using z3::solver;
 
 int main(int argc, char* argv[]) {
     gflags::ParseCommandLineFlags(&argc, &argv, false);
-
-    if (FLAGS_target_score < 0.0) FLAGS_target_score = 0.0;
 
     // Set up Python
     // Initialize python support
@@ -110,11 +104,6 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    vector<float> min_accuracies;
-    for (auto& trans : transitions) {
-        min_accuracies.push_back(FLAGS_target_score);
-    }
-
     cout << "----Roots----" << endl;
     for (auto& node : roots) {
         cout << node << endl;
@@ -162,7 +151,7 @@ int main(int argc, char* argv[]) {
 
     vector<ast_ptr> cur_sol;
     vector<ast_ptr> gt_sol;
-    emdipsL3(examples, transitions, solution_preds, loss, all_sketches, cur_sol, gt_sol, min_accuracies, FLAGS_out_dir, FLAGS_batch_size, INT_MAX, true, 0.0, pFunc);
+    emdipsL3(examples, transitions, solution_preds, loss, all_sketches, cur_sol, gt_sol, FLAGS_out_dir, INT_MAX, true, 0.0, pFunc);
 
     cout << "---- Number of Features Enumerated ----" << endl;
     cout << ops.size() << endl << endl;

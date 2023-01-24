@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from scipy import optimize
 from scipy import special as sp
 import multiprocessing
@@ -14,55 +12,44 @@ import json
 
 from optimizer_settings import *
 
-# NUM_CORES * BATCH_SIZE = total number of cores used at once
-
+PRINT_WARNINGS = False      # Debugging info
+PRINT_PADDING = 30          # Output configuration
 
 def hinge(likelihood): # Doesn't need to be differentiable because it's not used in gradient descent, only in the final loss calculation
     return max(likelihood, -OUTLIER_MAX)
 
 # -------- objective function --------------------
-def log_loss(x, E_k, y_j, clauses, print_res=False, bounded=BOUND_LIKELIHOOD, use_prior=True):
-    alpha_inv = x[: len(x)//2]      # values of alpha (slope) for each conditional structure
+def log_loss(x, E_k, y_j, clauses, use_prior=True):
+    alpha = x[: len(x)//2]          # values of alpha (slope) for each conditional structure
     x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
 
     # Calculate log loss: based on data
     log_loss = 0
     for i in range(len(y_j)):
         # Calculate likelihood for base clause
-        log_likelihood = - sp.logsumexp([0, - 1.0/alpha_inv[0] * (E_k[0][i] - x_0[0])])
+        log_likelihood = - sp.logsumexp([0, - alpha[0] * (E_k[0][i] - x_0[0])])
 
         for j in range(len(clauses)):
             # Calculate likelihood for other clause
-            log_likelihood_j = - sp.logsumexp([0, - 1.0/alpha_inv[j+1] * (E_k[j+1][i] - x_0[j+1])])
+            log_likelihood_j = - sp.logsumexp([0, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])])
 
             if clauses[j] == 0: # AND: multiply likelihoods
                 log_likelihood += log_likelihood_j 
             if clauses[j] == 1: # OR: add likelihoods
                 log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
-
             
         # Compute total log loss
         if y_j[i]:  # Satisfied transition
-            if bounded:
-                log_likelihood=hinge(log_likelihood)
             log_loss -= log_likelihood
         else:       # Unsatisfied transition
             log_not = sp.logsumexp([0, log_likelihood-(1E-10)], b=[1, -1])
-            if bounded:
-                log_not=hinge(log_not)
             log_loss -= log_not
-    
-    if print_res:
-        print("overall LL "+str(log_loss))
 
     # Calculate parameter loss: based on prior
     param_loss = 0
     if use_prior:
-        for inv in alpha_inv:
-            param_loss += inv * inv * ALPHA_LOSS_LOWER
-            param_loss += 1.0/inv * 1.0/inv * ALPHA_LOSS_UPPER
-        for val in x_0:
-            param_loss += abs(val) * X_0_LOSS
+        for a in alpha:
+            param_loss += a * a * ALPHA_LOSS_UPPER
 
     return log_loss / len(y_j) + param_loss
 
@@ -85,18 +72,6 @@ def print_fun(x, f, accepted):
     debug("with parameters: ")
     debug(x)
     return
-
-# ---------- Bounds ------------------------
-class Bounds:
-    def __init__(self, xmin, xmax):
-        self.xmax = np.array(xmax)
-        self.xmin = np.array(xmin)
-    def __call__(self, **kwargs):
-        x = kwargs["x_new"]
-        tmax = bool(np.all(x <= self.xmax))
-        tmin = bool(np.all(x >= self.xmin))
-        return tmax and tmin
-
 
 # Finds the minimum and maximum values where a change in state occurs, plus some extension
 def find_min_max(expression, y_j):
@@ -123,23 +98,10 @@ def find_min_max(expression, y_j):
 
     return (lo_diff - extension(lo_diff, hi_diff), hi_diff + extension(lo_diff, hi_diff))
 
-# --------- Stepping (basin hopping) -------------------------
-class TakeStep:
-    def __init__(self, stepsize=0.5):
-        self.stepsize = stepsize
-        self.rng = np.random.default_rng()
-    def __call__(self, x):
-        mid = len(x) // 2
-        s = self.stepsize
-        x[:mid] += self.rng.uniform(-s, s, x[:mid].shape)
-        x[mid:] += self.rng.uniform(-100*s, 100*s, x[mid:].shape)
-        # x += (np.random.randint(2, size=x.shape)-0.5)*2 # Add some randomness (stochastic gradient descent)
-        return x
-
 # ---------- Optimizer ------------------------
 
 # Runs the optimizer, given some initial parameters
-def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj, step_obj, init):
+def run_optimizer_from_initial(E_k, y_j, clauses, init):
     extra_args = (E_k, y_j, clauses)
     minimizer_kwargs = {"method": "BFGS", "args" : extra_args}
 
@@ -150,24 +112,16 @@ def run_optimizer_from_initial(E_k, y_j, clauses, bounds, bounds_arr, bounds_obj
         res = optimize.minimize(log_loss, init, args=extra_args, 
                                 method='BFGS', options={'maxiter': MAX_ITER, 'disp': False})
     elif(OPT_METHOD == 1):      # L-BFGS-B (Gradient descent) - local optimization
-        if BOUND_ALPHA:
-            res = optimize.minimize(log_loss, init, args=extra_args, 
-                                method='L-BFGS-B', options={'maxiter': MAX_ITER, 'disp': False, 'eps': 1e-2}, bounds=bounds, tol=1e-16)
-        else:
-            res = optimize.minimize(log_loss, init, args=extra_args, 
+        res = optimize.minimize(log_loss, init, args=extra_args, 
                                 method='L-BFGS-B', options={'maxiter': MAX_ITER, 'disp': False})
     elif(OPT_METHOD == 2):      # Basin hopping - global optimization
-        res = optimize.basinhopping(log_loss, init,
-                                niter=MAX_ITER, T=100.0,
-                                minimizer_kwargs=minimizer_kwargs, accept_test=bounds_obj, 
-                                take_step=step_obj, callback=print_fun)
+        res = optimize.basinhopping(log_loss, init, niter=MAX_ITER, T=100.0,
+                                minimizer_kwargs=minimizer_kwargs, callback=print_fun)
     elif(OPT_METHOD == 3):      # Dual annealing - global optimization
-        res = optimize.dual_annealing(log_loss, bounds, x0=init, 
-                                        maxiter=MAX_ITER, initial_temp=50000, 
-                                        visit=3.0, accept=-5, 
-                                        minimizer_kwargs=minimizer_kwargs)
+        res = optimize.dual_annealing(log_loss, x0=init, 
+                                        maxiter=MAX_ITER, initial_temp=50000, visit=3.0, accept=-5, minimizer_kwargs=minimizer_kwargs)
     elif(OPT_METHOD == 4):      # DIRECT - global optimization
-        res = optimize.direct(log_loss, bounds_arr, args=extra_args, maxiter=MAX_ITER)
+        res = optimize.direct(log_loss, args=extra_args, maxiter=MAX_ITER)
     else:
         sys.exit("Please use a valid optimization method")
 
@@ -217,26 +171,8 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
             no_count -= 1
     
     # ---------- Bounds --------------------
-    # Custom step function
-    step_obj = TakeStep()
-
-    # Bounds on 1/alpha : defined by MIN_ALPHA
-    alpha_bounds = [(-1.0/MIN_ALPHA, 1.0/MIN_ALPHA) for expression in E_k_subset]
-
     # Bounds on randomly initialized value for x_0: calculated from minimum/maximum and provided bounds extension
     x_0_init_bounds = [find_min_max(expression, y_j_subset) for expression in E_k_subset]
-    # Bounds on x_0 itself during optimization: is infinity because we need some variables to be unbounded for LBFGS-B to work
-    x_0_bounds = [(-np.inf, np.inf) for expression in E_k_subset]
-
-    # Setup bounds
-    bounds = np.concatenate((alpha_bounds, x_0_bounds))
-    bounds_lower = [b[0] for b in bounds]
-    bounds_upper = [b[1] for b in bounds]
-    bounds_obj = Bounds(bounds_lower, bounds_upper)
-    bounds_arr = optimize.Bounds(bounds_lower, bounds_upper)
-
-    print_with_padding("Bounds", "|")
-    debug(bounds)
 
     # ---------- Initialization ------------------------
     input = []
@@ -257,7 +193,7 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
             # Initialization of alpha
             alpha_init = []
             for i in range(len(E_k_subset)):
-                alpha_init.append(1.0/INIT_ALPHA if (signs & (1 << i)) else -1.0/INIT_ALPHA)
+                alpha_init.append(INIT_ALPHA if (signs & (1 << i)) else -INIT_ALPHA)
 
             if not ENUMERATE_SIGNS: # Initialize to 0 (don't iterate over signs)
                 alpha_init = np.zeros(len(E_k_subset))
@@ -277,38 +213,46 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     debug(input)
     
     # Run optimizer in parallel
-    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses, bounds, bounds_arr, bounds_obj, step_obj)
+    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses)
     with multiprocessing.Pool(NUM_CORES) as p:
         output = p.map(partial_optimizer, input)
     
     bestRes = min(output, key=lambda i: i.fun)
-    
 
     print_with_padding("Final parameters", "|")
     debug(bestRes.x)
     print_with_padding("Minimum value - training set", bestRes.fun)
     # Run again with the validation set and no prior
-    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False, True, False)
+    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False)
     print_with_padding("Minimum value - validation set", bestRes.fun)
-
-    # takes the inverse of inv_alpha to get alpha to pass into EMDIPS
-    for i in range(len(bestRes.x[: len(bestRes.x)//2])):
-        bestRes.x[i]=1.0/bestRes.x[i]
 
     if (not queue is None):
         queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
 
     return (bestRes.fun, list(bestRes.x))
 
+def wrapper(target, args, sema):
+    # Do work
+    target(args[0], args[1], args[2], args[3], args[4])
+
+    # Release semaphore
+    sema.release()
 
 # Run the optimizer on multiple expression examples in parallel
 def run_optimizer_threads(E_k_arr, y_j, clauses_arr):
     if DEBUG:
         print("| Sampling " + str(EX_SAMPLED) + " examples")
+    
     q = multiprocessing.Queue()
     processes = []
+    sema = multiprocessing.Semaphore(BATCH_SIZE) # Limit the number of programs to BATCH_SIZE
+
     for i in range(len(E_k_arr)):
-        p = multiprocessing.Process(target=run_optimizer, args=(q, i, E_k_arr[i], y_j, clauses_arr[i]))
+        # Acquire semaphore
+        sema.acquire()
+
+        # Start process
+        p = multiprocessing.Process(target=wrapper, args=(run_optimizer, (q, i, E_k_arr[i], y_j, clauses_arr[i]), sema))
         processes.append(p)
         p.start()
     

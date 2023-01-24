@@ -21,13 +21,8 @@ E_k = [
 ]
 
 ### Tests
-# assert abs(optimizer.log_loss([2, 25]) - 12) < 0.001
-# assert abs(optimizer.log_loss([4, 35]) - 24) < 0.001
-
-# res = optimizer.run_optimizer(None, E_k, y_j, clauses)
-# assert abs(res.x[1] - 30) < 0.05
-
-
+res = optimizer.run_optimizer(None, 0, E_k, y_j, clauses)
+print(res)
 
 ### Goal: synthesize (x > 10 && x < 20) ----------> SUCCESS
 
@@ -39,7 +34,8 @@ E_k = [
 ] # value of E_k(s) for each example, for each predicate
 
 ### Tests
-# res = optimizer.run_optimizer(None, E_k, y_j, clauses)
+res = optimizer.run_optimizer(None, 0, E_k, y_j, clauses)
+print(res)
 
 
 
@@ -127,113 +123,3 @@ E_k = [
 # end = time.perf_counter()
 
 # optimizer.print_with_padding("Time Elapsed", end-start)
-
-
-
-# ---------- Define equation ------------------------------------
-
-
-E_k = [[
-    [-0.93,
-    1.7,
-    0.1,
-    -0.1,
-    1.7,
-    -3.7,
-    -55.3,
-    0,
-    -55.3,
-    -2.4,
-    0.1,
-    0,
-    -2.39,
-    -3.72,
-    -0.93,
-    -0.1,
-    -0.94,
-    0.1,
-    1.7,
-    -55.3,
-    -9,
-    -14.34,
-    -15.3,
-    -26.36,
-    -79.2,
-    -14.1,
-    -0.2,
-    1.2,
-    -18.55,
-    -14.34],
-    [29.34,
-    10.55,
-    15.815,
-    178.1,
-    10.54,
-    -11.8,
-    -3.99,
-    131.35,
-    -4,
-    -3.7,
-    15.815,
-    131.35,
-    -3.735,
-    -11.8,
-    29.34,
-    178.12,
-    29.34,
-    15.815,
-    10.54,
-    -4,
-    -3.2,
-    89.3,
-    174.2,
-    292.2,
-    299.68,
-    153,
-    14,
-    11.78,
-    224.25,
-    89.3]
-]]
-y_j = [1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-clauses = [[1]]
-
-start = time.perf_counter()
-res = optimizer.run_optimizer_threads(E_k, y_j, clauses)
-print(res)
-end = time.perf_counter()
-
-optimizer.print_with_padding("Time Elapsed", end-start)
-
-
-
-
-# --------------------- testing -------------------------------------------
-
-def dist_traveled(v, dec):
-    return - v * v / (2 * dec)
-
-# f = open('examples/emdips/out/data.json')
-# data = json.load(f)
-# E_k_test = []
-# y_j_test = []
-# clauses_test = [0]
-# arr_a = []
-# arr_b = []
-# for row in data:
-#     if(row['start']['value'] == 'ACC'):
-#         y_j_test.append(int(row['output']['value'] == 'CON'))
-#         arr_a.append(row['v']['value'] - row['vMax']['value'])
-#         arr_b.append(dist_traveled(row['v']['value'], row['decMax']['value']) + row['x']['value'] - row['target']['value'])
-
-# E_k_test = [arr_a, arr_b]
-
-# f.close()
-
-# run_optimizer(None, E_k_test, y_j_test, clauses_test)
-
-# print("supposed")
-# print(log_loss([1, -1, 0.1, 0], E_k_test, y_j_test, clauses_test))
-# print(log_loss([1, -1, 0, 0], E_k_test, y_j_test, clauses_test))
-# print(log_loss([2, -2, 0, 0], E_k_test, y_j_test, clauses_test))
-# print(log_loss([10, -10, 0, 0], E_k_test, y_j_test, clauses_test))
