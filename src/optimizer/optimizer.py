@@ -20,39 +20,24 @@ def hinge(likelihood): # Doesn't need to be differentiable because it's not used
 
 # -------- objective function --------------------
 def log_loss(x, E_k, y_j, clauses, use_prior=True):
-    alpha = x[: len(x)//2]          # values of alpha (slope) for each conditional structure
-    x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
+    # alpha = x[: len(x)//2]          # values of alpha (slope) for each conditional structure
+    # x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
 
-    # Calculate log loss: based on data
     log_loss = 0
     for i in range(len(y_j)):
         # Calculate likelihood for base clause
-        log_likelihood = - sp.logsumexp([0, - alpha[0] * (E_k[0][i] - x_0[0])])
+        log_likelihood = - sp.logsumexp([0, - x[0] * (E_k[0][i] - x[len(x)//2])])
 
         for j in range(len(clauses)):
-            # Calculate likelihood for other clause
-            log_likelihood_j = - sp.logsumexp([0, - alpha[j+1] * (E_k[j+1][i] - x_0[j+1])])
-
-            if clauses[j] == 0: # AND: multiply likelihoods
-                log_likelihood += log_likelihood_j 
-            if clauses[j] == 1: # OR: add likelihoods
-                log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
+            # Calculate likelihood for other clauses
+            log_likelihood_j = - sp.logsumexp([0, - x[j+1] * (E_k[j+1][i] - x[j+1+len(x)//2])])
+            log_likelihood = (log_likelihood + log_likelihood_j) if clauses[j] == 0 else sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
             
         # Compute total log loss
-        if y_j[i]:  # Satisfied transition
-            log_loss -= log_likelihood
-        else:       # Unsatisfied transition
-            log_not = sp.logsumexp([0, log_likelihood-(1E-10)], b=[1, -1])
-            log_loss -= log_not
+        log_loss -= (log_likelihood if y_j[i] else sp.logsumexp([0, log_likelihood-(1E-10)], b=[1, -1]))
 
     # Calculate parameter loss: based on prior
-    param_loss = 0
-    if use_prior:
-        for a in alpha:
-            param_loss += a * a * ALPHA_LOSS_UPPER
-
-    return log_loss / len(y_j) + param_loss
-
+    return log_loss + (0 if not use_prior else np.sum([a * a * ALPHA_LOSS_UPPER for a in x[: len(x)//2]]))
 
 
 # ------- helper functions ----------------------
@@ -76,13 +61,11 @@ def print_fun(x, f, accepted):
 # Finds the minimum and maximum values where a change in state occurs, plus some extension
 def find_min_max(expression, y_j):
     
-    lo = min(expression)
     lo_ind = np.argmin(expression)
-    hi = max(expression)
     hi_ind = np.argmax(expression)
 
-    lo_diff = hi
-    hi_diff = lo
+    lo_diff = max(expression)
+    hi_diff = min(expression)
 
     for i in range(len(y_j)):
         if not (y_j[i] == y_j[lo_ind]):
@@ -91,10 +74,7 @@ def find_min_max(expression, y_j):
             hi_diff = max(hi_diff, expression[i])
     
     if lo_diff > hi_diff:
-        # Swap
-        temp_diff = lo_diff
-        lo_diff = hi_diff
-        hi_diff = temp_diff
+        (lo_diff, hi_diff) = (hi_diff, lo_diff)
 
     return (lo_diff - extension(lo_diff, hi_diff), hi_diff + extension(lo_diff, hi_diff))
 
@@ -142,6 +122,9 @@ def run_optimizer_from_initial(E_k, y_j, clauses, init):
 
 # Handles initialization and enumeration, then calls the optimizer
 def run_optimizer(queue, index, E_k, y_j, clauses):
+    E_k = np.array(E_k)
+    y_j = np.array(y_j)
+    clauses = np.array(clauses)
 
     if(not PRINT_WARNINGS):
         warnings.filterwarnings('ignore')
@@ -191,13 +174,9 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
         for signs in range(pow(2, len(E_k_subset))): # iterate over possible signs for alpha
             
             # Initialization of alpha
-            alpha_init = []
-            for i in range(len(E_k_subset)):
-                alpha_init.append(INIT_ALPHA if (signs & (1 << i)) else -INIT_ALPHA)
-
+            alpha_init = [(INIT_ALPHA if (signs & (1 << i)) else -INIT_ALPHA) for i in range(len(E_k_subset))]
             if not ENUMERATE_SIGNS: # Initialize to 0 (don't iterate over signs)
                 alpha_init = np.zeros(len(E_k_subset))
-            
             init = np.concatenate((alpha_init, x_0_init))
 
             # Calling the optimizer
@@ -223,7 +202,7 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     debug(bestRes.x)
     print_with_padding("Minimum value - training set", bestRes.fun)
     # Run again with the validation set and no prior
-    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False)
+    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False) / len(y_j)
     print_with_padding("Minimum value - validation set", bestRes.fun)
 
     if (not queue is None):
