@@ -660,6 +660,12 @@ namespace AST {
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             cout << "| Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
             cout << "|----------------------------" << endl;
+
+            // Remove current solution (for next transition)
+            if(current_solutions.size() == transitions.size()) {
+                sketches.erase(sketches.begin());
+            }
+
         }
     }
 
