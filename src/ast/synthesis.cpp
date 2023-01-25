@@ -571,10 +571,8 @@ namespace AST {
                     vector<float>& solution_loss,
                     vector<ast_ptr> &sketches,
                     vector<ast_ptr> current_solutions,
-                    vector<ast_ptr>& gt_truth,
                     const string &output_path,
                     const uint32_t max_enum,
-                    const bool enum_sketch,
                     const double complexity_loss,
                     PyObject* pFunc) {
 
@@ -612,65 +610,35 @@ namespace AST {
             const SymEntry out(transition.second);
             const SymEntry in(transition.first);
 
-            if(false) { // TODO: revert
-            // if(current_solutions.size() != transitions.size()) { // No program exists yet for this transition                
-                // Start enumeration from scratch
+            // If there is a current solution: sort program sketches based on similarity
+            if(current_solutions.size() == transitions.size()) {
+                ast_ptr base = current_solutions[t];
 
-            } else { 
-                // Use the current best solution
-                vector<ast_ptr> sketch;
-                // sketch.push_back(current_solutions[t]); // TODO: revert
+                // Custom comparison function
+                sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
+                    return a->complexity_ < b->complexity_; // TODO: figure out smarter enumeration method
+                });
 
-                if(enum_sketch) {
-                    // Enumerate sketches in a neighborhood of the current solution
+                // Test the current solution as well
+                sketches.insert(sketches.begin(), 1, base);
+            }
 
-                    // TODO: remove to just current_solutions[t]
-                    ast_ptr base = make_shared<Bool>(true);
-                    if(current_solutions.size() == transitions.size()){
-                        base = current_solutions[t];
-                    }
-                    // ast_ptr base = current_solutions[t];
+            // Test all proposed program sketches, up to max_enum
+            vector<ast_ptr> batch;
+            for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
+                batch.push_back(sketches[ind]);
+            }
 
-                    // Custom comparison function
-                    sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
-                        return a->complexity_ < b->complexity_; // TODO: figure out smarter enumeration method
-                    });
+            vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
 
-                    auto rng = std::default_random_engine {};
-                    shuffle(begin(sketches), end(sketches), rng);
-
-                    // Preliminary testing. TODO: revert and remove both
-                    if(current_solutions.size() == transitions.size()){
-                        sketches.insert(sketches.begin(), 1, current_solutions[t]);
-                    }
-                    if(gt_truth.size() == transitions.size() && gt_truth[t]->type_ != BOOL){
-                        sketches.insert(sketches.begin(), 1, gt_truth[t]);
-                    }
-
-                    vector<ast_ptr> batch;
-                    for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
-                        batch.push_back(sketches[ind]);
-                    }
-
-                    vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
-
-                    for(int i = 0; i < log_likelihoods.size(); i++){
-                        double prior = CalculatePrior(batch[i], complexity_loss);
-                        cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
-                        log_likelihoods[i] += prior;
-                        
-                        if(current_best == -1 || log_likelihoods[i] < current_best){
-                            current_best = log_likelihoods[i];
-                            current_solution = batch[i];
-                        }
-                    }
-
-                } else {
-                    // Use the current sketch only
-                    sketch.push_back(current_solutions[t]); // TODO: revert and remove
-                    vector<double> log_likelihoods = LikelihoodPredicateL1(sketch, yes, no, false, pFunc);
-                    current_solution = sketch[0];
-                    current_best = log_likelihoods[0];
+            for(int i = 0; i < log_likelihoods.size(); i++){
+                double prior = CalculatePrior(batch[i], complexity_loss);
+                cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
+                log_likelihoods[i] += prior;
+                
+                if(current_best == -1 || log_likelihoods[i] < current_best){
+                    current_best = log_likelihoods[i];
+                    current_solution = batch[i];
                 }
             }
 

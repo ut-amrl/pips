@@ -44,10 +44,8 @@ namespace AST {
         vector<float>& solution_loss,
         vector<ast_ptr>& sketches,
         vector<ast_ptr> current_solutions,
-        vector<ast_ptr>& gt_truth,
         const string &output_path,
         const uint32_t max_enum,
-        const bool enum_sketch,
         const double complexity_loss,
         PyObject* pFunc);
 
