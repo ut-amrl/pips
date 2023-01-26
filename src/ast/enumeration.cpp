@@ -21,6 +21,7 @@
 #include "visitors/deepcopy_visitor.hpp"
 #include "visitors/fillhole_visitor.hpp"
 #include "visitors/interp_visitor.hpp"
+#include "visitors/perturb_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 #include "visitors/tosmtlib_visitor.hpp"
 
@@ -334,7 +335,7 @@ vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth) {
     for (ast_ptr each : sketches) {
         cout << "| " << each << endl;
     }
-    cout << "|" << endl << "|" << endl;
+    cout << "|" << endl;
 
     if(lib.size() > 0){
         for (const auto &sketch : sketches) {
@@ -352,7 +353,9 @@ vector<ast_ptr> EnumerateL3_Sim(vector<ast_ptr>& lib, ast_ptr base) {
     vector<ast_ptr> sketches;
 
     if(lib.size() > 0){
-    
+        
+        sketches = findSimilar(base, lib);
+
         // TODO
 
         // 1. Keep the same sketch, try augmenting features at random

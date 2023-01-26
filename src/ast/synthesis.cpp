@@ -575,7 +575,7 @@ namespace AST {
         auto rng = default_random_engine {};
         shuffle(begin(yes), std::end(yes), rng);
         shuffle(begin(no), std::end(no), rng);
-        cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl;
+        cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl << "| " << endl;
 
         float current_best = -1;
         ast_ptr current_solution = nullptr;

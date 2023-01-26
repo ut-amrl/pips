@@ -75,6 +75,8 @@ set(CXX_PIPS_SRCS
     src/visitors/fillhole_visitor.hpp
     src/visitors/interp_visitor.cpp
     src/visitors/interp_visitor.hpp
+    pips/src/visitors/perturb_visitor.cpp
+    pips/src/visitors/perturb_visitor.hpp
     src/visitors/print_visitor.cpp
     src/visitors/print_visitor.hpp
     src/visitors/tosmtlib_visitor.cpp
