@@ -235,14 +235,7 @@ vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
                              const vector<FunctionEntry>& library, int depth,
                              vector<Signature>* signatures) {
   CumulativeFunctionTimer::Invocation invoke(&rec_enumerate_logistic);
-  vector<ast_ptr> feat = RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
-  for(auto i = 0; i < feat.size(); i++){
-    TernOp logistic(feat[i], make_shared<Num>(Num(0, {0, 0, 0})), make_shared<Num>(Num(0, {0, 0, 0})), "Logistic");
-    BinOp flip(make_shared<TernOp>(logistic), make_shared<Bool>(true), "Flip");
-
-    feat[i] = make_shared<BinOp>(flip);
-  }
-  return feat;
+  return RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
 }
 
 CumulativeFunctionTimer rec_enumerate("RecEnumerate");
@@ -281,7 +274,10 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies,
         const Dimension feature_hole_dims = feature_hole_info.second;
         const size_t index = indicies[i];
         const ast_ptr &op = ops[index];
-        m[feature_hole] = op;
+
+        TernOp logistic(op, make_shared<Num>(Num(0, {0, 0, 0})), make_shared<Num>(Num(0, {0, 0, 0})), "Logistic");
+        BinOp flip(make_shared<TernOp>(logistic), make_shared<Bool>(true), "Flip");
+        m[feature_hole] = make_shared<BinOp>(flip);
     }
 
     // If after creating the model the number of filled holes is not the same
@@ -334,17 +330,45 @@ vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth) {
     vector<ast_ptr> full_sketches;
     // Enumerate possible sketches
     const auto sketches = EnumerateSketches(sketch_depth);
-    cout << "|--- Number of Sketches Enumerated ---\n" << sketches.size() << endl;
+    cout << "|--- Number of Sketches Enumerated ---\n| " << sketches.size() << endl;
     for (ast_ptr each : sketches) {
-        cout << each << endl;
+        cout << "| " << each << endl;
     }
-    cout << endl << endl;
+    cout << "|" << endl << "|" << endl;
 
-    for (const auto &sketch : sketches) {
-        EnumerateL2(full_sketches, lib, sketch);
+    if(lib.size() > 0){
+        for (const auto &sketch : sketches) {
+            EnumerateL2(full_sketches, lib, sketch);
+        }
     }
-
+    
     return full_sketches;
+}
+
+// Like EnumerateL3, but enumerates a set of sketches that are similar to the given base syntactically. 
+CumulativeFunctionTimer enumerate_l3_sim("EnumerateL3_Sim");
+vector<ast_ptr> EnumerateL3_Sim(vector<ast_ptr>& lib, ast_ptr base) {
+    CumulativeFunctionTimer::Invocation invoke(&enumerate_l3_sim);
+    vector<ast_ptr> sketches;
+
+    if(lib.size() > 0){
+    
+        // TODO
+
+        // 1. Keep the same sketch, try augmenting features at random
+
+        // 2. Randomly switch ANDs and ORs
+
+        // 3. Randomly remove clauses
+
+        // 4. Randomly add clauses with a base feature
+
+
+        // TODO: keep track of a set of strings to prevent duplicates
+        // TODO: check for the same dimensions
+    }
+    
+    return sketches;
 }
 
 CumulativeFunctionTimer get_legal("GetLegalOperations");

@@ -550,11 +550,6 @@ namespace AST {
                 x_0_vals_arr.push_back(x_0_vals);
                 sol_arr.push_back(sol);
                 sketches[i] = FillLogHoles(sketches[i], a_vals, x_0_vals);
-
-                // Debug solutions
-                if(debug){
-                    cout << "Sketch: " << sketches[i] << " has score " << sol_arr[i] << endl;
-                }
             }
 
         } else {
@@ -594,31 +589,26 @@ namespace AST {
             sketches = EnumerateL3(features, 1); // Use a sketch depth of 1 initially
             
             cout << "|---- Number of Total Programs ----" << endl;
-            cout << sketches.size() << endl;
+            cout << "| " << sketches.size() << endl;
             for(int i = 0; i < min(10, (int) sketches.size()); i++){
-                cout << sketches[i] << endl;
+                cout << "| " << sketches[i] << endl;
             }
-            cout << "..." << endl << endl;
+            cout << "| ..." << endl << "| " << endl;
         } else {
-            // TODO: enumerate similar sketches
             // If there is a current solution: sort program sketches based on similarity
-            sketches = EnumerateL3(features, 2); // Use a sketch depth of 1 initially
+            sketches = EnumerateL3_Sim(features, base.value());
             
             cout << "|---- Number of Total Programs ----" << endl;
-            cout << sketches.size() << endl;
+            cout << "| " << sketches.size() << endl;
             for(int i = 0; i < min(10, (int) sketches.size()); i++){
-                cout << sketches[i] << endl;
+                cout << "| " << sketches[i] << endl;
             }
-            cout << "..." << endl << endl;
-
-            // Custom comparison function
-            // sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
-            //     return a->complexity_ < b->complexity_; // TODO: figure out smarter enumeration method
-            // });
+            cout << "| ..." << endl << "| " << endl;
 
             // Introduce randomness
             shuffle(sketches.begin(), sketches.end(), rng);
-            // Be sure to retest the current solution as well
+
+            // Be sure to keep the current solution as well
             sketches.insert(sketches.begin(), 1, base.value());
         }
 
@@ -632,7 +622,7 @@ namespace AST {
 
         for(int i = 0; i < log_likelihoods.size(); i++){
             double prior = CalculatePrior(batch[i], complexity_loss);
-            cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
+            cout << "| " << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
             log_likelihoods[i] += prior;
             
             if(current_best == -1 || log_likelihoods[i] < current_best){

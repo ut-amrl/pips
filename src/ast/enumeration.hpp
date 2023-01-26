@@ -138,6 +138,8 @@ ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies, const v
 
 vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth);
 
+vector<ast_ptr> EnumerateL3_Sim(vector<ast_ptr>& lib, ast_ptr base);
+
 // vector<ast_ptr> SolveConditional(const vector<Example>& examples,
                                       // const vector<ast_ptr>& ops,
                                       // const Sketch& sketch,
