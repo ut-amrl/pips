@@ -565,12 +565,94 @@ namespace AST {
         return sol_arr;
     }
 
+    double emdipsL3_Single(vector<Example> &examples,
+                    pair<string, string> &transition,
+                    ast_ptr& solution,
+                    vector<ast_ptr> &features,
+                    optional<ast_ptr> base,
+                    const uint32_t max_enum,
+                    const double complexity_loss,
+                    PyObject* pFunc) {
+
+        vector<Example> yes;
+        vector<Example> no;
+        SplitExamplesVector(examples, transition, &yes, &no);
+        auto rng = default_random_engine {};
+        shuffle(begin(yes), std::end(yes), rng);
+        shuffle(begin(no), std::end(no), rng);
+        cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl;
+
+        float current_best = -1;
+        ast_ptr current_solution = nullptr;
+
+        const SymEntry out(transition.second);
+        const SymEntry in(transition.first);
+
+        vector<ast_ptr> sketches;
+        if(base == nullopt) {
+            // No existing solution: enumerate complete sketches
+            sketches = EnumerateL3(features, 1); // Use a sketch depth of 1 initially
+            
+            cout << "|---- Number of Total Programs ----" << endl;
+            cout << sketches.size() << endl;
+            for(int i = 0; i < min(10, (int) sketches.size()); i++){
+                cout << sketches[i] << endl;
+            }
+            cout << "..." << endl << endl;
+        } else {
+            // TODO: enumerate similar sketches
+            // If there is a current solution: sort program sketches based on similarity
+            sketches = EnumerateL3(features, 2); // Use a sketch depth of 1 initially
+            
+            cout << "|---- Number of Total Programs ----" << endl;
+            cout << sketches.size() << endl;
+            for(int i = 0; i < min(10, (int) sketches.size()); i++){
+                cout << sketches[i] << endl;
+            }
+            cout << "..." << endl << endl;
+
+            // Custom comparison function
+            // sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
+            //     return a->complexity_ < b->complexity_; // TODO: figure out smarter enumeration method
+            // });
+
+            // Introduce randomness
+            shuffle(sketches.begin(), sketches.end(), rng);
+            // Be sure to retest the current solution as well
+            sketches.insert(sketches.begin(), 1, base.value());
+        }
+
+        // Test all proposed program sketches, up to max_enum
+        vector<ast_ptr> batch;
+        for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
+            batch.push_back(sketches[ind]);
+        }
+
+        vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
+
+        for(int i = 0; i < log_likelihoods.size(); i++){
+            double prior = CalculatePrior(batch[i], complexity_loss);
+            cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
+            log_likelihoods[i] += prior;
+            
+            if(current_best == -1 || log_likelihoods[i] < current_best){
+                current_best = log_likelihoods[i];
+                current_solution = batch[i];
+            }
+        }
+
+        // Filter out Examples used by this transition
+        examples = FilterExamples(examples, transition);
+        solution = current_solution;
+
+        return current_best;
+    }
+
     void emdipsL3(const vector<Example> &demos,
                     const vector<pair<string, string>> &transitions,
                     vector<ast_ptr>& solution_preds,
                     vector<float>& solution_loss,
-                    vector<ast_ptr> &sketches,
-                    vector<ast_ptr> current_solutions,
+                    vector<ast_ptr> &features,
                     const string &output_path,
                     const uint32_t max_enum,
                     const double complexity_loss,
@@ -578,11 +660,8 @@ namespace AST {
 
         vector<Example> examples = demos;
 
-        solution_preds.clear();
-        solution_loss.clear();
-
         for (int t = 0; t < transitions.size(); t++) {
-            const auto &transition = transitions[t];
+            pair<string, string> transition = transitions[t];
             // Skipping already synthesized conditions, allows for very basic
             // checkpointing.
             const string output_name =
@@ -590,57 +669,14 @@ namespace AST {
             if (ExistsFile(output_name)) {
                 continue;
             }
-
-            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
-
             cout << endl << endl << "|--------- " << transition.first << "->";
             cout << transition.second << " ---------" << endl;
 
-            vector<Example> yes;
-            vector<Example> no;
-            SplitExamplesVector(examples, transition, &yes, &no);
-            auto rng = default_random_engine {};
-            shuffle(begin(yes), std::end(yes), rng);
-            shuffle(begin(no), std::end(no), rng);
-            cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl;
+            std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
 
-            float current_best = -1;
-            ast_ptr current_solution = nullptr;
-
-            const SymEntry out(transition.second);
-            const SymEntry in(transition.first);
-
-            // If there is a current solution: sort program sketches based on similarity
-            if(current_solutions.size() == transitions.size()) {
-                ast_ptr base = current_solutions[t];
-
-                // Custom comparison function
-                sort(sketches.begin(), sketches.end(), [&base](const ast_ptr& a, const ast_ptr& b) {
-                    return a->complexity_ < b->complexity_; // TODO: figure out smarter enumeration method
-                });
-
-                // Test the current solution as well
-                sketches.insert(sketches.begin(), 1, base);
-            }
-
-            // Test all proposed program sketches, up to max_enum
-            vector<ast_ptr> batch;
-            for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
-                batch.push_back(sketches[ind]);
-            }
-
-            vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
-
-            for(int i = 0; i < log_likelihoods.size(); i++){
-                double prior = CalculatePrior(batch[i], complexity_loss);
-                cout << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
-                log_likelihoods[i] += prior;
-                
-                if(current_best == -1 || log_likelihoods[i] < current_best){
-                    current_best = log_likelihoods[i];
-                    current_solution = batch[i];
-                }
-            }
+            ast_ptr current_solution;
+            optional<ast_ptr> prev_sol = (solution_preds.size() == transitions.size()) ? make_optional(solution_preds[t]) : nullopt;
+            double current_best = emdipsL3_Single(examples, transition, current_solution, features, prev_sol, max_enum, complexity_loss, pFunc);
 
             // Write the solution out to a file.
             cout << "| Final loss: " << current_best << endl;
@@ -651,21 +687,17 @@ namespace AST {
             output_file << std::setw(4) << output << std::endl;
             output_file.close();
 
-            // Filter out Examples used by this transition
-            examples = FilterExamples(examples, transition);
-
-            solution_preds.push_back(current_solution);
-            solution_loss.push_back(current_best);
+            if(solution_preds.size() == transitions.size()) {
+                solution_preds[t] = current_solution;
+                solution_loss[t] = current_best;    
+            } else {
+                solution_preds.push_back(current_solution);
+                solution_loss.push_back(current_best);
+            }
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
             cout << "| Time Elapsed: " << ((float)(std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count())) / 1000.0 << endl;
             cout << "|----------------------------" << endl;
-
-            // Remove current solution (for next transition)
-            if(current_solutions.size() == transitions.size()) {
-                sketches.erase(sketches.begin());
-            }
-
         }
     }
 

@@ -138,19 +138,18 @@ int main(int argc, char* argv[]) {
         cout << endl;
     }
 
-
-    vector<ast_ptr> all_sketches = EnumerateL3(ops, FLAGS_sketch_depth);
+    // TODO: deprecated
+    // vector<ast_ptr> all_sketches = EnumerateL3(ops, FLAGS_sketch_depth);
     
-    cout << "Num total programs: " << all_sketches.size() << endl;
-    // for(ast_ptr each: all_sketches){
-    //     cout << each << endl;
-    // }
+    // cout << "Num total programs: " << all_sketches.size() << endl;
+    // // for(ast_ptr each: all_sketches){
+    // //     cout << each << endl;
+    // // }
 
-    vector<ast_ptr> solution_preds;
-    vector<float> loss;
+    // vector<ast_ptr> solution_preds;
+    // vector<float> loss;
 
-    vector<ast_ptr> cur_sol;
-    emdipsL3(examples, transitions, solution_preds, loss, all_sketches, cur_sol, FLAGS_out_dir, INT_MAX, 0.0, pFunc);
+    // emdipsL3(examples, transitions, solution_preds, loss, all_sketches, FLAGS_out_dir, INT_MAX, 0.0, pFunc);
 
     cout << "---- Number of Features Enumerated ----" << endl;
     cout << ops.size() << endl << endl;
