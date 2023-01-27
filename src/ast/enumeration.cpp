@@ -350,25 +350,10 @@ vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth) {
 CumulativeFunctionTimer enumerate_l3_sim("EnumerateL3_Sim");
 vector<ast_ptr> EnumerateL3_Sim(vector<ast_ptr>& lib, ast_ptr base) {
     CumulativeFunctionTimer::Invocation invoke(&enumerate_l3_sim);
-    vector<ast_ptr> sketches;
+    vector<ast_ptr> sketches = EnumerateL3(lib, 1);
 
     if(lib.size() > 0){
-        
-        sketches = findSimilar(base, lib);
-
-        // TODO
-
-        // 1. Keep the same sketch, try augmenting features at random
-
-        // 2. Randomly switch ANDs and ORs
-
-        // 3. Randomly remove clauses
-
-        // 4. Randomly add clauses with a base feature
-
-
-        // TODO: keep track of a set of strings to prevent duplicates
-        // TODO: check for the same dimensions
+        sketches = findSimilar(base, lib, sketches);
     }
     
     return sketches;

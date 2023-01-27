@@ -8,6 +8,13 @@ using namespace std;
 
 namespace AST {
 
+string GetString(const ast_ptr& ast) {
+    Print printer;
+    ast->Accept(&printer);
+    return printer.GetString();
+}
+
+
 ast_ptr Print::Visit(AST* node) { return ast_ptr(node); }
 
 ast_ptr Print::Visit(TernOp* node) {

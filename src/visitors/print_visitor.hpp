@@ -4,10 +4,13 @@
 #pragma once
 
 #include <ostream>
-
 #include "ast/ast.hpp"
 
+using namespace std;
+
 namespace AST {
+
+string GetString(const ast_ptr& ast);
 
 class Print : public Visitor {
  public:

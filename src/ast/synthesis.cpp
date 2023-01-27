@@ -600,7 +600,8 @@ namespace AST {
             
             cout << "|---- Number of Total Programs ----" << endl;
             cout << "| " << sketches.size() << endl;
-            for(int i = 0; i < min(10, (int) sketches.size()); i++){
+            for(int i = 0; i < (int) sketches.size(); i++){
+            // for(int i = 0; i < min(10, (int) sketches.size()); i++){
                 cout << "| " << sketches[i] << endl;
             }
             cout << "| ..." << endl << "| " << endl;

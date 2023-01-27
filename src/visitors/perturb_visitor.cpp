@@ -1,4 +1,6 @@
 #include "perturb_visitor.hpp"
+#include "deepcopy_visitor.hpp"
+#include "print_visitor.hpp"
 
 #include <eigen3/Eigen/Core>  // Vector2f
 #include <iostream>           // cout, endl
@@ -12,14 +14,37 @@ using namespace std;
 
 namespace AST {
 
-vector<ast_ptr> findSimilar(const ast_ptr& base, vector<ast_ptr>& lib) {
+// TODO (optional): add axioms/observational equivalence
+// TODO (optional): replace last iteration's parameters with 0s while enumerating for sketch equivalence checking
+// TODO (optional): start optimization from the last sketch's parameters (this should increase the convergence speed)
+
+vector<ast_ptr> findSimilar(ast_ptr& base, vector<ast_ptr>& lib, vector<ast_ptr>& sketches) {
+    // We randomly perturb the base program in 4 ways: see 1), 2), 3), and 4)
     Perturb visitor(base, lib);
+
+    // 1. Randomly add clauses with a base feature
+    for(ast_ptr feat: sketches) {
+        shared_ptr<BinOp> andf = make_shared<BinOp>(feat, base, "And");
+        shared_ptr<BinOp> orf = make_shared<BinOp>(feat, base, "Or");
+
+        visitor.add_candidate(andf);
+        visitor.add_candidate(orf);
+    }
+
     base->Accept(&visitor);
     return visitor.sketches_;
 }
 
+void Perturb::add_candidate(ast_ptr prog) { 
+    ast_ptr copy = DeepCopyAST(prog);
+    string s = GetString(copy);
+    if(hashes_.count(s) == 0){
+        hashes_.insert(s);
+        sketches_.push_back(copy);
+    }
+}
 
-Perturb::Perturb(const ast_ptr& base, vector<ast_ptr>& lib) : base_(base), lib_(lib) {}
+Perturb::Perturb(ast_ptr& base, vector<ast_ptr>& lib) : base_(base), lib_(lib) {}
 
 ast_ptr Perturb::Visit(AST* node) { return ast_ptr(node); }
 
@@ -28,25 +53,91 @@ ast_ptr Perturb::Visit(TernOp* node){
     ast_ptr a = node->a_->Accept(this);
     ast_ptr b = node->b_->Accept(this);
     const string op = node->op_;
-    
+
+    if(op == "Logistic") {
+        // 4. Randomly perturb features by replacing subtrees
+        ast_ptr child = node->x_;
+        for(ast_ptr each: lib_) {
+            if(each->dims_ == child->dims_) {
+                node->x_ = each;
+                add_candidate(base_);
+                node->x_ = child;
+            }
+        }
+    } else {
+        // TODO: Add support for any other ternaries here
+    }
 
     return make_shared<TernOp>(*node);
 }
 
 ast_ptr Perturb::Visit(BinOp* node) {
-  ast_ptr left = node->left_->Accept(this);
-  ast_ptr right = node->right_->Accept(this);
-  const string op = node->op_;
-  
+    ast_ptr left = node->left_->Accept(this);
+    ast_ptr right = node->right_->Accept(this);
+    const string op = node->op_;
 
-  return make_shared<BinOp>(*node);
+    // 2. Randomly switch ANDs and ORs
+    if(op == "And") {
+        node->op_ = "Or";
+        add_candidate(base_);
+        node->op_ = "And";
+    }
+    if(op == "Or") {
+        node->op_ = "And";
+        add_candidate(base_);
+        node->op_ = "Or";
+    }
+
+    // 4. Randomly perturb features by replacing subtrees
+    ast_ptr c_left = node->left_;
+    ast_ptr c_right = node->right_;
+    for(ast_ptr each: lib_) {
+        if(each->dims_ == c_left->dims_) {
+            node->left_ = each;
+            add_candidate(base_);
+            node->left_ = c_left;
+        }
+
+        if(each->dims_ == c_right->dims_) {
+            node->right_ = each;
+            add_candidate(base_);
+            node->right_ = c_right;
+        }
+    }
+
+    // 3. Randomly remove clauses
+    if(op == "And" || op == "Or") {
+        ast_ptr temp = node->right_; // right node
+
+        node->right_ = right; // either a null op or removes a clause
+        add_candidate(base_);
+        node->right_ = temp; // reset
+
+        // Try adding only the left and right subtree
+        add_candidate(node->left_);
+        add_candidate(node->right_);
+
+        return node->right_;
+    }
+
+    return make_shared<BinOp>(*node);
 }
 
 ast_ptr Perturb::Visit(UnOp* node) {
-  ast_ptr input = node->input_->Accept(this);
-  const string op = node->op_;
-  
-  return make_shared<UnOp>(*node);
+    ast_ptr input = node->input_->Accept(this);
+    const string op = node->op_;
+
+    // 4. Randomly perturb features by replacing subtrees
+    ast_ptr in = node->input_;
+    for(ast_ptr each: lib_) {
+        if(each->dims_ == in->dims_) {
+            node->input_ = each;
+            add_candidate(base_);
+            node->input_ = in;
+        }
+    }
+
+    return make_shared<UnOp>(*node);
 }
 
 ast_ptr Perturb::Visit(Bool* node) { return make_shared<Bool>(*node); }
@@ -56,7 +147,7 @@ ast_ptr Perturb::Visit(Feature* node) {
     throw invalid_argument("AST has unfilled feature holes");
   } else {
     ast_ptr result = node->current_value_->Accept(this);
-    return result;
+    return make_shared<Feature>(*node);
   }
 }
 
@@ -67,7 +158,7 @@ ast_ptr Perturb::Visit(Param* node) {
     return make_shared<Param>(*node);
   } else {
     ast_ptr result = node->current_value_->Accept(this);
-    return result;
+    return make_shared<Param>(*node);
   }
 }
 

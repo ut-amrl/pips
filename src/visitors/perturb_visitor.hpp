@@ -8,13 +8,15 @@ using namespace std;
 
 namespace AST {
 
-vector<ast_ptr> findSimilar(const ast_ptr& base, vector<ast_ptr>& lib);
+vector<ast_ptr> findSimilar(ast_ptr& base, vector<ast_ptr>& lib, vector<ast_ptr>& sketches);
 
 class Perturb : public Visitor {
 public:
     vector<ast_ptr> sketches_;
     
-    Perturb(const ast_ptr& base, vector<ast_ptr>& lib);
+    void add_candidate(ast_ptr prog);
+
+    Perturb(ast_ptr& base, vector<ast_ptr>& lib);
     ast_ptr Visit(AST* node);
     ast_ptr Visit(TernOp* node);
     ast_ptr Visit(BinOp* node);

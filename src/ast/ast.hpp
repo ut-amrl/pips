@@ -122,7 +122,7 @@ class BinOp : public AST {
   ast_ptr FromJson(const nlohmann::json&);
   ast_ptr left_;
   ast_ptr right_;
-  const std::string op_;
+  std::string op_;
   Type type_ = OP;
 
  private:
