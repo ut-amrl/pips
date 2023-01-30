@@ -60,8 +60,10 @@ ast_ptr Perturb::Visit(TernOp* node){
         for(ast_ptr each: lib_) {
             if(each->dims_ == child->dims_) {
                 node->x_ = each;
+                base_->complexity_ = base_->complexity_ - child->complexity_ + each->complexity_;
                 add_candidate(base_);
                 node->x_ = child;
+                base_->complexity_ = base_->complexity_ + child->complexity_ - each->complexity_;
             }
         }
     } else {
@@ -94,14 +96,18 @@ ast_ptr Perturb::Visit(BinOp* node) {
     for(ast_ptr each: lib_) {
         if(each->dims_ == c_left->dims_) {
             node->left_ = each;
+            base_->complexity_ = base_->complexity_ - left->complexity_ + each->complexity_;
             add_candidate(base_);
             node->left_ = c_left;
+            base_->complexity_ = base_->complexity_ + left->complexity_ - each->complexity_;
         }
 
         if(each->dims_ == c_right->dims_) {
             node->right_ = each;
+            base_->complexity_ = base_->complexity_ - right->complexity_ + each->complexity_;
             add_candidate(base_);
             node->right_ = c_right;
+            base_->complexity_ = base_->complexity_ + right->complexity_ - each->complexity_;
         }
     }
 
@@ -110,8 +116,10 @@ ast_ptr Perturb::Visit(BinOp* node) {
         ast_ptr temp = node->right_; // right node
 
         node->right_ = right; // either a null op or removes a clause
+        base_->complexity_ = base_->complexity_ - temp->complexity_ + right->complexity_;
         add_candidate(base_);
         node->right_ = temp; // reset
+        base_->complexity_ = base_->complexity_ + temp->complexity_ - right->complexity_;
 
         // Try adding only the left and right subtree
         add_candidate(node->left_);
@@ -132,8 +140,10 @@ ast_ptr Perturb::Visit(UnOp* node) {
     for(ast_ptr each: lib_) {
         if(each->dims_ == in->dims_) {
             node->input_ = each;
+            base_->complexity_ = base_->complexity_ - in->complexity_ + each->complexity_;
             add_candidate(base_);
             node->input_ = in;
+            base_->complexity_ = base_->complexity_ + in->complexity_ - each->complexity_;
         }
     }
 
