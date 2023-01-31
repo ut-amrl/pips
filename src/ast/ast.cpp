@@ -163,10 +163,10 @@ Feature::Feature(const string& name, const Dimension& dims, const Type& type)
     : AST(dims, type, 1), name_(name) {}
 
 Var::Var(const string& name, const Dimension& dims, const Type& type)
-    : AST(dims, type, 1), name_(name), root_(false) {}
+    : AST(dims, type, 0), name_(name), root_(false) {}
 
 Var::Var(const string& name, const Dimension& dims, const bool root)
-    : AST(dims, NUM, 1), name_(name), root_(root) {}
+    : AST(dims, NUM, 0), name_(name), root_(root) {}
 
 Param::Param(const string& name, const Dimension& dims, const Type& type)
     : AST(dims, type, true, 1), name_(name) {}
