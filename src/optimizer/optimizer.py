@@ -14,6 +14,7 @@ from optimizer_settings import *
 
 PRINT_WARNINGS = False      # Debugging info
 PRINT_PADDING = 30          # Output configuration
+BOUNDS_EXTEND = 0.1
 
 def hinge(likelihood): # Doesn't need to be differentiable because it's not used in gradient descent, only in the final loss calculation
     return max(likelihood, -OUTLIER_MAX)

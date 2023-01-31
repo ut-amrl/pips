@@ -67,7 +67,7 @@ ast_ptr Perturb::Visit(TernOp* node){
             }
         }
     } else {
-        // TODO: Add support for any other ternaries here
+        // TODO (optional): Add support for any other ternaries here
     }
 
     return make_shared<TernOp>(*node);
