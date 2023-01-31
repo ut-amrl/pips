@@ -583,27 +583,11 @@ namespace AST {
         const SymEntry out(transition.second);
         const SymEntry in(transition.first);
 
-        vector<ast_ptr> sketches;
-        if(base == nullopt) {
-            // No existing solution: enumerate complete sketches
-            sketches = EnumerateL3(features, 1); // Use a sketch depth of 1 initially
-            
-            cout << "|---- Number of Total Programs ----" << endl;
-            cout << "| " << sketches.size() << endl;
-            for(int i = 0; i < min(10, (int) sketches.size()); i++){
-                cout << "| " << sketches[i] << endl;
-            }
-            cout << "| ..." << endl << "| " << endl;
-        } else {
+        vector<ast_ptr> sketches = EnumerateL3(features, 1); // Always enumerate over simplest programs (base case)
+        if(base != nullopt) {
             // If there is a current solution: sort program sketches based on similarity
-            sketches = EnumerateL3_Sim(features, base.value());
-            
-            cout << "|---- Number of Total Programs ----" << endl;
-            cout << "| " << sketches.size() << endl;
-            for(int i = 0; i < min(10, (int) sketches.size()); i++){
-                cout << "| " << sketches[i] << endl;
-            }
-            cout << "| ..." << endl << "| " << endl;
+            vector<ast_ptr> similar = EnumerateL3_Sim(features, base.value());
+            sketches.insert(sketches.end(), similar.begin(), similar.end());
 
             // Introduce randomness
             shuffle(sketches.begin(), sketches.end(), rng);
@@ -611,6 +595,13 @@ namespace AST {
             // Be sure to keep the current solution as well
             sketches.insert(sketches.begin(), 1, base.value());
         }
+
+        cout << "|---- Number of Total Programs ----" << endl;
+        cout << "| " << sketches.size() << endl;
+        for(int i = 0; i < min(10, (int) sketches.size()); i++){
+            cout << "| " << sketches[i] << endl;
+        }
+        cout << "| ..." << endl << "| " << endl;
 
         // Test all proposed program sketches, up to max_enum
         vector<ast_ptr> batch;
