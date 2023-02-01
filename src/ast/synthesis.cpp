@@ -572,7 +572,7 @@ namespace AST {
         vector<Example> yes;
         vector<Example> no;
         SplitExamplesVector(examples, transition, &yes, &no);
-        auto rng = default_random_engine {};
+        auto rng = default_random_engine(time(0));
         shuffle(begin(yes), std::end(yes), rng);
         shuffle(begin(no), std::end(no), rng);
         cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl << "| " << endl;
@@ -588,10 +588,12 @@ namespace AST {
             // If there is a current solution: sort program sketches based on similarity
             vector<ast_ptr> similar = EnumerateL3_Sim(features, base.value());
             sketches.insert(sketches.end(), similar.begin(), similar.end());
+        }
 
-            // Introduce randomness
-            shuffle(sketches.begin(), sketches.end(), rng);
+        // Introduce randomness
+        shuffle(sketches.begin(), sketches.end(), rng);
 
+        if(base != nullopt) {
             // Be sure to keep the current solution as well
             sketches.insert(sketches.begin(), 1, base.value());
         }
