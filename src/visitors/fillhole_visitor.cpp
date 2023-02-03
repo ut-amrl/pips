@@ -204,7 +204,7 @@ ast_ptr FillHole::Visit(Feature* node) {
     node->current_value_ = new_value_;
     node->complexity_ = new_value_->complexity_;
     node->complexity_ -= 5; // Remove redundant complexity points from logistic and flip (not considered part of the feature)
-    node->complexity_ += 1; // But slightly penalize extra clauses
+    node->complexity_ += 3; // But slightly penalize extra clauses
   }
   if (node->current_value_ != nullptr) {
     node->current_value_->Accept(this);

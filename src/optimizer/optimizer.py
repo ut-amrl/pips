@@ -139,8 +139,8 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     yes_count = float(np.count_nonzero(y_j))
     no_count = float(len(y_j) - yes_count)
 
-    yes_count = np.ceil(yes_count * EX_SAMPLED / len(y_j))
-    no_count = np.ceil(no_count * EX_SAMPLED / len(y_j))
+    yes_count = np.rint(yes_count * EX_SAMPLED / len(y_j))
+    no_count = np.rint(no_count * EX_SAMPLED / len(y_j))
 
     for i in range(0, len(y_j)):
         if y_j[i] and yes_count > 0:
