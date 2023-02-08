@@ -127,7 +127,7 @@ int main(int argc, char* argv[]) {
 
     // Enumerate features up to a fixed depth
     vector<Signature> signatures;
-    vector<ast_ptr> ops = AST::RecEnumerateLogistic(
+    vector<ast_ptr> ops = AST::RecEnumerate(
         roots, inputs, examples, library, FLAGS_feat_depth, &signatures);
 
     if (FLAGS_debug) {
