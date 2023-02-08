@@ -229,16 +229,6 @@ vector<ast_ptr> RecEnumerateHelper(const vector<ast_ptr>& roots,
   return result;
 }
 
-CumulativeFunctionTimer rec_enumerate_logistic("RecEnumerateLogistic");
-vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
-                             const vector<ast_ptr>& inputs,
-                             const vector<Example>& examples,
-                             const vector<FunctionEntry>& library, int depth,
-                             vector<Signature>* signatures) {
-  CumulativeFunctionTimer::Invocation invoke(&rec_enumerate_logistic);
-  return RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
-}
-
 CumulativeFunctionTimer rec_enumerate("RecEnumerate");
 vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                              const vector<ast_ptr>& inputs,

@@ -120,13 +120,6 @@ vector<ast_ptr> Enumerate(const vector<ast_ptr>& roots,
 void PruneFunctions(const vector<Signature>& new_sigs,
                     vector<ast_ptr>* functions, vector<Signature>* sigs);
 
-vector<ast_ptr> RecEnumerateLogistic(const vector<ast_ptr>& roots,
-                                  const vector<ast_ptr>& inputs,
-                                  const vector<Example>& examples,
-                                  const vector<FunctionEntry>& library,
-                                  const int depth,
-                                  vector<Signature>* signatures);
-
 vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                                   const vector<ast_ptr>& inputs,
                                   const vector<Example>& examples,
