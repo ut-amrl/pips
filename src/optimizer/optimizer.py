@@ -12,7 +12,7 @@ import json
 
 from optimizer_settings import *
 
-PRINT_WARNINGS = False      # Debugging info
+PRINT_WARNINGS = True      # Debugging info
 PRINT_PADDING = 30          # Output configuration
 BOUNDS_EXTEND = 0.1
 
@@ -41,12 +41,7 @@ def log_loss(x, E_k, y_j, clauses, use_prior=True):
                 a_max = np.maximum(temp, log_likelihood+log_likelihood_j)
                 if not np.isfinite(a_max):
                     a_max = 0
-
-                tmp = np.exp(temp - a_max) - np.exp(log_likelihood+log_likelihood_j - a_max)
-
-                # suppress warnings about log of zero
-                with np.errstate(divide='ignore'):
-                    log_likelihood = np.log(tmp) + a_max
+                log_likelihood = np.log(np.exp(temp - a_max) - np.exp(log_likelihood+log_likelihood_j - a_max)) + a_max
             
         # Compute total log loss
         log_loss -= (log_likelihood if y_j[i] else np.log(-np.expm1(log_likelihood-1E-10)))
