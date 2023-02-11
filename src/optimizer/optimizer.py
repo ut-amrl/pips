@@ -27,19 +27,21 @@ def log_loss(x, E_k, y_j, clauses, use_prior=True):
     log_loss = 0
     for i in range(len(y_j)):
         # Calculate likelihood for base clause
-        log_likelihood = - sp.logsumexp([0, - x[0] * (E_k[0][i] - x[len(x)//2])])
+        log_likelihood = - np.logaddexp(0, - x[0] * (E_k[0][i] - x[len(x)//2]))
 
         for j in range(len(clauses)):
             # Calculate likelihood for other clauses
-            log_likelihood_j = - sp.logsumexp([0, - x[j+1] * (E_k[j+1][i] - x[j+1+len(x)//2])])
-            log_likelihood = (log_likelihood + log_likelihood_j) if clauses[j] == 0 else sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
+            log_likelihood_j = - np.logaddexp(0, - x[j+1] * (E_k[j+1][i] - x[j+1+len(x)//2]))
+            if clauses[j] == 0:
+                log_likelihood += log_likelihood_j
+            else:
+                log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
             
         # Compute total log loss
-        log_loss -= (log_likelihood if y_j[i] else sp.logsumexp([0, log_likelihood-(1E-10)], b=[1, -1]))
+        log_loss -= (log_likelihood if y_j[i] else np.log(-np.expm1(log_likelihood-1E-10)))
 
     # Calculate parameter loss: based on prior
     return log_loss + (0 if not use_prior else np.sum([a * a * ALPHA_LOSS_UPPER for a in x[: len(x)//2]]))
-
 
 # ------- helper functions ----------------------
 def extension(l, r): # list range
