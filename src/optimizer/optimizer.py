@@ -21,33 +21,29 @@ def hinge(likelihood): # Doesn't need to be differentiable because it's not used
 
 # -------- objective function --------------------
 def log_loss(x, E_k, y_j, clauses, use_prior=True):
-    # alpha = x[: len(x)//2]          # values of alpha (slope) for each conditional structure
-    # x_0 = x[len(x)//2 :]            # center of logistic function for each conditional structure
+    half = len(x) // 2
 
     log_loss = 0
     for i in range(len(y_j)):
         # Calculate likelihood for base clause
-        log_likelihood = - np.logaddexp(0, - x[0] * (E_k[0][i] - x[len(x)//2]))
+        log_likelihood = - np.logaddexp(0, - x[0] * (E_k[0][i] - x[half]))
 
         for j in range(len(clauses)):
             # Calculate likelihood for other clauses
-            log_likelihood_j = - np.logaddexp(0, - x[j+1] * (E_k[j+1][i] - x[j+1+len(x)//2]))
+            log_likelihood_j = - np.logaddexp(0, - x[j+1] * (E_k[j+1][i] - x[j+1+half]))
             if clauses[j] == 0:
                 log_likelihood += log_likelihood_j
             else:
-                temp = np.logaddexp(log_likelihood, log_likelihood_j)
-                
-                # Custom logsumexp
-                a_max = np.maximum(temp, log_likelihood+log_likelihood_j)
+                a_max = np.logaddexp(log_likelihood, log_likelihood_j)
                 if not np.isfinite(a_max):
                     a_max = 0
-                log_likelihood = np.log(np.exp(temp - a_max) - np.exp(log_likelihood+log_likelihood_j - a_max)) + a_max
+                log_likelihood = np.log(1 - np.exp(log_likelihood+log_likelihood_j - a_max)) + a_max
             
         # Compute total log loss
         log_loss -= (log_likelihood if y_j[i] else np.log(-np.expm1(log_likelihood-1E-10)))
 
     # Calculate parameter loss: based on prior
-    return log_loss + (0 if not use_prior else np.sum([a * a * ALPHA_LOSS_UPPER for a in x[: len(x)//2]]))
+    return log_loss + (0 if not use_prior else np.sum([a * a * ALPHA_LOSS_UPPER for a in x[: half]]))
 
 # ------- helper functions ----------------------
 def extension(l, r): # list range
