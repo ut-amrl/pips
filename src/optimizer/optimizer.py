@@ -35,7 +35,18 @@ def log_loss(x, E_k, y_j, clauses, use_prior=True):
             if clauses[j] == 0:
                 log_likelihood += log_likelihood_j
             else:
-                log_likelihood = sp.logsumexp([log_likelihood, log_likelihood_j, log_likelihood+log_likelihood_j], b=[1, 1, -1])
+                temp = np.logaddexp(log_likelihood, log_likelihood_j)
+                
+                # Custom logsumexp
+                a_max = np.maximum(temp, log_likelihood+log_likelihood_j)
+                if not np.isfinite(a_max):
+                    a_max = 0
+
+                tmp = np.exp(temp - a_max) - np.exp(log_likelihood+log_likelihood_j - a_max)
+
+                # suppress warnings about log of zero
+                with np.errstate(divide='ignore'):
+                    log_likelihood = np.log(tmp) + a_max
             
         # Compute total log loss
         log_loss -= (log_likelihood if y_j[i] else np.log(-np.expm1(log_likelihood-1E-10)))
