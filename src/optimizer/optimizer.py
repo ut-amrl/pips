@@ -196,24 +196,37 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     print_with_padding("Initial values", "|")
     debug(input)
     
-    # Run optimizer in parallel
-    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses)
-    with multiprocessing.Pool(NUM_CORES) as p:
-        output = p.map(partial_optimizer, input)
-    
-    bestRes = min(output, key=lambda i: i.fun)
+    if np.count_nonzero(y_j) == 0:
+        # No examples -> just return false
+        init = np.concatenate(([1 for _ in range(len(E_k_subset))], [1000000000 for _ in range(len(E_k_subset))]))
+        
+        print_with_padding("Final parameters", "|")
+        debug("False")
+        print_with_padding("Minimum value - training set", 0.0)
+        print_with_padding("Minimum value - validation set", 0.0)
 
-    print_with_padding("Final parameters", "|")
-    debug(bestRes.x)
-    print_with_padding("Minimum value - training set", bestRes.fun)
-    # Run again with the validation set and no prior
-    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False) / len(y_j)
-    print_with_padding("Minimum value - validation set", bestRes.fun)
+        if (not queue is None):
+            queue.put( (index, (0, list(init)) ) )
 
-    if (not queue is None):
-        queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
+        return (0, list(init))
+    else:
+        # Run optimizer in parallel
+        partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses)
+        with multiprocessing.Pool(NUM_CORES) as p:
+            output = p.map(partial_optimizer, input)
+        bestRes = min(output, key=lambda i: i.fun)
 
-    return (bestRes.fun, list(bestRes.x))
+        print_with_padding("Final parameters", "|")
+        debug(bestRes.x)
+        print_with_padding("Minimum value - training set", bestRes.fun)
+        # Run again with the validation set and no prior
+        bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False) / len(y_j)
+        print_with_padding("Minimum value - validation set", bestRes.fun)
+
+        if (not queue is None):
+            queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
+
+        return (bestRes.fun, list(bestRes.x))
 
 def wrapper(target, args, sema):
     # Do work
