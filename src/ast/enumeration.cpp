@@ -146,6 +146,67 @@ vector<ast_ptr> EnumerateSketches(int depth) {
   return sketches;
 }
 
+// Grow a set of sketches to try and fill in
+vector<ast_ptr> EnumerateSketchesHelper_Det(int depth) {
+  vector<ast_ptr> sketches;
+
+  if (depth == 0) {
+    // Return [true, false]
+    bool_ptr t = make_shared<Bool>(true);
+    bool_ptr f = make_shared<Bool>(false);
+    // sketches.push_back(t);
+    // sketches.push_back(f);
+    return sketches;
+  }
+
+  // TODO(jaholtz) make sure we can fill in any dimension of feature here.
+  const string depth_string = std::to_string(depth);
+  Param p("pX" + depth_string, {0,0,0}, NUM);
+  Feature f("fX" + depth_string, {0,0,0}, NUM);
+  Param p1("pY" + depth_string, {0,0,0}, NUM);
+  Feature f1("fY" + depth_string, {0,0,0}, NUM);
+  std::shared_ptr<BinOp> great = make_shared<BinOp>(make_shared<Feature>(f),
+                                 make_shared<Param>(p), "Gt");
+  std::shared_ptr<BinOp> less = make_shared<BinOp>(make_shared<Feature>(f),
+                                make_shared<Param>(p), "Lt");
+
+  // Depth > 0
+  vector<ast_ptr> rec_sketches = EnumerateSketchesHelper_Det(depth - 1);
+
+  if (depth == 1) {
+    sketches.push_back(great);
+    sketches.push_back(less);
+    return sketches;
+  }
+
+  for (auto skt : rec_sketches) {
+    if (skt->type_ != BOOL) {
+      std::shared_ptr<BinOp> andg = make_shared<BinOp>(great, skt, "And");
+      std::shared_ptr<BinOp> org = make_shared<BinOp>(great, skt, "Or");
+      std::shared_ptr<BinOp> andl = make_shared<BinOp>(less, skt, "And");
+      std::shared_ptr<BinOp> orl = make_shared<BinOp>(less, skt, "Or");
+      sketches.push_back(andg);
+      sketches.push_back(org);
+      sketches.push_back(andl);
+      sketches.push_back(orl);
+    }
+  }
+  return sketches;
+}
+
+vector<ast_ptr> EnumerateSketches_Det(int depth) {
+  vector<ast_ptr> sketches;
+  int counter = 0;
+  while (counter <= depth) {
+    const vector<ast_ptr> current = EnumerateSketchesHelper_Det(counter);
+    for (auto astptr : current) {
+    }
+    sketches.insert(sketches.end(), current.begin(), current.end());
+    counter++;
+  }
+  return sketches;
+}
+
 // Extends a predicate to match new examples, based on
 // the performance of the existing examples, and the sketches.
 ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
@@ -237,6 +298,42 @@ vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                              vector<Signature>* signatures) {
   CumulativeFunctionTimer::Invocation invoke(&rec_enumerate);
   return RecEnumerateHelper(roots, inputs, examples, library, depth, signatures);
+}
+
+ast_ptr FillFeatureHoles_Det(ast_ptr sketch, const vector<size_t>& indicies, const vector<ast_ptr>& ops) {
+    Model m;
+
+    const unordered_map<string, pair<Type, Dimension>> feature_hole_map = MapFeatureHoles(sketch);
+    vector<string> feature_holes;
+    for (const auto& p : feature_hole_map) {
+        feature_holes.push_back(p.first);
+    }
+    const size_t feature_hole_count = feature_holes.size();
+
+    // For every feature hole...
+    for (size_t i = 0; i < feature_hole_count; ++i) {
+        // Get the name of a feature hole to fill and a possible value for it.
+        const string& feature_hole = feature_holes[i];
+        const pair<Type, Dimension> feature_hole_info =
+            feature_hole_map.at(feature_hole);
+        const Type feature_hole_type = feature_hole_info.first;
+        const Dimension feature_hole_dims = feature_hole_info.second;
+        const size_t index = indicies[i];
+        const ast_ptr& op = ops[index];
+        if (op->type_ != feature_hole_type) {
+            break;
+        } else {
+            // const ast_ptr op_copy = DeepCopyAST(op);
+            m[feature_hole] = op;
+        }
+    }
+    if (m.size() != feature_hole_count) {
+        return nullptr;
+    }
+
+    ast_ptr filled = DeepCopyAST(sketch);
+    FillHoles(filled, m);
+    return filled;
 }
 
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies,

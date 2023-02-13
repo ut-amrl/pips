@@ -278,6 +278,7 @@ namespace AST {
         unordered_set<Example> no;
         SplitExamples(examples, transition, &yes, &no);
 
+        cout << "| Num transitions (pos|neg): " << yes.size() << "|" << no.size() << endl << "| " << endl;
         if (debug) {
             cout << "Current Sketch: " << sketch << endl;
         }
@@ -308,7 +309,7 @@ namespace AST {
                     count++;
                 }
 
-                ast_ptr filled = FillFeatureHoles(sketch, op_indicies, ops);
+                ast_ptr filled = FillFeatureHoles_Det(sketch, op_indicies, ops);
                 if (filled != nullptr) {
                     const double sat_ratio = PredicateL1(filled, yes, no, false);
     #pragma omp critical
@@ -365,19 +366,26 @@ namespace AST {
         return best_program;
     }
 
-    vector<ast_ptr> ldipsL3(const vector<Example> &demos,
-                            const vector<pair<string, string>> &transitions,
-                            const vector<ast_ptr> lib, const int sketch_depth,
-                            const float min_accuracy, const string &output_path) {
+    void ldipsL3(const vector<Example>& demos,
+        const vector<pair<string, string>>& transitions,
+        vector<ast_ptr>& solution_preds,
+        vector<float>& solution_loss,
+        const vector<ast_ptr> features,
+        const string &output_path,
+        const uint32_t max_enum,
+        const double complexity_loss,
+        const bool INCREMENTAL) {
+
         vector<Example> examples = demos;
         // Enumerate possible sketches
-        const auto sketches = EnumerateSketches(sketch_depth);
+        const auto sketches = EnumerateSketches_Det(3);
         cout << "Number of sketches: " << sketches.size() << endl;
 
         vector<ast_ptr> transition_solutions;
 
         // For each input/output pair
-        for (const auto &transition : transitions) {
+        for (int t = 0; t < transitions.size(); t++) {
+            pair<string, string> transition = transitions[t];
             // Skipping already synthesized conditions, allows for very basic
             // checkpointing.
             const string output_name =
@@ -385,9 +393,7 @@ namespace AST {
             if (ExistsFile(output_name)) {
                 continue;
             }
-            // if (transition.first != "GoAlone" || transition.second != "Pass") {
-            // continue;
-            // }
+
             cout << "----- " << transition.first << "->";
             cout << transition.second << " -----" << endl;
             float current_best = 0.0;
@@ -395,9 +401,8 @@ namespace AST {
             for (const auto &sketch : sketches) {
                 // Attempt L2 Synthesis with current sketch.
                 current_solution =
-                    ldipsL2(sketch, examples, lib, transition, min_accuracy,
+                    ldipsL2(sketch, examples, features, transition, 1.0,
                             current_solution, &current_best);
-                if (current_best >= min_accuracy) break;
                 if (debug) {
                     cout << "Score: " << current_best << endl;
                     cout << "Solution: " << current_solution << endl;
@@ -416,10 +421,14 @@ namespace AST {
             // Filter out Examples used by this transition
             examples = FilterExamples(examples, transition);
 
-            cout << endl;
-            transition_solutions.push_back(current_solution);
+            if(solution_preds.size() == transitions.size()) {
+                solution_preds[t] = current_solution;
+                solution_loss[t] = current_best;    
+            } else {
+                solution_preds.push_back(current_solution);
+                solution_loss.push_back(current_best);
+            }
         }
-        return transition_solutions;
     }
 
     // Attempts to solve for the most likely assignment of real values for the
@@ -567,7 +576,8 @@ namespace AST {
                     optional<ast_ptr> base,
                     const uint32_t max_enum,
                     const double complexity_loss,
-                    PyObject* pFunc) {
+                    PyObject* pFunc,
+                    const bool INCREMENTAL = true) {
 
         vector<Example> yes;
         vector<Example> no;
@@ -598,6 +608,10 @@ namespace AST {
             sketches.insert(sketches.begin(), 1, base.value());
         }
 
+        if(!INCREMENTAL) {
+            sketches = EnumerateL3(features, 2);
+        }
+
         cout << "|---- Number of Total Programs ----" << endl;
         cout << "| " << sketches.size() << endl;
         for(int i = 0; i < min(10, (int) sketches.size()); i++){
@@ -607,7 +621,8 @@ namespace AST {
 
         // Test all proposed program sketches, up to max_enum
         vector<ast_ptr> batch;
-        for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
+        uint32_t enum_lim = INCREMENTAL ? max_enum : INT_MAX;
+        for(int ind = 0; ind < min((uint32_t) sketches.size(), enum_lim); ind++) {
             batch.push_back(sketches[ind]);
         }
 
@@ -639,7 +654,8 @@ namespace AST {
                     const string &output_path,
                     const uint32_t max_enum,
                     const double complexity_loss,
-                    PyObject* pFunc) {
+                    PyObject* pFunc,
+                    const bool INCREMENTAL = true) {
 
         vector<Example> examples = demos;
 
@@ -659,7 +675,7 @@ namespace AST {
 
             ast_ptr current_solution;
             optional<ast_ptr> prev_sol = (solution_preds.size() == transitions.size()) ? make_optional(solution_preds[t]) : nullopt;
-            double current_best = emdipsL3_Single(examples, transition, current_solution, features, prev_sol, max_enum, complexity_loss, pFunc);
+            double current_best = emdipsL3_Single(examples, transition, current_solution, features, prev_sol, max_enum, complexity_loss, pFunc, INCREMENTAL);
 
             // Write the solution out to a file.
             cout << "| Final loss: " << current_best << endl;

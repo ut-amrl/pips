@@ -110,6 +110,9 @@ vector<ast_ptr> GetLegalOps(ast_ptr node, vector<ast_ptr> input,
 vector<ast_ptr> EnumerateSketches(int depth);
 vector<ast_ptr> EnumerateSketchesHelper(int depth);
 
+vector<ast_ptr> EnumerateSketches_Det(int depth);
+vector<ast_ptr> EnumerateSketchesHelper_Det(int depth);
+
 ast_ptr ExtendPred(ast_ptr base, ast_ptr pos_sketch, ast_ptr neg_sketch,
     const float& pos, const float& neg);
 
@@ -128,6 +131,8 @@ vector<ast_ptr> RecEnumerate(const vector<ast_ptr>& roots,
                                   vector<Signature>* signatures);
 
 ast_ptr FillFeatureHoles(ast_ptr sketch, const vector<size_t> &indicies, const vector<ast_ptr> &ops);
+
+ast_ptr FillFeatureHoles_Det(ast_ptr sketch, const vector<size_t> &indicies, const vector<ast_ptr> &ops);
 
 vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth);
 
