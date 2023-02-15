@@ -378,8 +378,15 @@ namespace AST {
 
         vector<Example> examples = demos;
         // Enumerate possible sketches
-        const auto sketches = EnumerateSketches_Det(3);
+        int sketch_depth = 1;
+        auto sketches = EnumerateSketches_Det(sketch_depth);
+        if(sketch_depth == 2) { // Remove symmetry. TODO: jank af (but it works)
+            sketches.erase(sketches.begin() + 6, sketches.begin() + 8);
+        }
         cout << "Number of sketches: " << sketches.size() << endl;
+        for(auto each: sketches) {
+            cout << each << endl;
+        }
 
         vector<ast_ptr> transition_solutions;
 
@@ -426,7 +433,7 @@ namespace AST {
                 solution_loss[t] = current_best;    
             } else {
                 solution_preds.push_back(current_solution);
-                solution_loss.push_back(current_best);
+                solution_loss[t] = current_best;
             }
         }
     }
@@ -621,8 +628,7 @@ namespace AST {
 
         // Test all proposed program sketches, up to max_enum
         vector<ast_ptr> batch;
-        uint32_t enum_lim = INCREMENTAL ? max_enum : INT_MAX;
-        for(int ind = 0; ind < min((uint32_t) sketches.size(), enum_lim); ind++) {
+        for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
             batch.push_back(sketches[ind]);
         }
 
