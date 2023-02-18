@@ -77,6 +77,8 @@ set(CXX_PIPS_SRCS
     src/visitors/interp_visitor.hpp
     pips/src/visitors/perturb_visitor.cpp
     pips/src/visitors/perturb_visitor.hpp
+    pips/src/visitors/feature_builder.cpp
+    pips/src/visitors/feature_builder.hpp
     src/visitors/print_visitor.cpp
     src/visitors/print_visitor.hpp
     src/visitors/tosmtlib_visitor.cpp

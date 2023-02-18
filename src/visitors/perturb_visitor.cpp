@@ -20,18 +20,20 @@ namespace AST {
 
 vector<ast_ptr> findSimilar(ast_ptr& base, vector<ast_ptr>& lib, vector<ast_ptr>& sketches) {
     // We randomly perturb the base program in 4 ways: see 1), 2), 3), and 4)
-    Perturb visitor(base, lib);
+    ast_ptr copy = DeepCopyAST(base);
+
+    Perturb visitor(copy, lib);
 
     // 1. Randomly add clauses with a base feature
     for(ast_ptr feat: sketches) {
-        shared_ptr<BinOp> andf = make_shared<BinOp>(feat, base, "And");
-        shared_ptr<BinOp> orf = make_shared<BinOp>(feat, base, "Or");
+        shared_ptr<BinOp> andf = make_shared<BinOp>(feat, copy, "And");
+        shared_ptr<BinOp> orf = make_shared<BinOp>(feat, copy, "Or");
 
         visitor.add_candidate(andf);
         visitor.add_candidate(orf);
     }
 
-    base->Accept(&visitor);
+    copy->Accept(&visitor);
     return visitor.sketches_;
 }
 

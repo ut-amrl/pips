@@ -25,6 +25,7 @@
 #include "visitors/interp_visitor.hpp"
 #include "visitors/print_visitor.hpp"
 #include "visitors/tosmtlib_visitor.hpp"
+#include "visitors/feature_builder.hpp"
 
 using namespace std;
 using AST::CheckModelAccuracy;
@@ -600,7 +601,13 @@ namespace AST {
         const SymEntry out(transition.second);
         const SymEntry in(transition.first);
 
-        vector<ast_ptr> sketches = EnumerateL3(features, 1); // Always enumerate over simplest programs (base case)
+        // Extend features
+        vector<ast_ptr> feat_extended = features;
+        if(base != nullopt) {
+            feat_extended = build_feat(base.value(), features);
+        }
+
+        vector<ast_ptr> sketches = EnumerateL3(feat_extended, 1); // Always enumerate over simplest programs (base case)
         if(base != nullopt) {
             // If there is a current solution: sort program sketches based on similarity
             vector<ast_ptr> similar = EnumerateL3_Sim(features, base.value());
