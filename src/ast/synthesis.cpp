@@ -52,9 +52,9 @@ namespace AST {
     }
 
     // Function to calculate prior based on program complexity
-    float CalculatePrior(ast_ptr sketch, double complexity_loss) {
-        // Simple linear relationship
-        return sketch->complexity_ * complexity_loss;
+    float CalculatePrior(ast_ptr sketch, double complexity_loss, double cur_loss) {
+        // Simple linear relationship that is proportional to the current loss
+        return sketch->complexity_ * (complexity_loss) * cur_loss;
     }
 
     // Utility function that converts a Z3 model (solutions for parameter holes)
@@ -642,7 +642,7 @@ namespace AST {
         vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
 
         for(int i = 0; i < log_likelihoods.size(); i++){
-            double prior = CalculatePrior(batch[i], complexity_loss);
+            double prior = CalculatePrior(batch[i], complexity_loss, log_likelihoods[i]);
             cout << "| " << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
             log_likelihoods[i] += prior;
             
