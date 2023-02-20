@@ -54,7 +54,9 @@ namespace AST {
     // Function to calculate prior based on program complexity
     float CalculatePrior(ast_ptr sketch, double complexity_loss, double cur_loss) {
         // Simple linear relationship that is proportional to the current loss
-        return sketch->complexity_ * (complexity_loss) * cur_loss;
+        float loss = sketch->complexity_ * (complexity_loss) * cur_loss;
+        // Use a minimum to prevent degeneracy at very small values
+        return loss + sketch->complexity_ * 0.003;
     }
 
     // Utility function that converts a Z3 model (solutions for parameter holes)
@@ -640,7 +642,6 @@ namespace AST {
         }
 
         vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
-
         for(int i = 0; i < log_likelihoods.size(); i++){
             double prior = CalculatePrior(batch[i], complexity_loss, log_likelihoods[i]);
             cout << "| " << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
@@ -704,7 +705,7 @@ namespace AST {
                 solution_loss[t] = current_best;    
             } else {
                 solution_preds.push_back(current_solution);
-                solution_loss.push_back(current_best);
+                solution_loss[t] = current_best;
             }
 
             std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
