@@ -108,7 +108,7 @@ def run_optimizer_from_initial(E_k, y_j, clauses, init):
     elif(OPT_METHOD == 4):      # DIRECT - global optimization
         res = optimize.direct(log_loss, args=extra_args, maxiter=MAX_ITER)
     else:
-        sys.exit("Please use a valid optimization method")
+        print("Please use a valid optimization method")
 
     print_with_padding("Optimal parameters", "|")
     debug(res.x)
@@ -142,6 +142,20 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     
     yes_count = float(np.count_nonzero(y_j))
     no_count = float(len(y_j) - yes_count)
+
+    if np.count_nonzero(y_j) == 0:
+        # No examples -> just return false
+        init = np.concatenate(([1 for _ in range(len(E_k_subset))], [1000000000 for _ in range(len(E_k_subset))]))
+        
+        print_with_padding("Final parameters", "|")
+        debug("False")
+        print_with_padding("Minimum value - training set", 0.0)
+        print_with_padding("Minimum value - validation set", 0.0)
+
+        if (not queue is None):
+            queue.put( (index, (0, list(init)) ) )
+
+        return (0, list(init))
 
     yes_count = np.rint(yes_count * EX_SAMPLED / len(y_j))
     no_count = np.rint(no_count * EX_SAMPLED / len(y_j))
@@ -196,37 +210,23 @@ def run_optimizer(queue, index, E_k, y_j, clauses):
     print_with_padding("Initial values", "|")
     debug(input)
     
-    if np.count_nonzero(y_j) == 0:
-        # No examples -> just return false
-        init = np.concatenate(([1 for _ in range(len(E_k_subset))], [1000000000 for _ in range(len(E_k_subset))]))
-        
-        print_with_padding("Final parameters", "|")
-        debug("False")
-        print_with_padding("Minimum value - training set", 0.0)
-        print_with_padding("Minimum value - validation set", 0.0)
+    # Run optimizer in parallel
+    partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses)
+    with multiprocessing.Pool(NUM_CORES) as p:
+        output = p.map(partial_optimizer, input)
+    bestRes = min(output, key=lambda i: i.fun)
 
-        if (not queue is None):
-            queue.put( (index, (0, list(init)) ) )
+    print_with_padding("Final parameters", "|")
+    debug(bestRes.x)
+    print_with_padding("Minimum value - training set", bestRes.fun)
+    # Run again with the validation set and no prior
+    bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False) / len(y_j)
+    print_with_padding("Minimum value - validation set", bestRes.fun)
 
-        return (0, list(init))
-    else:
-        # Run optimizer in parallel
-        partial_optimizer = functools.partial(run_optimizer_from_initial, E_k_subset, y_j_subset, clauses)
-        with multiprocessing.Pool(NUM_CORES) as p:
-            output = p.map(partial_optimizer, input)
-        bestRes = min(output, key=lambda i: i.fun)
+    if (not queue is None):
+        queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
 
-        print_with_padding("Final parameters", "|")
-        debug(bestRes.x)
-        print_with_padding("Minimum value - training set", bestRes.fun)
-        # Run again with the validation set and no prior
-        bestRes.fun = log_loss(bestRes.x, E_k, y_j, clauses, False) / len(y_j)
-        print_with_padding("Minimum value - validation set", bestRes.fun)
-
-        if (not queue is None):
-            queue.put( (index, (bestRes.fun, list(bestRes.x)) ) )
-
-        return (bestRes.fun, list(bestRes.x))
+    return (bestRes.fun, list(bestRes.x))
 
 def wrapper(target, args, sema):
     # Do work

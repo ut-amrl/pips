@@ -56,7 +56,7 @@ namespace AST {
         // Simple linear relationship that is proportional to the current loss
         float loss = sketch->complexity_ * (complexity_loss) * cur_loss;
         // Use a minimum to prevent degeneracy at very small values
-        return loss + sketch->complexity_ * 0.003;
+        return loss + sketch->complexity_ * 0.005;
     }
 
     // Utility function that converts a Z3 model (solutions for parameter holes)
