@@ -625,7 +625,7 @@ namespace AST {
         }
 
         if(!INCREMENTAL) {
-            sketches = EnumerateL3(features, 2);
+            sketches = EnumerateL3(features, 1);
         }
 
         cout << "|---- Number of Total Programs ----" << endl;

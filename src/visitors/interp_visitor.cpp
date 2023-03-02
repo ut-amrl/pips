@@ -94,6 +94,10 @@ ast_ptr Interp::Visit(BinOp* node) {
       result = AngleDist(left, right);
     } else if (op == "DistTraveled") {
       result = DistTraveled(left, right);
+    } else if (op == "TimeToStop") {
+      result = TimeToStop(left, right);
+    } else if (op == "TimeToCover") {
+      result = TimeToCover(left, right);
     } else if (op == "And") {
       result = And(left, right);
     } else if (op == "Or") {

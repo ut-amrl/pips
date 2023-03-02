@@ -27,6 +27,8 @@ AST::ast_ptr Minus(AST::ast_ptr left, AST::ast_ptr right);
 AST::ast_ptr Times(AST::ast_ptr left, AST::ast_ptr right);
 AST::ast_ptr DividedBy(AST::ast_ptr left, AST::ast_ptr right);
 AST::ast_ptr DistTraveled(AST::ast_ptr v1, AST::ast_ptr a);
+AST::ast_ptr TimeToStop(AST::ast_ptr v1, AST::ast_ptr a);
+AST::ast_ptr TimeToCover(AST::ast_ptr v1, AST::ast_ptr a);
 AST::ast_ptr AngleDist(AST::ast_ptr left, AST::ast_ptr right);
 
 AST::ast_ptr Abs(AST::ast_ptr operand);

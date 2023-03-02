@@ -165,6 +165,38 @@ ast_ptr DistTraveled(ast_ptr v1, ast_ptr a) {
   return make_shared<Num>(result);
 }
 
+ast_ptr TimeToStop(ast_ptr v1, ast_ptr a) {
+  ASSERT_TYPE(v1, Type::NUM);
+  ASSERT_TYPE(a, Type::NUM);
+
+  ASSERT_DIM(v1, Vector3i(1, -1, 0));
+  ASSERT_DIM(a, Vector3i(1, -2, 0));
+  
+  num_ptr vel1 = dynamic_pointer_cast<Num>(v1);
+  num_ptr accel = dynamic_pointer_cast<Num>(a);
+
+  // Calculate time until stop
+  Num result( vel1->value_ / -accel->value_, {0, 1, 0});
+
+  return make_shared<Num>(result);
+}
+
+ast_ptr TimeToCover(ast_ptr d1, ast_ptr v) {
+  ASSERT_TYPE(d1, Type::NUM);
+  ASSERT_TYPE(v, Type::NUM);
+
+  ASSERT_DIM(d1, Vector3i(1, 0, 0));
+  ASSERT_DIM(v, Vector3i(1, -1, 0));
+  
+  num_ptr dist1 = dynamic_pointer_cast<Num>(d1);
+  num_ptr vel = dynamic_pointer_cast<Num>(v);
+
+  // Calculate time until stop
+  Num result( dist1->value_ / -vel->value_, {0, 1, 0});
+
+  return make_shared<Num>(result);
+}
+
 ast_ptr Abs(ast_ptr operand) {
   ASSERT_TYPE(operand, Type::NUM);
 
