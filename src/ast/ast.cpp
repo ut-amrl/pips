@@ -324,7 +324,6 @@ ast_ptr Feature::FromJson(const json& input) {
   if (input["value"] != "null") {
     output.current_value_ = AstFromJson(input["value"]);
   }
-  output.complexity_ = output.current_value_->complexity_ - 5;  // Remove redundant complexity points from logistic and flip (not considered part of the feature)
   return make_shared<Feature>(output);
 }
 

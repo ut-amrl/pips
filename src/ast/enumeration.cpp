@@ -418,11 +418,11 @@ vector<ast_ptr> EnumerateL3(vector<ast_ptr>& lib, int sketch_depth) {
     vector<ast_ptr> full_sketches;
     // Enumerate possible sketches
     const auto sketches = EnumerateSketches(sketch_depth);
-    cout << "|--- Number of Sketches Enumerated ---\n| " << sketches.size() << endl;
-    for (ast_ptr each : sketches) {
-        cout << "| " << each << endl;
-    }
-    cout << "|" << endl;
+    // cout << "|--- Number of Sketches Enumerated ---\n| " << sketches.size() << endl;
+    // for (ast_ptr each : sketches) {
+    //     cout << "| " << each << endl;
+    // }
+    // cout << "|" << endl;
 
     if(lib.size() > 0){
         for (const auto &sketch : sketches) {

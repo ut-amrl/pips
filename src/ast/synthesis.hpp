@@ -36,10 +36,7 @@ namespace AST {
         vector<ast_ptr>& solution_preds,
         vector<float>& solution_loss,
         const vector<ast_ptr> features,
-        const string &output_path,
-        const uint32_t max_enum,
-        const double complexity_loss,
-        const bool INCREMENTAL);
+        const string &output_path);
 
     void emdipsL3(const vector<Example> &demos,
         const vector<pair<string, string>> &transitions,
@@ -47,10 +44,7 @@ namespace AST {
         vector<float>& solution_loss,
         vector<ast_ptr>& features,
         const string &output_path,
-        const uint32_t max_enum,
-        const double complexity_loss,
-        PyObject* pFunc,
-        const bool INCREMENTAL);
+        PyObject* pFunc);
 
     void SRTR(const vector<Example>& demos,
         const vector<ast_ptr>& programs,
@@ -64,5 +58,7 @@ namespace AST {
         const int sketch_depth,
         const float min_accuracy,
         const string& output_path);
+
+    void passSettings(const uint32_t max_enum, const double complexity_loss_base, const double complexity_loss, const bool incremental);
 
 }  // namespace AST

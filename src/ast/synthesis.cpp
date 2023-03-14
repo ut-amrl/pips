@@ -32,9 +32,13 @@ using AST::CheckModelAccuracy;
 using nlohmann::json;
 
 bool debug = false;
-uint32_t batch_size;
 
 namespace AST {
+
+    uint32_t MAX_ENUM;
+    double COMPLEXITY_LOSS_BASE;
+    double COMPLEXITY_LOSS;
+    bool INCREMENTAL;
 
     // Helper Function for scoring a candidate predicate given only a set
     // of examples and the desired transition
@@ -52,11 +56,11 @@ namespace AST {
     }
 
     // Function to calculate prior based on program complexity
-    float CalculatePrior(ast_ptr sketch, double complexity_loss, double cur_loss) {
+    float CalculatePrior(ast_ptr sketch, double cur_loss) {
         // Simple linear relationship that is proportional to the current loss
-        float loss = sketch->complexity_ * (complexity_loss) * cur_loss;
+        float loss = sketch->complexity_ * (COMPLEXITY_LOSS) * cur_loss;
         // Use a minimum to prevent degeneracy at very small values
-        return loss + sketch->complexity_ * 0.005;
+        return loss + sketch->complexity_ * COMPLEXITY_LOSS_BASE;
     }
 
     // Utility function that converts a Z3 model (solutions for parameter holes)
@@ -374,10 +378,7 @@ namespace AST {
         vector<ast_ptr>& solution_preds,
         vector<float>& solution_loss,
         const vector<ast_ptr> features,
-        const string &output_path,
-        const uint32_t max_enum,
-        const double complexity_loss,
-        const bool INCREMENTAL) {
+        const string &output_path) {
 
         vector<Example> examples = demos;
         // Enumerate possible sketches
@@ -584,10 +585,7 @@ namespace AST {
                     ast_ptr& solution,
                     vector<ast_ptr> &features,
                     optional<ast_ptr> base,
-                    const uint32_t max_enum,
-                    const double complexity_loss,
-                    PyObject* pFunc,
-                    const bool INCREMENTAL = true) {
+                    PyObject* pFunc) {
 
         vector<Example> yes;
         vector<Example> no;
@@ -630,21 +628,26 @@ namespace AST {
 
         cout << "|---- Number of Total Programs ----" << endl;
         cout << "| " << sketches.size() << endl;
-        for(int i = 0; i < min(10, (int) sketches.size()); i++){
-            cout << "| " << sketches[i] << endl;
+
+        if(debug) {
+            for(int i = 0; i < min(10, (int) sketches.size()); i++){
+                cout << "| " << sketches[i] << endl;
+            }
+            cout << "| ..." << endl << "| " << endl;
         }
-        cout << "| ..." << endl << "| " << endl;
 
         // Test all proposed program sketches, up to max_enum
         vector<ast_ptr> batch;
-        for(int ind = 0; ind < min((uint32_t) sketches.size(), max_enum); ind++) {
+        for(int ind = 0; ind < min((uint32_t) sketches.size(), MAX_ENUM); ind++) {
             batch.push_back(sketches[ind]);
         }
 
         vector<double> log_likelihoods = LikelihoodPredicateL1(batch, yes, no, false, pFunc);
         for(int i = 0; i < log_likelihoods.size(); i++){
-            double prior = CalculatePrior(batch[i], complexity_loss, log_likelihoods[i]);
-            cout << "| " << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
+            double prior = CalculatePrior(batch[i], log_likelihoods[i]);
+
+            if(debug)
+                cout << "| " << batch[i] << ": " << log_likelihoods[i] << "+" << prior << "=" << (log_likelihoods[i] + prior) << endl;
             log_likelihoods[i] += prior;
             
             if(current_best == -1 || log_likelihoods[i] < current_best){
@@ -666,10 +669,7 @@ namespace AST {
                     vector<float>& solution_loss,
                     vector<ast_ptr> &features,
                     const string &output_path,
-                    const uint32_t max_enum,
-                    const double complexity_loss,
-                    PyObject* pFunc,
-                    const bool INCREMENTAL = true) {
+                    PyObject* pFunc) {
 
         vector<Example> examples = demos;
 
@@ -689,7 +689,7 @@ namespace AST {
 
             ast_ptr current_solution;
             optional<ast_ptr> prev_sol = (solution_preds.size() == transitions.size()) ? make_optional(solution_preds[t]) : nullopt;
-            double current_best = emdipsL3_Single(examples, transition, current_solution, features, prev_sol, max_enum, complexity_loss, pFunc, INCREMENTAL);
+            double current_best = emdipsL3_Single(examples, transition, current_solution, features, prev_sol, pFunc);
 
             // Write the solution out to a file.
             cout << "| Final loss: " << current_best << endl;
@@ -835,6 +835,10 @@ namespace AST {
                 cout << endl;
             }
         }
+    }
+
+    void passSettings(const uint32_t max_enum, const double complexity_loss_base, const double complexity_loss, const bool incremental) {
+        MAX_ENUM = max_enum; COMPLEXITY_LOSS_BASE = complexity_loss_base; COMPLEXITY_LOSS = complexity_loss; INCREMENTAL = incremental;
     }
 
 }  // namespace AST

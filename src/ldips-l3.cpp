@@ -108,6 +108,5 @@ int main(int argc, char* argv[]) {
   cout << endl;
 
   // Run L3 Synthesis
-  ldipsL3(examples, transitions, ops, FLAGS_sketch_depth, FLAGS_min_accuracy,
-      FLAGS_out_dir);
+//   ldipsL3(examples, transitions, ops, FLAGS_sketch_depth, FLAGS_min_accuracy, FLAGS_out_dir);
 }
