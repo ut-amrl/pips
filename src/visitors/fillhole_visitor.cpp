@@ -203,7 +203,7 @@ ast_ptr FillHole::Visit(Feature* node) {
   if (node->name_ == target_name_ && node->current_value_ == nullptr) {
     node->current_value_ = new_value_;
     node->complexity_ = new_value_->complexity_;
-    node->complexity_ -= 2; // Remove redundant complexity points from flip and lgs (not considered part of the feature)
+    node->complexity_ -= 4; // Remove redundant complexity points from flip and lgs (not considered part of the feature)
   }
   if (node->current_value_ != nullptr) {
     node->current_value_->Accept(this);
