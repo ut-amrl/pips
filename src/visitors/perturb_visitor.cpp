@@ -46,7 +46,7 @@ void Perturb::add_candidate(ast_ptr prog) {
     }
 }
 
-Perturb::Perturb(ast_ptr& base, vector<ast_ptr>& lib) : base_(base), lib_(lib) {}
+Perturb::Perturb(ast_ptr& base, vector<ast_ptr>& lib) : base_(base), lib_(lib), sketches_() {}
 
 ast_ptr Perturb::Visit(AST* node) { return ast_ptr(node); }
 

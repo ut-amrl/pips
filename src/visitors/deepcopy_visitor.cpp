@@ -48,7 +48,7 @@ ast_ptr DeepCopy::Visit(BinOp* node) {
 
 ast_ptr DeepCopy::Visit(UnOp* node) {
   node->input_->Accept(this);
-  UnOp copy(copy_, node->op_);
+  UnOp copy(copy_, node->op_, node->type_, node->dims_);
   copy.complexity_ = node->complexity_;
   copy_ = make_shared<UnOp>(copy);
   return copy_;

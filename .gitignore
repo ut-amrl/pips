@@ -18,3 +18,7 @@ compile_commands.json
 # examples/
 # ops/
 features.txt
+
+# PLUNDER config files
+ops/emdips_operations.json
+src/optimizer/optimizer_settings.py
