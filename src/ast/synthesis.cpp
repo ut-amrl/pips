@@ -253,7 +253,16 @@ namespace AST {
             FillHoles(sketch, solution);
             const double output = CheckModelAccuracy(sketch, pos, neg);
             return output;
-        } catch (const std::invalid_argument) {
+        } catch (const std::invalid_argument e) {
+            shared_ptr<BinOp> cast = dynamic_pointer_cast<BinOp>(sketch);
+            if(cast && cast->op_ == "Gt") {
+                shared_ptr<Param> cast2 = dynamic_pointer_cast<Param>(cast->right_);
+                if(cast2) {
+                    cast2->current_value_ = make_shared<Num>(Num(100000, {0, 0, 0}));
+                    cout << GetString(sketch) << endl;
+                    return 0.01;
+                }
+            }
             return 0.0;
         }
     }
@@ -297,11 +306,11 @@ namespace AST {
         if (feature_hole_count > 0) {
             index_iterator c(ops.size(), feature_hole_count);
             solution_cond = nullptr;
-            bool keep_searching = true;
+            int keep_searching = 128;
             int count = 0.0;
 
     #pragma omp parallel
-            while (keep_searching) {
+            while (keep_searching > 0) {
                 // Use the indices given to us by the iterator to select ops for
                 // filling our feature holes and create a model.
                 vector<size_t> op_indicies;
@@ -321,7 +330,7 @@ namespace AST {
                     const double sat_ratio = PredicateL1(filled, yes, no, false);
     #pragma omp critical
                     {
-                        if (keep_searching && sat_ratio >= min_accuracy) {
+                        if (keep_searching && sat_ratio > min_accuracy) {
                             keep_searching = false;
                             solution_cond = filled;
                             current_best = sat_ratio;
@@ -329,6 +338,7 @@ namespace AST {
                             solution_cond = filled;
                             current_best = sat_ratio;
                         }
+                        keep_searching--;
                     }
                 }
             }
@@ -382,7 +392,7 @@ namespace AST {
 
         vector<Example> examples = demos;
         // Enumerate possible sketches
-        int sketch_depth = 1;
+        int sketch_depth = 2;
         auto sketches = EnumerateSketches_Det(sketch_depth);
         if(sketch_depth == 2) { // Remove symmetry. TODO: jank af (but it works)
             sketches.erase(sketches.begin() + 6, sketches.begin() + 8);
