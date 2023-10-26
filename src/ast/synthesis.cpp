@@ -306,7 +306,7 @@ namespace AST {
         if (feature_hole_count > 0) {
             index_iterator c(ops.size(), feature_hole_count);
             solution_cond = nullptr;
-            int keep_searching = 128;
+            int keep_searching = 512;
             int count = 0.0;
 
     #pragma omp parallel
@@ -633,7 +633,7 @@ namespace AST {
         }
 
         if(!INCREMENTAL) {
-            sketches = EnumerateL3(features, 1);
+            sketches = EnumerateL3(features, 2);
         }
 
         cout << "|---- Number of Total Programs ----" << endl;
