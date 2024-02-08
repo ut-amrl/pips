@@ -259,7 +259,6 @@ namespace AST {
                 shared_ptr<Param> cast2 = dynamic_pointer_cast<Param>(cast->right_);
                 if(cast2) {
                     cast2->current_value_ = make_shared<Num>(Num(100000, {0, 0, 0}));
-                    cout << GetString(sketch) << endl;
                     return 0.01;
                 }
             }
