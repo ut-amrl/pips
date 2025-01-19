@@ -595,8 +595,8 @@ void SRTR(const vector<Example>& demos,
       cout << transition.second << " -----" << endl;
       cout << "Initial Program:" << endl << sketch << endl;
 
-      float current_best = CheckModelAccuracy(sketch, yes, no);
-      cout << "Initial Score: " << current_best << endl;
+      // float current_best = CheckModelAccuracy(sketch, yes, no);
+      // cout << "Initial Score: " << current_best << endl;
 
       // Find best performing completion of current sketch
       sketch = Srtrize(sketch);

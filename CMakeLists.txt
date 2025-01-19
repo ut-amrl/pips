@@ -1,5 +1,9 @@
-project(c++-pips)
 cmake_minimum_required(VERSION 3.10.2)
+# Specify the compilers
+set(CMAKE_C_COMPILER "/usr/bin/gcc-9")
+set(CMAKE_CXX_COMPILER "/usr/bin/g++-9")
+
+project(c++-pips)
 
 # Tell CMake where it can find our custom .cmake files
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/submodules/")
